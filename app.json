@@ -1,30 +1,59 @@
 {
   "expo": {
-    "name": "temp-expo-app",
-    "slug": "temp-expo-app",
+    "name": "JustDoIt",
+    "slug": "justdoit",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "ios": {
       "supportsTablet": true
+    },
+    "experiments": {
+      "reactCompiler": true,
+      "typedRoutes": true
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#FDFBF9"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.justdoit.app",
+      "useNextNotificationsApi": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "react-native-bootsplash",
+        {
+          "assetsDir": "assets/bootsplash",
+          "android": {
+            "parentTheme": "EdgeToEdge",
+            "darkContentBarsStyle": true
+          }
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow $(PRODUCT_NAME) to use the microphone for voice input.",
+          "speechRecognitionPermission": "Allow $(PRODUCT_NAME) to use speech recognition for voice input."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#F28C28",
+          "sounds": [],
+          "defaultChannel": "default"
+        }
+      ]
+    ]
   }
 }
