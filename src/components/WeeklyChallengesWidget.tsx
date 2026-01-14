@@ -24,7 +24,7 @@ const CHALLENGE_ICONS: Record<ChallengeType, string> = {
   category_focus: 'folder-outline',
   streak_maintenance: 'fire',
   priority_completion: 'star-outline',
-  early_completion: 'clock-outline',
+  early_completion: 'weather-sunset-up',
   subgoal_completion: 'checkbox-marked-circle-outline',
 };
 

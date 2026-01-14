@@ -57,6 +57,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   focusModeEnabled: false,
   carryForwardEnabled: true,
   calendarIntegrationEnabled: false,
+  gamificationEnabled: true,
 };
 
 /**

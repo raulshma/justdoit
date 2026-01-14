@@ -7,6 +7,7 @@ import type { Challenge } from '../types/challenge';
 import { challengeService } from '../services/challengeService';
 import { ChallengeCard } from '../components/ChallengeCard';
 import { ChallengeCompleteModal } from '../components/ChallengeCompleteModal';
+import { ThemedIcon } from '../components/ThemedIcon';
 
 type FilterOption = 'active' | 'completed' | 'expired';
 
@@ -240,9 +241,13 @@ export const ChallengesScreen: React.FC = () => {
           </View>
         ) : (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>
-              {filter === 'active' ? '🎯' : filter === 'completed' ? '🏆' : '⏰'}
-            </Text>
+            <View style={{ marginBottom: 16 }}>
+              <ThemedIcon 
+                name={filter === 'active' ? 'target' : filter === 'completed' ? 'trophy' : 'clock-outline'} 
+                size={48} 
+                color={theme.colors.onSurfaceVariant} 
+              />
+            </View>
             <Text
               variant="titleMedium"
               style={[styles.emptyTitle, { color: theme.colors.onSurface }]}
@@ -271,7 +276,12 @@ export const ChallengesScreen: React.FC = () => {
           style={[styles.infoCard, { backgroundColor: theme.colors.surfaceVariant }]}
           elevation={0}
         >
-          <Text style={styles.infoIcon}>💡</Text>
+          <ThemedIcon 
+            name="lightbulb-outline" 
+            size={24} 
+            color={theme.colors.onSurface} 
+            style={{ marginRight: 8 }} 
+          />
           <View style={styles.infoContent}>
             <Text
               variant="titleSmall"

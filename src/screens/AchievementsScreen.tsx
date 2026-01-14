@@ -5,7 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Badge, BadgeCategory, UnlockedBadge } from '../types/badge';
 import { achievementService, BadgeProgress as BadgeProgressType } from '../services/achievementService';
-import { BadgeCard, BadgeUnlockModal } from '../components';
+import { BadgeCard, BadgeUnlockModal, ThemedIcon } from '../components';
 
 type FilterOption = 'all' | 'unlocked' | 'locked';
 
@@ -14,10 +14,10 @@ type FilterOption = 'all' | 'unlocked' | 'locked';
  */
 const CATEGORY_ORDER: BadgeCategory[] = ['streak', 'completion', 'behavior', 'category'];
 const CATEGORY_NAMES: Record<BadgeCategory, string> = {
-  streak: '🔥 Streak',
-  completion: '🎯 Completion',
-  behavior: '⏰ Behavior',
-  category: '📁 Category',
+  streak: 'Streak',
+  completion: 'Completion',
+  behavior: 'Behavior',
+  category: 'Category',
 };
 
 /**
@@ -258,9 +258,13 @@ export const AchievementsScreen: React.FC = () => {
         {filter !== 'all' &&
           Object.values(groupedBadges).every((badges) => badges.length === 0) && (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>
-                {filter === 'unlocked' ? '🔒' : '🏆'}
-              </Text>
+              <View style={{ marginBottom: 16 }}>
+                <ThemedIcon 
+                  name={filter === 'unlocked' ? 'lock' : 'trophy'} 
+                  size={48} 
+                  color={theme.colors.onSurfaceVariant} 
+                />
+              </View>
               <Text
                 variant="titleMedium"
                 style={[styles.emptyTitle, { color: theme.colors.onSurface }]}

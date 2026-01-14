@@ -720,7 +720,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
             >
               <ThemedIcon name="auto-fix" size={18} themeColor="primary" />
               <Text variant="labelLarge" style={{ color: theme.colors.primary, marginLeft: 8, fontWeight: '600' }}>
-                ✨ AI Assist
+                AI Assist
               </Text>
             </TouchableOpacity>
           )}

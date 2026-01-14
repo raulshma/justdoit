@@ -68,6 +68,7 @@ export const MotivationalBanner: React.FC<MotivationalBannerProps> = ({
           <Text
             variant="bodyLarge"
             style={[styles.quote, { color: theme.colors.onSurface }]}
+            numberOfLines={3}
           >
             {`"${currentQuote.quote}"`}
           </Text>
@@ -99,7 +100,7 @@ const styles = StyleSheet.create({
   content: {
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 40, // Reduced from 100
+    height: 70, // Fixed height to prevent layout shifts
   },
   quote: {
     textAlign: 'center',

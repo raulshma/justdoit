@@ -14,6 +14,7 @@ import { challengeService } from '../services/challengeService';
 import { personalBestService } from '../services/personalBestService';
 import { achievementService } from '../services/achievementService';
 import { xpService } from '../services/xpService';
+import { useSettings } from '../context/SettingsContext';
 import {
   CompletionChart,
   StreakDisplay,
@@ -36,6 +37,7 @@ import { ChallengeCard } from '../components/ChallengeCard';
 export const StatisticsScreen: React.FC<StatisticsScreenProps> = () => {
   const theme = useTheme();
   const navigation = useNavigation();
+  const { settings } = useSettings();
   const [stats, setStats] = useState<Statistics>({
     todayCompleted: 0,
     todayTotal: 0,
@@ -153,24 +155,26 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = () => {
         />
       </View>
       
-      {/* XP and Level Section - Requirements: 6.6 */}
-      <Surface style={[styles.xpSection, { backgroundColor: theme.colors.primaryContainer }]} elevation={0}>
-        <View style={styles.xpHeader}>
-          <XPDisplay totalXP={totalXP} currentLevel={currentLevel} />
-        </View>
-        <View style={styles.levelProgressWrapper}>
-          <LevelProgress
-            currentLevel={currentLevel}
-            currentXP={levelProgress.current}
-            requiredXP={levelProgress.required}
-            percentage={levelProgress.percentage}
-            compact
-          />
-        </View>
-      </Surface>
+      {/* XP and Level Section - Requirements: 6.6 (only when gamification enabled) */}
+      {settings.gamificationEnabled && (
+        <Surface style={[styles.xpSection, { backgroundColor: theme.colors.primaryContainer }]} elevation={0}>
+          <View style={styles.xpHeader}>
+            <XPDisplay totalXP={totalXP} currentLevel={currentLevel} />
+          </View>
+          <View style={styles.levelProgressWrapper}>
+            <LevelProgress
+              currentLevel={currentLevel}
+              currentXP={levelProgress.current}
+              requiredXP={levelProgress.required}
+              percentage={levelProgress.percentage}
+              compact
+            />
+          </View>
+        </Surface>
+      )}
       
-      {/* XP History Section - Requirements: 6.6 */}
-      {xpHistory.length > 0 && (
+      {/* XP History Section - Requirements: 6.6 (only when gamification enabled) */}
+      {settings.gamificationEnabled && xpHistory.length > 0 && (
         <View style={styles.xpHistorySection}>
           <View style={styles.sectionHeader}>
             <Text
@@ -232,12 +236,13 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = () => {
         </View>
       )}
       
-      {/* Badge Showcase Section - Requirements: 6.6 */}
-      <View style={styles.badgeShowcaseSection}>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('Achievements')}
-          activeOpacity={0.7}
-        >
+      {/* Badge Showcase Section - Requirements: 6.6 (only when gamification enabled) */}
+      {settings.gamificationEnabled && (
+        <View style={styles.badgeShowcaseSection}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Achievements')}
+            activeOpacity={0.7}
+          >
           <View style={styles.sectionHeader}>
             <Text
               variant="titleMedium"
@@ -286,7 +291,8 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = () => {
             </TouchableOpacity>
           </Surface>
         )}
-      </View>
+        </View>
+      )}
 
       {/* Main Stats Grid */}
       <View style={styles.gridSection}>
@@ -330,8 +336,8 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = () => {
         <InsightsSection stats={stats} />
       </View>
 
-      {/* Weekly Challenges Section - Requirements: 7.3 */}
-      {activeChallenges.length > 0 && (
+      {/* Weekly Challenges Section - Requirements: 7.3 (only when gamification enabled) */}
+      {settings.gamificationEnabled && activeChallenges.length > 0 && (
         <View style={styles.challengesSection}>
           <TouchableOpacity
             onPress={() => navigation.navigate('Challenges')}
@@ -362,8 +368,8 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = () => {
         </View>
       )}
 
-      {/* Personal Bests Section - Requirements: 8.2, 8.9 */}
-      {personalBests.length > 0 && (
+      {/* Personal Bests Section - Requirements: 8.2, 8.9 (only when gamification enabled) */}
+      {settings.gamificationEnabled && personalBests.length > 0 && (
         <View style={styles.personalBestsSection}>
           <View style={styles.sectionHeader}>
             <Text

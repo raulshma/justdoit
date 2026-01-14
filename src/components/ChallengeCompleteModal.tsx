@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated, Easing } from 'react-native';
 import { Portal, Modal, Text, Button, useTheme } from 'react-native-paper';
+import { ThemedIcon } from './ThemedIcon';
 import type { Challenge, ChallengeType } from '../types/challenge';
 
 interface ChallengeCompleteModalProps {
@@ -16,12 +17,12 @@ interface ChallengeCompleteModalProps {
  * Icons for each challenge type
  */
 const CHALLENGE_ICONS: Record<ChallengeType, string> = {
-  completion_count: '🎯',
-  category_focus: '📁',
-  streak_maintenance: '🔥',
-  priority_completion: '⭐',
-  early_completion: '🌅',
-  subgoal_completion: '✅',
+  completion_count: 'target',
+  category_focus: 'folder-outline',
+  streak_maintenance: 'fire',
+  priority_completion: 'star-outline',
+  early_completion: 'weather-sunset-up',
+  subgoal_completion: 'checkbox-marked-circle-outline',
 };
 
 /**
@@ -197,7 +198,11 @@ export const ChallengeCompleteModal: React.FC<ChallengeCompleteModalProps> = ({
               { backgroundColor: theme.colors.primaryContainer },
             ]}
           >
-            <Text style={styles.emoji}>{icon}</Text>
+            <ThemedIcon 
+              name={icon as any} 
+              size={48} 
+              color={theme.colors.onPrimaryContainer} 
+            />
           </View>
 
           <Text
@@ -228,7 +233,11 @@ export const ChallengeCompleteModal: React.FC<ChallengeCompleteModalProps> = ({
               { backgroundColor: theme.colors.tertiaryContainer },
             ]}
           >
-            <Text style={styles.xpIcon}>✨</Text>
+            <ThemedIcon 
+              name="star-four-points" 
+              size={24} 
+              color={theme.colors.onTertiaryContainer} 
+            />
             <Text
               variant="headlineSmall"
               style={[styles.xpText, { color: theme.colors.onTertiaryContainer }]}

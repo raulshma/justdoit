@@ -3,6 +3,7 @@ import { View, StyleSheet, SectionList, SectionListData } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import type { Goal } from '../types/goal';
 import { GoalCard } from './GoalCard';
+import { ThemedIcon } from './ThemedIcon';
 
 interface GoalListProps {
   goals: Goal[];
@@ -92,11 +93,14 @@ const EmptyState: React.FC = () => {
 
   return (
     <View style={styles.emptyContainer}>
+      <View style={{ marginBottom: 16 }}>
+        <ThemedIcon name="star-face" size={64} color={theme.colors.primary} />
+      </View>
       <Text
         variant="headlineSmall"
         style={[styles.emptyTitle, { color: theme.colors.primary }]}
       >
-        No goals yet! 🌟
+        No goals yet!
       </Text>
       <Text
         variant="bodyLarge"

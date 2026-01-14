@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, Surface, useTheme } from 'react-native-paper';
+import { ThemedIcon } from './ThemedIcon';
 import type { Badge, UnlockedBadge } from '../types/badge';
 
 interface BadgeCardProps {
@@ -69,7 +70,11 @@ export const BadgeCard: React.FC<BadgeCardProps> = ({
             },
           ]}
         >
-          <Text style={styles.compactIcon}>{badge.icon}</Text>
+          <ThemedIcon 
+            name={badge.icon as any} 
+            size={24} 
+            color={isUnlocked ? theme.colors.onPrimaryContainer : theme.colors.onSurfaceVariant} 
+          />
         </View>
       </TouchableOpacity>
     );
@@ -103,9 +108,12 @@ export const BadgeCard: React.FC<BadgeCardProps> = ({
               },
             ]}
           >
-            <Text style={[styles.icon, !isUnlocked && styles.lockedIcon]}>
-              {badge.icon}
-            </Text>
+            <ThemedIcon 
+              name={badge.icon as any} 
+              size={28} 
+              color={isUnlocked ? theme.colors.onPrimaryContainer : theme.colors.onSurfaceVariant}
+              style={!isUnlocked && styles.lockedIcon}
+            />
             {!isUnlocked && (
               <View style={[styles.lockOverlay, { backgroundColor: theme.colors.surfaceVariant }]}>
                 <Text style={styles.lockIcon}>🔒</Text>

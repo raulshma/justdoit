@@ -318,6 +318,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = () => {
     await saveSettings({ calendarIntegrationEnabled: newEnabled }, newEnabled ? 'Calendar ON' : 'Calendar OFF');
   }, [settings, saveSettings]);
 
+  const handleGamificationToggle = useCallback(async () => {
+    const newEnabled = !settings.gamificationEnabled;
+    await saveSettings({ gamificationEnabled: newEnabled }, newEnabled ? 'Gamification ON' : 'Gamification OFF');
+  }, [settings, saveSettings]);
+
   const handleSaveApiKey = useCallback(async () => {
     setShowApiKeyModal(false);
     if (apiKeyInput.trim()) {
@@ -599,11 +604,23 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = () => {
               icon="calendar-sync"
               title="Calendar Integration"
               subtitle="Show calendar events on goals page"
-              isLast={true}
               right={
                 <Switch
                   value={settings.calendarIntegrationEnabled}
                   onValueChange={handleCalendarToggle}
+                  color={theme.colors.primary}
+                />
+              }
+            />
+            <SettingRow
+              icon="trophy-outline"
+              title="Gamification"
+              subtitle="XP, badges, challenges & personal bests"
+              isLast={true}
+              right={
+                <Switch
+                  value={settings.gamificationEnabled}
+                  onValueChange={handleGamificationToggle}
                   color={theme.colors.primary}
                 />
               }

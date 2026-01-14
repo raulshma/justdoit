@@ -61,4 +61,6 @@ export interface AppSettings {
   carryForwardEnabled: boolean;
   /** Enable calendar integration to show calendar events on goals page */
   calendarIntegrationEnabled: boolean;
+  /** Enable gamification features (XP, badges, challenges, personal bests) */
+  gamificationEnabled: boolean;
 }

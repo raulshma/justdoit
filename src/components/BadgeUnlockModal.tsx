@@ -7,6 +7,7 @@ import {
   Button,
   useTheme,
 } from 'react-native-paper';
+import { ThemedIcon } from './ThemedIcon';
 import type { Badge } from '../types/badge';
 
 interface BadgeUnlockModalProps {
@@ -245,7 +246,11 @@ export const BadgeUnlockModal: React.FC<BadgeUnlockModalProps> = ({
                 },
               ]}
             >
-              <Text style={styles.badgeIcon}>{badge.icon}</Text>
+              <ThemedIcon 
+                name={badge.icon as any} 
+                size={48} 
+                color={theme.colors.onPrimaryContainer} 
+              />
             </Animated.View>
           </View>
 

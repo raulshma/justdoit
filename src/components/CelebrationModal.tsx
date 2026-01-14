@@ -7,6 +7,7 @@ import {
   Button,
   useTheme,
 } from 'react-native-paper';
+import { ThemedIcon } from './ThemedIcon';
 
 interface CelebrationModalProps {
   visible: boolean;
@@ -178,7 +179,12 @@ export const CelebrationModal: React.FC<CelebrationModalProps> = ({
             },
           ]}
         >
-          <Text style={styles.emoji}>🎉</Text>
+          <ThemedIcon 
+            name="party-popper" 
+            size={64} 
+            color={theme.colors.primary} 
+            style={{ marginBottom: 16 }} 
+          />
           
           <Text
             variant="headlineMedium"

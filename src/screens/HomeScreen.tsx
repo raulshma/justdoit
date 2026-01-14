@@ -358,10 +358,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                   </Text>
                 </View>
                 
-                {/* XP Display - Compact */}
-                <TouchableOpacity onPress={handleOpenAchievements} activeOpacity={0.7}>
-                  <XPDisplay totalXP={totalXP} currentLevel={currentLevel} compact />
-                </TouchableOpacity>
+                {/* XP Display - Compact (only when gamification enabled) */}
+                {settings.gamificationEnabled && (
+                  <TouchableOpacity onPress={handleOpenAchievements} activeOpacity={0.7}>
+                    <XPDisplay totalXP={totalXP} currentLevel={currentLevel} compact />
+                  </TouchableOpacity>
+                )}
               </View>
               
               <Text variant="headlineMedium" style={[styles.headerSubtitle, { color: theme.colors.onSurfaceVariant }]}>
@@ -376,20 +378,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 })()}
               </Text>
               
-              {/* Level Progress Bar */}
-              <View style={styles.levelProgressContainer}>
-                <LevelProgress
-                  currentLevel={currentLevel}
-                  currentXP={levelProgress.current}
-                  requiredXP={levelProgress.required}
-                  percentage={levelProgress.percentage}
-                  compact
-                />
-              </View>
+              {/* Level Progress Bar (only when gamification enabled) */}
+              {settings.gamificationEnabled && (
+                <View style={styles.levelProgressContainer}>
+                  <LevelProgress
+                    currentLevel={currentLevel}
+                    currentXP={levelProgress.current}
+                    requiredXP={levelProgress.required}
+                    percentage={levelProgress.percentage}
+                    compact
+                  />
+                </View>
+              )}
             </View>
             
-            {/* Streak with Multiplier Indicator - Requirements: 6.6 */}
-            {currentStreak > 0 && (
+            {/* Streak with Multiplier Indicator - Requirements: 6.6 (only when gamification enabled) */}
+            {settings.gamificationEnabled && currentStreak > 0 && (
               <Surface style={[styles.streakCard, { backgroundColor: theme.colors.primaryContainer }]} elevation={0}>
                 <View style={styles.streakContent}>
                   <ThemedIcon name="fire" size={24} color={theme.colors.primary} />
@@ -445,15 +449,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           </View>
         }
         ListFooterComponent={
-          /* Active Challenges - Moved to Bottom */
-          <View style={{ marginTop: 24, marginBottom: 80 }}>
-            <WeeklyChallengesWidget 
+          /* Active Challenges - Moved to Bottom (only when gamification enabled) */
+          settings.gamificationEnabled ? (
+            <View style={{ marginTop: 24, marginBottom: 80 }}>
+              <WeeklyChallengesWidget 
               challenges={activeChallenges}
               onPress={handleOpenChallenges}
               onLongPress={handleChallengeLongPress}
               onLongPressEnd={handleChallengeLongPressEnd}
             />
           </View>
+          ) : <View style={{ marginBottom: 80 }} />
         }
         scrollEnabled={!quickViewVisible && !challengeQuickViewVisible}
       />
@@ -464,11 +470,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         visible
         icon={fabOpen ? 'close' : 'plus'}
         actions={[
-          {
+          ...(settings.gamificationEnabled ? [{
             icon: 'trophy-outline',
             label: 'Challenges',
             onPress: handleOpenChallenges,
-          },
+          }] : []),
           {
             icon: 'file-document-outline',
             label: 'From Template',
