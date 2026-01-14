@@ -12,4 +12,5 @@ export * from './templateService';
 export * from './xpService';
 export * from './achievementService';
 export * from './challengeService';
+export * from './personalBestService';
 export * from './aiLogService';

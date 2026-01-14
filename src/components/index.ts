@@ -55,5 +55,9 @@ export { BadgeUnlockModal } from './BadgeUnlockModal';
 export { ChallengeCard } from './ChallengeCard';
 export { ChallengeCompleteModal } from './ChallengeCompleteModal';
 
+// Personal Best components
+export { PersonalBestCard } from './PersonalBestCard';
+export { NewPersonalBestModal } from './NewPersonalBestModal';
+
 // AI components
 export { AIAssistantPanel } from './AIAssistantPanel';

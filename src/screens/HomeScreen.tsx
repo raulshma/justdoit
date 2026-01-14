@@ -1,16 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, RefreshControl } from 'react-native';
-import { FAB, useTheme, Snackbar, Text } from 'react-native-paper';
+import { View, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
+import { FAB, useTheme, Snackbar, Text, Surface } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { HomeScreenProps } from '../navigation/types';
-import type { Goal } from '../types';
+import type { Goal, Challenge } from '../types';
 import { goalManager } from '../services';
+import { useCategories } from '../context/CategoryContext';
+import { useGamification } from '../context/GamificationContext';
+import { useStatistics } from '../context/StatisticsContext';
 import {
   GoalList,
   MotivationalBanner,
   CelebrationModal,
   GoalQuickView,
+  CategoryFilter,
+  XPDisplay,
+  LevelProgress,
+  ThemedIcon,
 } from '../components';
 
 /**
@@ -32,12 +39,25 @@ const getTomorrowDate = (): string => {
 /**
  * HomeScreen - Main screen displaying today's and tomorrow's goals
  * Shows motivational banner, goal list, and celebration modal
+ * Includes category filter, XP/level display, challenges preview, and streak indicator
  * 
- * Requirements: 2.1, 6.1, 3.4, 9.4
+ * Requirements: 1.4, 2.1, 6.1, 6.6, 7.3, 3.4, 9.4
  */
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const theme = useTheme();
+  const { categories } = useCategories();
+  const { 
+    getTotalXP, 
+    getCurrentLevel, 
+    getLevelProgress, 
+    getActiveChallenges,
+    getStreakMultiplier,
+  } = useGamification();
+  const { statistics, calculateStreak } = useStatistics();
+  
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [filteredGoals, setFilteredGoals] = useState<Goal[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [todayCompletedCount, setTodayCompletedCount] = useState(0);
@@ -50,6 +70,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   
   // FAB state
   const [fabOpen, setFabOpen] = useState(false);
+  
+  // Gamification state
+  const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([]);
+  const [currentStreak, setCurrentStreak] = useState(0);
 
   /**
    * Load goals from storage
@@ -72,6 +96,30 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     const todayGoals = allGoals.filter((goal) => goal.dueDate === today);
     const completedToday = todayGoals.filter((goal) => goal.isCompleted).length;
     setTodayCompletedCount(completedToday);
+    
+    // Load gamification data
+    setActiveChallenges(getActiveChallenges());
+    setCurrentStreak(calculateStreak());
+  }, [getActiveChallenges, calculateStreak]);
+  
+  /**
+   * Filter goals by selected category
+   * Requirements: 1.4
+   */
+  useEffect(() => {
+    if (selectedCategoryId === null) {
+      setFilteredGoals(goals);
+    } else {
+      setFilteredGoals(goals.filter(goal => goal.categoryId === selectedCategoryId));
+    }
+  }, [goals, selectedCategoryId]);
+  
+  /**
+   * Handle category filter selection
+   * Requirements: 1.4
+   */
+  const handleCategorySelect = useCallback((categoryId: string | null) => {
+    setSelectedCategoryId(categoryId);
   }, []);
 
   /**
@@ -169,6 +217,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     setFabOpen(false);
     navigation.navigate('Challenges');
   }, [navigation]);
+  
+  /**
+   * Handle achievements press - navigate to achievements screen
+   * Requirements: 5.2
+   */
+  const handleOpenAchievements = useCallback(() => {
+    navigation.navigate('Achievements');
+  }, [navigation]);
 
   /**
    * Dismiss celebration modal
@@ -204,11 +260,28 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     setTimeout(() => setQuickViewGoal(null), 200);
   }, []);
 
+  /**
+   * Get streak multiplier text
+   */
+  const getStreakMultiplierText = useCallback(() => {
+    const multiplier = getStreakMultiplier(currentStreak);
+    if (multiplier > 1) {
+      return `${multiplier}x XP`;
+    }
+    return null;
+  }, [currentStreak, getStreakMultiplier]);
+
+  // Get gamification data
+  const totalXP = getTotalXP();
+  const currentLevel = getCurrentLevel();
+  const levelProgress = getLevelProgress();
+  const streakMultiplierText = getStreakMultiplierText();
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {/* Goal List with Header - Requirements: 2.1, 9.4 */}
+      {/* Goal List with Header - Requirements: 1.4, 2.1, 6.6, 7.3, 9.4 */}
       <GoalList
-        goals={goals}
+        goals={filteredGoals}
         onToggleComplete={handleToggleComplete}
         onGoalPress={handleGoalPress}
         onDeleteGoal={handleDeleteGoal}
@@ -218,22 +291,33 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         onRefresh={handleRefresh}
         ListHeaderComponent={
           <View>
+            {/* XP/Level Display in Header - Requirements: 6.6 */}
             <View style={styles.headerContainer}>
-              <Text variant="labelMedium" style={[styles.dateLabel, { color: theme.colors.primary }]}>
-                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()}
-              </Text>
-              <Text variant="displaySmall" style={[styles.headerTitle, { color: theme.colors.onSurface }]}>
-                {(() => {
-                  const hour = new Date().getHours();
-                  if (hour < 12) return 'Good Morning,';
-                  if (hour < 18) return 'Good Afternoon,';
-                  return 'Good Evening,';
-                })()}
-              </Text>
+              <View style={styles.headerTop}>
+                <View style={styles.headerLeft}>
+                  <Text variant="labelMedium" style={[styles.dateLabel, { color: theme.colors.primary }]}>
+                    {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()}
+                  </Text>
+                  <Text variant="displaySmall" style={[styles.headerTitle, { color: theme.colors.onSurface }]}>
+                    {(() => {
+                      const hour = new Date().getHours();
+                      if (hour < 12) return 'Good Morning,';
+                      if (hour < 18) return 'Good Afternoon,';
+                      return 'Good Evening,';
+                    })()}
+                  </Text>
+                </View>
+                
+                {/* XP Display - Compact */}
+                <TouchableOpacity onPress={handleOpenAchievements} activeOpacity={0.7}>
+                  <XPDisplay totalXP={totalXP} currentLevel={currentLevel} compact />
+                </TouchableOpacity>
+              </View>
+              
               <Text variant="headlineMedium" style={[styles.headerSubtitle, { color: theme.colors.onSurfaceVariant }]}>
                 {(() => {
                   const today = getTodayDate();
-                  const todayGoals = goals.filter(g => g.dueDate === today);
+                  const todayGoals = filteredGoals.filter(g => g.dueDate === today);
                   const remaining = todayGoals.filter(g => !g.isCompleted).length;
                   
                   if (todayGoals.length === 0) return "Ready to start?";
@@ -241,7 +325,87 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                   return `You have ${remaining} goals left.`;
                 })()}
               </Text>
+              
+              {/* Level Progress Bar */}
+              <View style={styles.levelProgressContainer}>
+                <LevelProgress
+                  currentLevel={currentLevel}
+                  currentXP={levelProgress.current}
+                  requiredXP={levelProgress.required}
+                  percentage={levelProgress.percentage}
+                  compact
+                />
+              </View>
             </View>
+            
+            {/* Streak with Multiplier Indicator - Requirements: 6.6 */}
+            {currentStreak > 0 && (
+              <Surface style={[styles.streakCard, { backgroundColor: theme.colors.primaryContainer }]} elevation={0}>
+                <View style={styles.streakContent}>
+                  <ThemedIcon name="fire" size={24} color={theme.colors.primary} />
+                  <Text variant="titleMedium" style={[styles.streakText, { color: theme.colors.onPrimaryContainer }]}>
+                    {currentStreak} day streak
+                  </Text>
+                  {streakMultiplierText && (
+                    <View style={[styles.multiplierBadge, { backgroundColor: theme.colors.primary }]}>
+                      <Text variant="labelSmall" style={[styles.multiplierText, { color: theme.colors.onPrimary }]}>
+                        {streakMultiplierText}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </Surface>
+            )}
+            
+            {/* Active Challenges Preview - Requirements: 7.3 */}
+            {activeChallenges.length > 0 && (
+              <TouchableOpacity onPress={handleOpenChallenges} activeOpacity={0.7}>
+                <Surface style={[styles.challengesCard, { backgroundColor: theme.colors.tertiaryContainer }]} elevation={0}>
+                  <View style={styles.challengesHeader}>
+                    <ThemedIcon name="trophy-outline" size={20} color={theme.colors.onTertiaryContainer} />
+                    <Text variant="titleSmall" style={[styles.challengesTitle, { color: theme.colors.onTertiaryContainer }]}>
+                      Weekly Challenges
+                    </Text>
+                    <ThemedIcon name="chevron-right" size={20} color={theme.colors.onTertiaryContainer} />
+                  </View>
+                  <View style={styles.challengesList}>
+                    {activeChallenges.slice(0, 2).map((challenge) => (
+                      <View key={challenge.id} style={styles.challengeItem}>
+                        <Text 
+                          variant="bodySmall" 
+                          style={[styles.challengeText, { color: theme.colors.onTertiaryContainer }]}
+                          numberOfLines={1}
+                        >
+                          {challenge.title}
+                        </Text>
+                        <Text 
+                          variant="labelSmall" 
+                          style={[styles.challengeProgress, { color: theme.colors.onTertiaryContainer }]}
+                        >
+                          {challenge.current}/{challenge.target}
+                        </Text>
+                      </View>
+                    ))}
+                    {activeChallenges.length > 2 && (
+                      <Text 
+                        variant="labelSmall" 
+                        style={[styles.moreText, { color: theme.colors.onTertiaryContainer }]}
+                      >
+                        +{activeChallenges.length - 2} more
+                      </Text>
+                    )}
+                  </View>
+                </Surface>
+              </TouchableOpacity>
+            )}
+            
+            {/* Category Filter Chips - Requirements: 1.4 */}
+            <CategoryFilter
+              selectedCategoryId={selectedCategoryId}
+              onSelectCategory={handleCategorySelect}
+              showAllOption
+            />
+            
             <MotivationalBanner />
           </View>
         }
@@ -307,9 +471,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerContainer: {
-    paddingHorizontal: 20, // Increased padding
-    marginTop: 24, // More top margin
+    paddingHorizontal: 20,
+    marginTop: 24,
     marginBottom: 16,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 4,
+  },
+  headerLeft: {
+    flex: 1,
   },
   dateLabel: {
     letterSpacing: 1.5,
@@ -325,8 +498,70 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontWeight: '400',
     opacity: 0.8,
-    fontSize: 24, // Larger subtitle
+    fontSize: 24,
     lineHeight: 32,
+  },
+  levelProgressContainer: {
+    marginTop: 12,
+  },
+  streakCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 16,
+    padding: 12,
+  },
+  streakContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  streakText: {
+    fontWeight: '700',
+    flex: 1,
+  },
+  multiplierBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  multiplierText: {
+    fontWeight: '700',
+  },
+  challengesCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 16,
+    padding: 12,
+  },
+  challengesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  challengesTitle: {
+    fontWeight: '700',
+    flex: 1,
+  },
+  challengesList: {
+    gap: 4,
+  },
+  challengeItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  challengeText: {
+    flex: 1,
+    opacity: 0.9,
+  },
+  challengeProgress: {
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  moreText: {
+    opacity: 0.7,
+    marginTop: 4,
   },
   fab: {
     position: 'absolute',
@@ -335,7 +570,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
   },
   snackbar: {
-    marginBottom: 80, // Above FAB
+    marginBottom: 80,
   },
 });
 
