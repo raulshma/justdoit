@@ -7,7 +7,7 @@ import * as Notifications from 'expo-notifications';
 import BootSplash from 'react-native-bootsplash';
 import SplashScreen from './src/screens/SplashScreen';
 
-import { GoalProvider, SettingsProvider, StatisticsProvider, useSettings } from './src/context';
+import { GoalProvider, SettingsProvider, StatisticsProvider, CategoryProvider, GamificationProvider, useSettings } from './src/context';
 import { AppNavigator } from './src/navigation';
 import { getTheme } from './src/theme';
 import { notificationService, carryForwardService } from './src/services';
@@ -145,11 +145,15 @@ export default function App() {
   return (
     <SettingsProvider>
       <GoalProvider>
-        <StatisticsProvider>
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <AppContent />
-          </GestureHandlerRootView>
-        </StatisticsProvider>
+        <CategoryProvider>
+          <GamificationProvider>
+            <StatisticsProvider>
+              <GestureHandlerRootView style={{ flex: 1 }}>
+                <AppContent />
+              </GestureHandlerRootView>
+            </StatisticsProvider>
+          </GamificationProvider>
+        </CategoryProvider>
       </GoalProvider>
     </SettingsProvider>
   );
