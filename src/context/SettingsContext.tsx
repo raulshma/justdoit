@@ -56,6 +56,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   smartRemindersEnabled: false,
   focusModeEnabled: false,
   carryForwardEnabled: true,
+  calendarIntegrationEnabled: false,
 };
 
 /**

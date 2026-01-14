@@ -59,4 +59,6 @@ export interface AppSettings {
   focusModeEnabled: boolean;
   /** Enable auto carry-forward of incomplete goals */
   carryForwardEnabled: boolean;
+  /** Enable calendar integration to show calendar events on goals page */
+  calendarIntegrationEnabled: boolean;
 }

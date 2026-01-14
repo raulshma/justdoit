@@ -145,7 +145,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   const gestureState = useSharedValue(STATE_IDLE);
 
   // Timers
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const startLongPressTimer = () => {
     timerRef.current = setTimeout(() => {

@@ -14,3 +14,4 @@ export * from './achievementService';
 export * from './challengeService';
 export * from './personalBestService';
 export * from './aiLogService';
+export * from './calendarService';

@@ -7,6 +7,7 @@ export * from './category';
 export * from './subgoal';
 export * from './template';
 export * from './postpone';
+export * from './calendar';
 
 // Gamification feature types
 export * from './badge';

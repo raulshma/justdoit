@@ -170,7 +170,7 @@ const LogEntryCard = memo(({
               </Text>
             </View>
 
-            {entry.response.success && entry.response.data && (
+            {entry.response.success && entry.response.data !== undefined && (
               <>
                 <Text variant="labelMedium" style={{ color: theme.colors.primary, marginTop: 12 }}>
                   Response
@@ -178,7 +178,7 @@ const LogEntryCard = memo(({
                 <View style={[styles.codeBox, { backgroundColor: theme.colors.surfaceVariant + '50' }]}>
                   <Text variant="bodySmall" style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
                     {(() => {
-                      const jsonStr = JSON.stringify(entry.response.data, null, 2);
+                      const jsonStr = JSON.stringify(entry.response.data as Record<string, unknown>, null, 2);
                       return jsonStr.slice(0, 500) + (jsonStr.length > 500 ? '...' : '');
                     })()}
                   </Text>

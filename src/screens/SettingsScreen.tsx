@@ -17,7 +17,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { SettingsScreenProps } from '../navigation/types';
 import type { AppSettings, ColorPalette } from '../types';
-import { notificationService, aiLogService } from '../services';
+import { notificationService, aiLogService, calendarService } from '../services';
 import { colorPaletteInfoList, themeMoods, getPalettesByMood } from '../theme/colors';
 import type { ThemeMood } from '../types/settings';
 import { useSettings } from '../context/SettingsContext';
@@ -301,6 +301,23 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = () => {
     await saveSettings({ carryForwardEnabled: newEnabled }, newEnabled ? 'Carry Forward ON' : 'Carry Forward OFF');
   }, [settings, saveSettings]);
 
+  const handleCalendarToggle = useCallback(async () => {
+    const newEnabled = !settings.calendarIntegrationEnabled;
+    
+    if (newEnabled) {
+      // Request calendar permissions
+      const status = await calendarService.requestPermissions();
+      if (status !== 'granted') {
+        setSnackbarMessage('Calendar permission denied');
+        setSnackbarVisible(true);
+        return;
+      }
+      calendarService.clearCache();
+    }
+    
+    await saveSettings({ calendarIntegrationEnabled: newEnabled }, newEnabled ? 'Calendar ON' : 'Calendar OFF');
+  }, [settings, saveSettings]);
+
   const handleSaveApiKey = useCallback(async () => {
     setShowApiKeyModal(false);
     if (apiKeyInput.trim()) {
@@ -570,11 +587,23 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = () => {
               icon="arrow-right-bold"
               title="Carry Forward"
               subtitle="Auto-move incomplete goals to today"
-              isLast={true}
               right={
                 <Switch
                   value={settings.carryForwardEnabled}
                   onValueChange={handleCarryForwardToggle}
+                  color={theme.colors.primary}
+                />
+              }
+            />
+            <SettingRow
+              icon="calendar-sync"
+              title="Calendar Integration"
+              subtitle="Show calendar events on goals page"
+              isLast={true}
+              right={
+                <Switch
+                  value={settings.calendarIntegrationEnabled}
+                  onValueChange={handleCalendarToggle}
                   color={theme.colors.primary}
                 />
               }

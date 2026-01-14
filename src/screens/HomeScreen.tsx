@@ -4,11 +4,12 @@ import { FAB, useTheme, Snackbar, Text, Surface } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { HomeScreenProps } from '../navigation/types';
-import type { Goal, Challenge } from '../types';
-import { goalManager } from '../services';
+import type { Goal, Challenge, CalendarEvent } from '../types';
+import { goalManager, calendarService } from '../services';
 import { useCategories } from '../context/CategoryContext';
 import { useGamification } from '../context/GamificationContext';
 import { useStatistics } from '../context/StatisticsContext';
+import { useSettings } from '../context/SettingsContext';
 import {
   GoalList,
   MotivationalBanner,
@@ -18,6 +19,7 @@ import {
   XPDisplay,
   LevelProgress,
   ThemedIcon,
+  CalendarEventCard,
 } from '../components';
 
 /**
@@ -46,6 +48,7 @@ const getTomorrowDate = (): string => {
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const theme = useTheme();
   const { categories } = useCategories();
+  const { settings } = useSettings();
   const { 
     getTotalXP, 
     getCurrentLevel, 
@@ -74,6 +77,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   // Gamification state
   const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([]);
   const [currentStreak, setCurrentStreak] = useState(0);
+  
+  // Calendar state
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
 
   /**
    * Load goals from storage
@@ -101,6 +107,29 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     setActiveChallenges(getActiveChallenges());
     setCurrentStreak(calculateStreak());
   }, [getActiveChallenges, calculateStreak]);
+
+  /**
+   * Load calendar events for today
+   */
+  const loadCalendarEvents = useCallback(async () => {
+    if (!settings.calendarIntegrationEnabled) {
+      setCalendarEvents([]);
+      return;
+    }
+    
+    try {
+      const today = getTodayDate();
+      const events = await calendarService.getEventsForDate(today);
+      // Sort events by start time
+      const sortedEvents = events.sort((a, b) => 
+        a.startDate.getTime() - b.startDate.getTime()
+      );
+      setCalendarEvents(sortedEvents);
+    } catch (error) {
+      console.error('Failed to load calendar events:', error);
+      setCalendarEvents([]);
+    }
+  }, [settings.calendarIntegrationEnabled]);
   
   /**
    * Filter goals by selected category
@@ -128,7 +157,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   useFocusEffect(
     useCallback(() => {
       loadGoals();
-    }, [loadGoals])
+      loadCalendarEvents();
+    }, [loadGoals, loadCalendarEvents])
   );
 
   /**
@@ -137,8 +167,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     loadGoals();
+    await loadCalendarEvents();
     setRefreshing(false);
-  }, [loadGoals]);
+  }, [loadGoals, loadCalendarEvents]);
 
   /**
    * Handle goal completion toggle
@@ -398,6 +429,32 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 </Surface>
               </TouchableOpacity>
             )}
+
+            {/* Calendar Events Section */}
+            {settings.calendarIntegrationEnabled && calendarEvents.length > 0 && (
+              <View style={styles.calendarSection}>
+                <View style={styles.calendarHeader}>
+                  <ThemedIcon name="calendar-today" size={18} color={theme.colors.primary} />
+                  <Text variant="titleSmall" style={[styles.calendarTitle, { color: theme.colors.onSurface }]}>
+                    Today's Calendar
+                  </Text>
+                  <Text variant="labelSmall" style={[styles.calendarCount, { color: theme.colors.onSurfaceVariant }]}>
+                    {calendarEvents.length} event{calendarEvents.length !== 1 ? 's' : ''}
+                  </Text>
+                </View>
+                {calendarEvents.slice(0, 3).map((event) => (
+                  <CalendarEventCard key={event.id} event={event} />
+                ))}
+                {calendarEvents.length > 3 && (
+                  <Text 
+                    variant="labelSmall" 
+                    style={[styles.calendarMoreText, { color: theme.colors.onSurfaceVariant }]}
+                  >
+                    +{calendarEvents.length - 3} more events
+                  </Text>
+                )}
+              </View>
+            )}
             
             {/* Category Filter Chips - Requirements: 1.4 */}
             <CategoryFilter
@@ -562,6 +619,29 @@ const styles = StyleSheet.create({
   moreText: {
     opacity: 0.7,
     marginTop: 4,
+  },
+  calendarSection: {
+    marginBottom: 12,
+  },
+  calendarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 8,
+    gap: 8,
+  },
+  calendarTitle: {
+    fontWeight: '600',
+    flex: 1,
+  },
+  calendarCount: {
+    opacity: 0.7,
+  },
+  calendarMoreText: {
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: 8,
+    opacity: 0.7,
   },
   fab: {
     position: 'absolute',

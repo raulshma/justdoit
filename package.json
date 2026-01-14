@@ -20,6 +20,7 @@
     "ai": "^6.0.34",
     "expo": "~54.0.31",
     "expo-blur": "^15.0.8",
+    "expo-calendar": "~15.0.8",
     "expo-crypto": "^15.0.8",
     "expo-dev-client": "~6.0.20",
     "expo-notifications": "^0.32.16",

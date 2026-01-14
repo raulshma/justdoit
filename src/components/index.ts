@@ -30,6 +30,9 @@ export { PostponedIndicator } from './PostponedIndicator';
 export { TemplateCard } from './TemplateCard';
 export { TemplatePreview } from './TemplatePreview';
 
+// Calendar components
+export { CalendarEventCard } from './CalendarEventCard';
+
 // Motivational components
 export { MotivationalBanner } from './MotivationalBanner';
 export { CelebrationModal } from './CelebrationModal';
