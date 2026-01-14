@@ -85,36 +85,38 @@ export const MotivationalBanner: React.FC<MotivationalBannerProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingHorizontal: 20, // Align with goal lists
+    paddingTop: 8,
     paddingBottom: 8,
   },
   pill: {
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 30, // Pill shape
+    paddingVertical: 10, // Compact height
+    paddingHorizontal: 16,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   content: {
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 100,
+    minHeight: 40, // Reduced from 100
   },
   quote: {
     textAlign: 'center',
     fontStyle: 'italic',
-    lineHeight: 24,
+    lineHeight: 18,
+    fontSize: 13, // Smaller font
     fontWeight: '400',
-    marginBottom: 4,
-    letterSpacing: 0.2,
+    marginBottom: 2,
+    opacity: 0.9,
   },
   author: {
     textAlign: 'center',
     fontWeight: '700',
-    letterSpacing: 1,
+    fontSize: 10,
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
-    opacity: 0.8,
+    opacity: 0.7,
   },
 });
 

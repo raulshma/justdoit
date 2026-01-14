@@ -1,4 +1,3 @@
-// Goal components
 export { GoalCard } from './GoalCard';
 export { GoalList } from './GoalList';
 export { GoalQuickView } from './GoalQuickView';
@@ -57,6 +56,8 @@ export { BadgeUnlockModal } from './BadgeUnlockModal';
 // Challenge components
 export { ChallengeCard } from './ChallengeCard';
 export { ChallengeCompleteModal } from './ChallengeCompleteModal';
+export { WeeklyChallengesWidget } from './WeeklyChallengesWidget';
+export { ChallengeQuickView } from './ChallengeQuickView';
 
 // Personal Best components
 export { PersonalBestCard } from './PersonalBestCard';

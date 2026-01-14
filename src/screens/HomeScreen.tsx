@@ -20,6 +20,8 @@ import {
   LevelProgress,
   ThemedIcon,
   CalendarEventCard,
+  WeeklyChallengesWidget,
+  ChallengeQuickView,
 } from '../components';
 
 /**
@@ -70,6 +72,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   // Quick View state
   const [quickViewGoal, setQuickViewGoal] = useState<Goal | null>(null);
   const [quickViewVisible, setQuickViewVisible] = useState(false);
+  
+  // Challenge Quick View state
+  const [quickViewChallenge, setQuickViewChallenge] = useState<Challenge | null>(null);
+  const [challengeQuickViewVisible, setChallengeQuickViewVisible] = useState(false);
   
   // FAB state
   const [fabOpen, setFabOpen] = useState(false);
@@ -292,6 +298,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   }, []);
 
   /**
+   * Handle challenge long press
+   */
+  const handleChallengeLongPress = useCallback((challenge: Challenge) => {
+    setQuickViewChallenge(challenge);
+    setChallengeQuickViewVisible(true);
+  }, []);
+
+  const handleChallengeLongPressEnd = useCallback(() => {
+    setChallengeQuickViewVisible(false);
+    setTimeout(() => setQuickViewChallenge(null), 200);
+  }, []);
+
+  /**
    * Get streak multiplier text
    */
   const getStreakMultiplierText = useCallback(() => {
@@ -389,47 +408,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             )}
             
             {/* Active Challenges Preview - Requirements: 7.3 */}
-            {activeChallenges.length > 0 && (
-              <TouchableOpacity onPress={handleOpenChallenges} activeOpacity={0.7}>
-                <Surface style={[styles.challengesCard, { backgroundColor: theme.colors.tertiaryContainer }]} elevation={0}>
-                  <View style={styles.challengesHeader}>
-                    <ThemedIcon name="trophy-outline" size={20} color={theme.colors.onTertiaryContainer} />
-                    <Text variant="titleSmall" style={[styles.challengesTitle, { color: theme.colors.onTertiaryContainer }]}>
-                      Weekly Challenges
-                    </Text>
-                    <ThemedIcon name="chevron-right" size={20} color={theme.colors.onTertiaryContainer} />
-                  </View>
-                  <View style={styles.challengesList}>
-                    {activeChallenges.slice(0, 2).map((challenge) => (
-                      <View key={challenge.id} style={styles.challengeItem}>
-                        <Text 
-                          variant="bodySmall" 
-                          style={[styles.challengeText, { color: theme.colors.onTertiaryContainer }]}
-                          numberOfLines={1}
-                        >
-                          {challenge.title}
-                        </Text>
-                        <Text 
-                          variant="labelSmall" 
-                          style={[styles.challengeProgress, { color: theme.colors.onTertiaryContainer }]}
-                        >
-                          {challenge.current}/{challenge.target}
-                        </Text>
-                      </View>
-                    ))}
-                    {activeChallenges.length > 2 && (
-                      <Text 
-                        variant="labelSmall" 
-                        style={[styles.moreText, { color: theme.colors.onTertiaryContainer }]}
-                      >
-                        +{activeChallenges.length - 2} more
-                      </Text>
-                    )}
-                  </View>
-                </Surface>
-              </TouchableOpacity>
-            )}
-
             {/* Calendar Events Section */}
             {settings.calendarIntegrationEnabled && calendarEvents.length > 0 && (
               <View style={styles.calendarSection}>
@@ -466,7 +444,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             <MotivationalBanner />
           </View>
         }
-        scrollEnabled={!quickViewVisible}
+        ListFooterComponent={
+          /* Active Challenges - Moved to Bottom */
+          <View style={{ marginTop: 24, marginBottom: 80 }}>
+            <WeeklyChallengesWidget 
+              challenges={activeChallenges}
+              onPress={handleOpenChallenges}
+              onLongPress={handleChallengeLongPress}
+              onLongPressEnd={handleChallengeLongPressEnd}
+            />
+          </View>
+        }
+        scrollEnabled={!quickViewVisible && !challengeQuickViewVisible}
       />
 
       {/* FAB Group for adding goals - Requirements: 3.1, 7.3 */}
@@ -518,6 +507,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         goal={quickViewGoal}
         visible={quickViewVisible}
         onDismiss={handleLongPressEnd}
+      />
+      
+      <ChallengeQuickView
+        challenge={quickViewChallenge}
+        visible={challengeQuickViewVisible}
+        onDismiss={handleChallengeLongPressEnd}
       />
     </SafeAreaView>
   );
@@ -583,42 +578,6 @@ const styles = StyleSheet.create({
   },
   multiplierText: {
     fontWeight: '700',
-  },
-  challengesCard: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderRadius: 16,
-    padding: 12,
-  },
-  challengesHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  challengesTitle: {
-    fontWeight: '700',
-    flex: 1,
-  },
-  challengesList: {
-    gap: 4,
-  },
-  challengeItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  challengeText: {
-    flex: 1,
-    opacity: 0.9,
-  },
-  challengeProgress: {
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  moreText: {
-    opacity: 0.7,
-    marginTop: 4,
   },
   calendarSection: {
     marginBottom: 12,

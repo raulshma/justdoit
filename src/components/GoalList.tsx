@@ -159,6 +159,7 @@ const SectionHeader: React.FC<{ title: string; isToday: boolean }> = ({
  */
 export const GoalList: React.FC<GoalListProps & { 
   ListHeaderComponent?: React.ReactElement | null;
+  ListFooterComponent?: React.ReactElement | null;
   refreshing?: boolean;
   onRefresh?: () => void;
 }> = ({
@@ -169,6 +170,7 @@ export const GoalList: React.FC<GoalListProps & {
   onLongPress,
   onLongPressEnd,
   ListHeaderComponent,
+  ListFooterComponent,
   refreshing,
   onRefresh,
   scrollEnabled = true,
@@ -184,6 +186,7 @@ export const GoalList: React.FC<GoalListProps & {
       <View style={{ flex: 1 }}>
         {ListHeaderComponent}
         <EmptyState />
+        {ListFooterComponent}
       </View>
     );
   }
@@ -221,6 +224,7 @@ export const GoalList: React.FC<GoalListProps & {
       showsVerticalScrollIndicator={false}
       ItemSeparatorComponent={() => <View style={styles.separator} />}
       ListHeaderComponent={ListHeaderComponent}
+      ListFooterComponent={ListFooterComponent}
       refreshing={refreshing}
       onRefresh={onRefresh}
       scrollEnabled={scrollEnabled}

@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { Text, useTheme, Surface } from 'react-native-paper';
+import { Text, useTheme } from 'react-native-paper';
 import { ThemedIcon } from './ThemedIcon';
-import { Category } from '../types';
 import { useCategories } from '../context/CategoryContext';
 
 interface CategoryFilterProps {
@@ -30,36 +29,30 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   const isAllSelected = selectedCategoryId === null || selectedCategoryId === undefined;
 
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.scrollContent}
-      style={styles.container}
-    >
-      {/* "All" option */}
-      {showAllOption && (
-        <TouchableOpacity
-          onPress={() => onSelectCategory(null)}
-          activeOpacity={0.7}
-        >
-          <Surface
+    <View style={styles.container}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        style={styles.scrollView}
+      >
+        {/* "All" option */}
+        {showAllOption && (
+          <TouchableOpacity
+            onPress={() => onSelectCategory(null)}
+            activeOpacity={0.7}
             style={[
               styles.chip,
               {
                 backgroundColor: isAllSelected
                   ? theme.colors.primary
-                  : theme.colors.surface,
-                borderColor: isAllSelected
-                  ? theme.colors.primary
-                  : theme.colors.outline,
-                borderWidth: isAllSelected ? 0 : 1,
-                elevation: isAllSelected ? 2 : 0,
+                  : theme.colors.surfaceVariant,
               },
             ]}
           >
             <ThemedIcon
               name="view-grid-outline"
-              size={14}
+              size={18}
               color={
                 isAllSelected
                   ? theme.colors.onPrimary
@@ -73,93 +66,90 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                   color: isAllSelected
                     ? theme.colors.onPrimary
                     : theme.colors.onSurfaceVariant,
-                  fontWeight: isAllSelected ? '700' : '500',
+                  fontWeight: '600',
                 },
               ]}
             >
               All
             </Text>
-          </Surface>
-        </TouchableOpacity>
-      )}
+          </TouchableOpacity>
+        )}
 
-      {/* Category chips */}
-      {categories.map((category) => {
-        const isSelected = selectedCategoryId === category.id;
-
-        return (
-          <TouchableOpacity
-            key={category.id}
-            onPress={() => onSelectCategory(category.id)}
-            activeOpacity={0.7}
-          >
-            <Surface
+        {/* Category chips */}
+        {categories.map((category) => {
+          const isSelected = selectedCategoryId === category.id;
+          
+          return (
+            <TouchableOpacity
+              key={category.id}
+              onPress={() => onSelectCategory(category.id)}
+              activeOpacity={0.7}
               style={[
                 styles.chip,
                 {
                   backgroundColor: isSelected
                     ? category.color
-                    : theme.colors.surface,
-                  borderColor: isSelected ? category.color : theme.colors.outline,
-                  borderWidth: isSelected ? 0 : 1,
-                  elevation: isSelected ? 2 : 0,
+                    : theme.colors.surfaceVariant,
                 },
               ]}
             >
-              <View
-                style={[
-                  styles.colorDot,
-                  {
-                    backgroundColor: isSelected
-                      ? theme.colors.surface
-                      : category.color,
-                  },
-                ]}
-              />
+              {!isSelected && (
+                <View
+                  style={[
+                    styles.colorDot,
+                    {
+                      backgroundColor: category.color,
+                    },
+                  ]}
+                />
+              )}
               <Text
                 style={[
                   styles.chipText,
                   {
                     color: isSelected
-                      ? theme.colors.surface
+                      ? '#FFFFFF' // Assuming category colors are dark/vibrant enough for white text, or should use contrast calculation
                       : theme.colors.onSurfaceVariant,
-                    fontWeight: isSelected ? '700' : '500',
+                    fontWeight: '600',
                   },
                 ]}
               >
                 {category.name}
               </Text>
-            </Surface>
-          </TouchableOpacity>
-        );
-      })}
-    </ScrollView>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 8,
+    marginBottom: 8,
+  },
+  scrollView: {
+    flexGrow: 0,
   },
   scrollContent: {
-    paddingHorizontal: 16,
-    gap: 8,
+    paddingHorizontal: 20,
+    gap: 8, // Tighter gap
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 6, // Compact
     paddingHorizontal: 12,
-    borderRadius: 20,
+    borderRadius: 16, // Smaller radius
     gap: 6,
   },
   colorDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   chipText: {
-    fontSize: 12,
+    fontSize: 12, // Smaller text
     letterSpacing: 0.2,
   },
 });

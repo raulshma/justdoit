@@ -439,11 +439,11 @@ const styles = StyleSheet.create({
   surface: {
     borderRadius: 24,
     overflow: 'hidden',
-    elevation: 0,
+    elevation: 2,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 }, // Slightly deeper
+    shadowOpacity: 0.08, // Slightly more visible but still soft
+    shadowRadius: 12, // Softer spread
   },
   contentRow: {
     flexDirection: 'row',
