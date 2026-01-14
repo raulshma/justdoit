@@ -1,11 +1,13 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
-import { useFocusEffect } from '@react-navigation/native';
+import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
+import { Text, useTheme, Surface } from 'react-native-paper';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { StatisticsScreenProps } from '../navigation/types';
 import type { Statistics } from '../types';
+import type { Challenge } from '../types/challenge';
 import { statisticsService } from '../services';
+import { challengeService } from '../services/challengeService';
 import {
   CompletionChart,
   StreakDisplay,
@@ -13,14 +15,16 @@ import {
   MotivationalBanner,
   InsightsSection,
 } from '../components';
+import { ChallengeCard } from '../components/ChallengeCard';
 
 /**
  * StatisticsScreen - Displays high-fidelity progress metrics and analytics
  * 
- * Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6
+ * Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 7.3
  */
 export const StatisticsScreen: React.FC<StatisticsScreenProps> = () => {
   const theme = useTheme();
+  const navigation = useNavigation();
   const [stats, setStats] = useState<Statistics>({
     todayCompleted: 0,
     todayTotal: 0,
@@ -34,14 +38,23 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = () => {
     peakHours: [],
     lowPerformanceDays: [],
   });
+  const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
   /**
-   * Load statistics
+   * Load statistics and challenges
    */
   const loadStatistics = useCallback(() => {
     const calculatedStats = statisticsService.calculateTodayStats();
     setStats(calculatedStats);
+
+    // Load active challenges
+    challengeService.expireOldChallenges();
+    if (challengeService.shouldGenerateNewChallenges()) {
+      challengeService.generateWeeklyChallenges();
+    }
+    const challenges = challengeService.getActiveChallenges();
+    setActiveChallenges(challenges.filter((c) => c.status === 'active'));
   }, []);
 
   /**
@@ -137,6 +150,38 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = () => {
         <InsightsSection stats={stats} />
       </View>
 
+      {/* Weekly Challenges Section - Requirements: 7.3 */}
+      {activeChallenges.length > 0 && (
+        <View style={styles.challengesSection}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Challenges')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.sectionHeader}>
+              <Text
+                variant="titleMedium"
+                style={[styles.sectionTitle, { color: theme.colors.onSurface }]}
+              >
+                Weekly Challenges
+              </Text>
+              <Text
+                variant="labelMedium"
+                style={[styles.sectionLink, { color: theme.colors.primary }]}
+              >
+                View All →
+              </Text>
+            </View>
+          </TouchableOpacity>
+          {activeChallenges.slice(0, 2).map((challenge) => (
+            <ChallengeCard
+              key={challenge.id}
+              challenge={challenge}
+              onPress={() => navigation.navigate('Challenges')}
+            />
+          ))}
+        </View>
+      )}
+
       {/* Footer Quote */}
       <View style={styles.footer}>
         <MotivationalBanner />
@@ -194,6 +239,23 @@ const styles = StyleSheet.create({
   },
   insightsSection: {
     paddingHorizontal: 16,
+  },
+  challengesSection: {
+    marginTop: 24,
+    marginBottom: 8,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontWeight: '700',
+  },
+  sectionLink: {
+    fontWeight: '600',
   },
   footer: {
     marginBottom: 20,

@@ -54,6 +54,9 @@ export type RootStackParamList = {
   GoalForm: GoalFormParams | undefined;
   ModelSelection: undefined;
   Templates: undefined;
+  Achievements: undefined;
+  Challenges: undefined;
+  Logs: undefined;
 };
 
 /**

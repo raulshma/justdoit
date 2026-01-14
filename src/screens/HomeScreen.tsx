@@ -162,6 +162,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   }, [navigation]);
 
   /**
+   * Handle challenges press - navigate to challenges screen
+   * Requirements: 7.3
+   */
+  const handleOpenChallenges = useCallback(() => {
+    setFabOpen(false);
+    navigation.navigate('Challenges');
+  }, [navigation]);
+
+  /**
    * Dismiss celebration modal
    */
   const handleDismissCelebration = useCallback(() => {
@@ -239,12 +248,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         scrollEnabled={!quickViewVisible}
       />
 
-      {/* FAB Group for adding goals - Requirements: 3.1 */}
+      {/* FAB Group for adding goals - Requirements: 3.1, 7.3 */}
       <FAB.Group
         open={fabOpen}
         visible
         icon={fabOpen ? 'close' : 'plus'}
         actions={[
+          {
+            icon: 'trophy-outline',
+            label: 'Challenges',
+            onPress: handleOpenChallenges,
+          },
           {
             icon: 'file-document-outline',
             label: 'From Template',

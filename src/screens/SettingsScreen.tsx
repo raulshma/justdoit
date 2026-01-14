@@ -17,7 +17,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { SettingsScreenProps } from '../navigation/types';
 import type { AppSettings, ColorPalette } from '../types';
-import { notificationService } from '../services';
+import { notificationService, aiLogService } from '../services';
 import { colorPaletteInfoList, themeMoods, getPalettesByMood } from '../theme/colors';
 import type { ThemeMood } from '../types/settings';
 import { useSettings } from '../context/SettingsContext';
@@ -521,13 +521,26 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = () => {
                   icon="brain"
                   title="Smart Reminders"
                   subtitle="AI suggests optimal reminder times"
-                  isLast={true}
                   right={
                     <Switch
                       value={settings.smartRemindersEnabled}
                       onValueChange={handleSmartRemindersToggle}
                       color={theme.colors.primary}
                     />
+                  }
+                />
+                <SettingRow
+                  icon="file-document-outline"
+                  title="View AI Logs"
+                  subtitle="Debug AI requests & responses"
+                  isLast={true}
+                  onPress={() => navigation.navigate('Logs' as never)}
+                  right={
+                     <View style={[styles.smallBadge, { backgroundColor: theme.colors.surfaceVariant }]}>
+                       <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                         {aiLogService.getLogCount()}
+                       </Text>
+                     </View>
                   }
                 />
               </>

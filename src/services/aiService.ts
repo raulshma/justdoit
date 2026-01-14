@@ -1,6 +1,8 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { generateText } from 'ai';
 import { storageService } from './storageService';
+import { aiLogService } from './aiLogService';
+import type { AIGoalAnalysis, Category, Goal } from '../types';
 
 /**
  * OpenRouter model architecture information
@@ -67,6 +69,12 @@ export interface IAIService {
     goalDescription: string | undefined,
     completionPatterns: string
   ): Promise<ReminderSuggestion | null>;
+  analyzeGoal(
+    goalTitle: string,
+    goalDescription: string | undefined,
+    categories: Category[],
+    existingGoals: Goal[]
+  ): Promise<AIGoalAnalysis | null>;
 }
 
 /**
@@ -235,6 +243,129 @@ Respond in this exact JSON format:
   clearCache(): void {
     this.cachedModels = null;
     this.modelsCacheTime = 0;
+  }
+
+  /**
+   * Analyze a goal using AI to suggest subgoals, clarity improvements, category, and related goals
+   */
+  async analyzeGoal(
+    goalTitle: string,
+    goalDescription: string | undefined,
+    categories: Category[],
+    existingGoals: Goal[]
+  ): Promise<AIGoalAnalysis | null> {
+    const apiKey = this.getApiKey();
+    if (!apiKey) {
+      return null;
+    }
+
+    const startTime = Date.now();
+    const model = this.getSelectedModel();
+
+    // Build category list for the prompt
+    const categoryList = categories.map(c => `- ${c.id}: ${c.name}`).join('\n');
+
+    // Build existing goals list (limit to 50 most recent to avoid token overflow)
+    const recentGoals = existingGoals.slice(0, 50);
+    const goalsList = recentGoals.map(g => `- [${g.id}] ${g.title}`).join('\n');
+
+    const prompt = `You are an AI assistant helping users break down and improve their goals.
+
+Analyze this goal and provide:
+1. 3-5 suggested subgoals/steps to accomplish it (mark key milestones)
+2. If the goal is vague, suggest a clearer, more actionable version
+3. Suggest the best matching category from the available list
+4. Identify any related or potentially duplicate goals from the user's existing goals
+
+Goal Title: ${goalTitle}
+Goal Description: ${goalDescription || 'No description provided'}
+
+Available Categories:
+${categoryList}
+
+User's Existing Goals:
+${goalsList || 'No existing goals'}
+
+Respond ONLY with this exact JSON format (no markdown, no extra text):
+{
+  "suggestedSubgoals": [
+    { "title": "Step description", "isMilestone": false },
+    { "title": "Key milestone step", "isMilestone": true }
+  ],
+  "clarifiedGoal": {
+    "title": "Clearer goal title",
+    "description": "Improved description",
+    "rationale": "Why this is clearer"
+  },
+  "suggestedCategory": {
+    "categoryId": "category-id",
+    "categoryName": "Category Name",
+    "confidence": "high|medium|low",
+    "reason": "Why this category fits"
+  },
+  "relatedGoals": [
+    {
+      "goalId": "existing-goal-id",
+      "goalTitle": "Existing goal title",
+      "relationship": "duplicate|dependency|related",
+      "reason": "Why it's related"
+    }
+  ]
+}
+
+If the goal is already clear, set clarifiedGoal to null.
+If no related goals exist, set relatedGoals to empty array [].
+Always suggest at least 3 subgoals.`;
+
+    try {
+      const openrouter = createOpenRouter({ apiKey });
+      const aiModel = openrouter(model);
+
+      const { text } = await generateText({
+        model: aiModel,
+        prompt,
+      });
+
+      // Parse the JSON response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        const durationMs = Date.now() - startTime;
+        aiLogService.log({
+          type: 'goal_analysis',
+          request: { prompt, model, goalTitle },
+          response: { success: false, error: 'Failed to parse JSON response' },
+          durationMs,
+        });
+        return null;
+      }
+
+      const result = JSON.parse(jsonMatch[0]) as AIGoalAnalysis;
+      const durationMs = Date.now() - startTime;
+
+      // Log successful request
+      aiLogService.log({
+        type: 'goal_analysis',
+        request: { prompt, model, goalTitle },
+        response: { success: true, data: result },
+        durationMs,
+      });
+
+      return result;
+    } catch (error) {
+      const durationMs = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      // Log failed request
+      aiLogService.log({
+        type: 'goal_analysis',
+        request: { prompt, model, goalTitle },
+        response: { success: false, error: errorMessage },
+        durationMs,
+      });
+
+      console.error('Failed to analyze goal:', error);
+      return null;
+    }
   }
 }
 

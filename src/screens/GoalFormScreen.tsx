@@ -19,14 +19,16 @@ import {
 } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { GoalFormScreenProps, GoalFormMode } from '../navigation/types';
-import type { Priority, RecurrencePattern, Goal, Subgoal, SubgoalProgress } from '../types';
-import { goalManager, subgoalManager, templateService } from '../services';
+import type { Priority, RecurrencePattern, Goal, Subgoal, SubgoalProgress, AIGoalAnalysis, SuggestedSubgoal, ClarifiedGoal, CategorySuggestion } from '../types';
+import { goalManager, subgoalManager, templateService, aiService, categoryManager } from '../services';
+import { useSettings } from '../context/SettingsContext';
 import {
   PriorityPicker,
   RecurrencePicker,
   ReminderTimePicker,
   VoiceInputButton,
   SubgoalList,
+  AIAssistantPanel,
 } from '../components';
 import { ThemedIcon } from '../components/ThemedIcon';
 
@@ -97,6 +99,7 @@ const getRecurrenceLabel = (recurrence: RecurrencePattern): string => {
 export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, route }) => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { settings } = useSettings();
   
   // Determine if we're in add mode or viewing/editing an existing goal
   const goalId = route.params?.goalId;
@@ -132,6 +135,13 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
   const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [templateDescription, setTemplateDescription] = useState('');
+
+  // AI Assistant state
+  const [showAIPanel, setShowAIPanel] = useState(false);
+  const [aiLoading, setAILoading] = useState(false);
+  const [aiAnalysis, setAIAnalysis] = useState<AIGoalAnalysis | null>(null);
+  const [aiError, setAIError] = useState<string | null>(null);
+  const [addedSubgoalsFromAI, setAddedSubgoalsFromAI] = useState<Set<string>>(new Set());
 
   const isReadOnly = mode === 'view';
   const isEditing = mode === 'edit';
@@ -425,6 +435,92 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
   }, [goal, templateName, templateDescription]);
 
   /**
+   * Trigger AI analysis
+   */
+  const handleAIAnalysis = useCallback(async () => {
+    if (!title.trim()) {
+      Alert.alert('Enter a goal', 'Please enter a goal title first.');
+      return;
+    }
+
+    setShowAIPanel(true);
+    setAILoading(true);
+    setAIError(null);
+    setAIAnalysis(null);
+
+    try {
+      const categories = categoryManager.getCategories();
+      const existingGoals = goalManager.getAllGoals();
+      const result = await aiService.analyzeGoal(title, description, categories, existingGoals);
+
+      if (result) {
+        setAIAnalysis(result);
+      } else {
+        setAIError('AI analysis unavailable. Check your API key in Settings.');
+      }
+    } catch (error) {
+      setAIError('Failed to analyze goal. Please try again.');
+    } finally {
+      setAILoading(false);
+    }
+  }, [title, description]);
+
+  /**
+   * Apply suggested subgoal from AI
+   */
+  const handleApplyAISubgoal = useCallback((subgoal: SuggestedSubgoal) => {
+    if (!goalId) {
+      // For new goals, we can't add subgoals yet - they need to be saved first
+      Alert.alert(
+        'Save Goal First',
+        'Save the goal first, then you can add the suggested steps.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    try {
+      subgoalManager.createSubgoal(goalId, subgoal.title, subgoal.isMilestone);
+      setAddedSubgoalsFromAI(prev => new Set([...prev, subgoal.title]));
+      refreshSubgoals();
+    } catch (error) {
+      console.error('Failed to add AI subgoal:', error);
+    }
+  }, [goalId, refreshSubgoals]);
+
+  /**
+   * Apply clarified goal from AI
+   */
+  const handleApplyClarifiedGoal = useCallback((clarified: ClarifiedGoal) => {
+    setTitle(clarified.title);
+    if (clarified.description) {
+      setDescription(clarified.description);
+    }
+    setShowAIPanel(false);
+  }, []);
+
+  /**
+   * Apply suggested category from AI
+   */
+  const handleApplyCategory = useCallback((category: CategorySuggestion) => {
+    // Category assignment would require adding categoryId to the goal form
+    // For now, just show feedback
+    Alert.alert(
+      'Category Suggestion',
+      `Suggested: ${category.categoryName}\n\nCategory selection coming soon!`,
+      [{ text: 'OK' }]
+    );
+  }, []);
+
+  /**
+   * View related goal
+   */
+  const handleViewRelatedGoal = useCallback((relatedGoalId: string) => {
+    setShowAIPanel(false);
+    navigation.push('GoalForm', { goalId: relatedGoalId, mode: 'view' });
+  }, [navigation]);
+
+  /**
    * Get header title based on mode
    */
   const headerTitle = useMemo(() => {
@@ -613,6 +709,35 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
               ) : null}
             </View>
           )}
+
+          {/* AI Assist Button - Only show in add/edit modes when AI is configured */}
+          {!isReadOnly && settings.openRouterApiKey && (
+            <TouchableOpacity
+              onPress={handleAIAnalysis}
+              disabled={aiLoading}
+              style={[styles.aiAssistButton, { backgroundColor: theme.colors.primaryContainer }]}
+              activeOpacity={0.7}
+            >
+              <ThemedIcon name="auto-fix" size={18} themeColor="primary" />
+              <Text variant="labelLarge" style={{ color: theme.colors.primary, marginLeft: 8, fontWeight: '600' }}>
+                ✨ AI Assist
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {/* AI Assistant Panel */}
+          <AIAssistantPanel
+            visible={showAIPanel}
+            loading={aiLoading}
+            analysis={aiAnalysis}
+            error={aiError}
+            onAddSubgoal={handleApplyAISubgoal}
+            onApplyClarifiedGoal={handleApplyClarifiedGoal}
+            onApplyCategory={handleApplyCategory}
+            onViewRelatedGoal={handleViewRelatedGoal}
+            onDismiss={() => setShowAIPanel(false)}
+            addedSubgoals={addedSubgoalsFromAI}
+          />
 
           <View style={[styles.divider, { backgroundColor: theme.colors.outline + '20' }]} />
 
@@ -1178,6 +1303,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: 12,
+  },
+  aiAssistButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    marginTop: 12,
+    alignSelf: 'flex-start',
   },
 });
 

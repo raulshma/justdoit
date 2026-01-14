@@ -10,3 +10,6 @@ export * from './subgoalManager';
 export * from './postponeService';
 export * from './templateService';
 export * from './xpService';
+export * from './achievementService';
+export * from './challengeService';
+export * from './aiLogService';

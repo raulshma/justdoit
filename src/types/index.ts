@@ -14,3 +14,6 @@ export * from './xp';
 export * from './challenge';
 export * from './personalBest';
 export * from './gamification';
+
+// AI feature types
+export * from './aiTypes';

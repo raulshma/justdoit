@@ -45,3 +45,15 @@ export { XPDisplay } from './XPDisplay';
 export { LevelProgress } from './LevelProgress';
 export { XPGainAnimation, useXPGainAnimation } from './XPGainAnimation';
 export { LevelUpModal } from './LevelUpModal';
+
+// Badge components
+export { BadgeCard } from './BadgeCard';
+export { BadgeProgress } from './BadgeProgress';
+export { BadgeUnlockModal } from './BadgeUnlockModal';
+
+// Challenge components
+export { ChallengeCard } from './ChallengeCard';
+export { ChallengeCompleteModal } from './ChallengeCompleteModal';
+
+// AI components
+export { AIAssistantPanel } from './AIAssistantPanel';

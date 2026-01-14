@@ -17,6 +17,9 @@ import {
   SettingsScreen,
   ModelSelectionScreen,
   TemplatesScreen,
+  AchievementsScreen,
+  ChallengesScreen,
+  LogsScreen,
 } from '../screens';
 
 // Create navigators
@@ -259,6 +262,36 @@ export function AppNavigator() {
       <RootStack.Screen
         name="Templates"
         component={TemplatesScreen}
+        options={{
+          presentation: 'pageSheet',
+          animation: 'slide_from_bottom',
+          animationDuration: 100,
+          headerShown: false,
+        }}
+      />
+      <RootStack.Screen
+        name="Achievements"
+        component={AchievementsScreen}
+        options={{
+          presentation: 'pageSheet',
+          animation: 'slide_from_bottom',
+          animationDuration: 100,
+          headerShown: false,
+        }}
+      />
+      <RootStack.Screen
+        name="Challenges"
+        component={ChallengesScreen}
+        options={{
+          presentation: 'pageSheet',
+          animation: 'slide_from_bottom',
+          animationDuration: 100,
+          headerShown: false,
+        }}
+      />
+      <RootStack.Screen
+        name="Logs"
+        component={LogsScreen}
         options={{
           presentation: 'pageSheet',
           animation: 'slide_from_bottom',
