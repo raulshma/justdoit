@@ -103,6 +103,7 @@ const ChallengeItem: React.FC<ChallengeItemProps> = ({
         gestureState.value = STATE_IDLE;
     });
 
+  /* ChallengeItem Component */
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
@@ -117,46 +118,62 @@ const ChallengeItem: React.FC<ChallengeItemProps> = ({
         style={[
           styles.card,
           { 
-            backgroundColor: theme.colors.surfaceVariant,
-            marginRight: index === total - 1 ? 20 : 10,
+            backgroundColor: theme.colors.surface, // Changed to surface for cleaner look
+            borderColor: isCompleted ? theme.colors.primary : theme.colors.outlineVariant,
+            borderWidth: 0.325,
+            marginRight: index === total - 1 ? 20 : 12,
             marginLeft: index === 0 ? 20 : 0
           },
           animatedStyle
         ]}
       >
         <View style={styles.cardHeader}>
-            <ThemedIcon 
-              name={iconName as any} 
-              size={18} 
-              color={isCompleted ? theme.colors.primary : theme.colors.onSurfaceVariant} 
-            />
-            <Text variant="labelSmall" style={[styles.progressText, { color: theme.colors.primary }]}>
-              {Math.round(progress)}%
-            </Text>
+            <View style={[
+              styles.iconWrapper, 
+              { backgroundColor: isCompleted ? theme.colors.primaryContainer : theme.colors.secondaryContainer }
+            ]}>
+              <ThemedIcon 
+                name={iconName as any} 
+                size={20} 
+                color={isCompleted ? theme.colors.primary : theme.colors.onSecondaryContainer} 
+              />
+            </View>
+            <View style={[styles.percentageBadge, { backgroundColor: theme.colors.surfaceVariant }]}>
+              <Text variant="labelSmall" style={[styles.progressText, { color: theme.colors.onSurfaceVariant }]}>
+                {Math.round(progress)}%
+              </Text>
+            </View>
         </View>
         
-        <Text 
-          variant="labelMedium" 
-          numberOfLines={1} 
-          style={[
-              styles.title, 
-              { color: theme.colors.onSurface }
-          ]}
-        >
-          {challenge.title}
-        </Text>
-
-        {/* Minimal Progress Bar */}
-        <View style={[styles.progressBarBg, { backgroundColor: theme.colors.surfaceDisabled }]}>
-          <View 
+        <View style={styles.textContainer}>
+          <Text 
+            variant="labelLarge" 
+            numberOfLines={2} 
             style={[
-              styles.progressBarFill, 
-              { 
-                backgroundColor: theme.colors.primary,
-                width: `${progress}%` 
-              }
-            ]} 
-          />
+                styles.title, 
+                { color: theme.colors.onSurface }
+            ]}
+          >
+            {challenge.title}
+          </Text>
+        </View>
+
+        <View style={styles.footer}>
+          <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 6, fontSize: 10 }}>
+             {challenge.current}/{challenge.target}
+          </Text>
+          {/* Minimal Progress Bar */}
+          <View style={[styles.progressBarBg, { backgroundColor: theme.colors.surfaceVariant }]}>
+            <View 
+              style={[
+                styles.progressBarFill, 
+                { 
+                  backgroundColor: isCompleted ? theme.colors.primary : theme.colors.primary,
+                  width: `${progress}%` 
+                }
+              ]} 
+            />
+          </View>
         </View>
       </Animated.View>
     </GestureDetector>
@@ -178,7 +195,8 @@ export const WeeklyChallengesWidget: React.FC<WeeklyChallengesWidgetProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text variant="titleSmall" style={[styles.headerTitle, { color: theme.colors.onSurfaceVariant }]}>WEEKLY CHALLENGES</Text>
+        <Text variant="titleMedium" style={[styles.headerTitle, { color: theme.colors.onSurface }]}>Weekly Challenges</Text>
+        <Text variant="labelSmall" style={{ color: theme.colors.primary }}>View All</Text>
       </View>
       
       <ScrollView
@@ -205,48 +223,70 @@ export const WeeklyChallengesWidget: React.FC<WeeklyChallengesWidgetProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 8,
+    marginBottom: 24,
   },
   header: {
     paddingHorizontal: 20,
-    marginBottom: 8,
+    marginBottom: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   headerTitle: {
     fontWeight: '700',
-    fontSize: 11,
-    letterSpacing: 1,
-    opacity: 0.8,
+    fontSize: 16,
   },
   scrollContent: {
     paddingRight: 20,
   },
   card: {
-    width: 130,
-    padding: 12,
-    borderRadius: 12,
-    gap: 8,
+    width: 150,
+    height: 160,
+    padding: 16,
+    borderRadius: 24,
+    justifyContent: 'space-between',
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  iconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
     alignItems: 'center',
+  },
+  percentageBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   progressText: {
     fontWeight: '700',
     fontSize: 10,
   },
+  textContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
   title: {
-    fontWeight: '600',
-    fontSize: 12,
+    fontWeight: '700',
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  footer: {
+    marginTop: 'auto',
   },
   progressBarBg: {
-    height: 4,
-    borderRadius: 2,
+    height: 6,
+    borderRadius: 3,
     overflow: 'hidden',
-    marginTop: 'auto',
   },
   progressBarFill: {
     height: '100%',
-    borderRadius: 2,
+    borderRadius: 3,
   },
 });

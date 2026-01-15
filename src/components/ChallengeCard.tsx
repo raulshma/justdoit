@@ -107,15 +107,18 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
       activeOpacity={0.7}
       disabled={!onPress}
     >
-      <Surface
+      <View
         style={[
           styles.surface,
           {
             backgroundColor: theme.colors.surface,
             opacity: isExpired ? 0.7 : 1,
+            borderWidth: 0.325,
+            borderColor: isCompleted 
+              ? theme.colors.primaryContainer 
+              : theme.colors.outlineVariant,
           },
         ]}
-        elevation={isCompleted ? 2 : 1}
       >
         <View style={styles.content}>
           {/* Challenge Icon */}
@@ -131,35 +134,65 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
               },
             ]}
           >
-            <ThemedIcon name={icon as any} size={28} />
+            <ThemedIcon 
+              name={icon as any} 
+              size={24} 
+              color={isCompleted ? theme.colors.primary : theme.colors.onTertiaryContainer}
+            />
             {isCompleted && (
               <View
                 style={[
                   styles.completedBadge,
-                  { backgroundColor: theme.colors.primary },
+                  { backgroundColor: theme.colors.primary, borderWidth: 2, borderColor: theme.colors.surface },
                 ]}
               >
-                <ThemedIcon name="check" size={12} color={theme.colors.onPrimary} />
+                <ThemedIcon name="check" size={10} color={theme.colors.onPrimary} />
               </View>
             )}
           </View>
 
           {/* Challenge Info */}
           <View style={styles.infoContainer}>
-            <Text
-              variant="titleSmall"
-              style={[
-                styles.title,
-                {
-                  color: isExpired
-                    ? theme.colors.onSurfaceVariant
-                    : theme.colors.onSurface,
-                },
-              ]}
-              numberOfLines={1}
-            >
-              {challenge.title}
-            </Text>
+            <View style={styles.headerRow}>
+              <Text
+                variant="titleSmall"
+                style={[
+                  styles.title,
+                  {
+                    color: isExpired
+                      ? theme.colors.onSurfaceVariant
+                      : theme.colors.onSurface,
+                    flex: 1,
+                  },
+                ]}
+                numberOfLines={1}
+              >
+                {challenge.title}
+              </Text>
+              
+              {/* XP Reward - Moved to top right */}
+              <View
+                style={[
+                  styles.xpBadge,
+                  {
+                    backgroundColor: theme.colors.surfaceVariant,
+                  },
+                ]}
+              >
+                <Text
+                  variant="labelSmall"
+                  style={[
+                    styles.xpText,
+                    {
+                      color: theme.colors.onSurfaceVariant,
+                    },
+                  ]}
+                >
+                  +{challenge.xpReward} XP
+                </Text>
+              </View>
+            </View>
+
             <Text
               variant="bodySmall"
               style={[styles.description, { color: theme.colors.onSurfaceVariant }]}
@@ -194,7 +227,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
                 variant="labelSmall"
                 style={[styles.progressText, { color: theme.colors.onSurfaceVariant }]}
               >
-                {challenge.current}/{challenge.target}
+                {Math.round(progress)}%
               </Text>
             </View>
 
@@ -205,7 +238,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
                   variant="labelSmall"
                   style={[styles.statusText, { color: theme.colors.primary }]}
                 >
-                  <ThemedIcon name="check" size={14} color={theme.colors.primary} style={{ marginRight: 4 }} /> Completed
+                  <ThemedIcon name="check-circle-outline" size={14} color={theme.colors.primary} style={{ marginRight: 4 }} /> Completed
                 </Text>
               ) : isExpired ? (
                 <Text
@@ -219,129 +252,109 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
                   variant="labelSmall"
                   style={[styles.statusText, { color: theme.colors.onSurfaceVariant }]}
                 >
-                  <ThemedIcon name="clock-outline" size={12} style={{ marginRight: 4 }} /> {formatEndDate(challenge.endDate)}
+                  <ThemedIcon name="clock-time-four-outline" size={12} style={{ marginRight: 4 }} /> {formatEndDate(challenge.endDate)}
                 </Text>
               )}
             </View>
           </View>
-
-          {/* XP Reward */}
-          <View
-            style={[
-              styles.xpBadge,
-              {
-                backgroundColor: isCompleted
-                  ? theme.colors.primaryContainer
-                  : theme.colors.tertiaryContainer,
-              },
-            ]}
-          >
-            <Text
-              variant="labelSmall"
-              style={[
-                styles.xpText,
-                {
-                  color: isCompleted
-                    ? theme.colors.onPrimaryContainer
-                    : theme.colors.onTertiaryContainer,
-                },
-              ]}
-            >
-              +{challenge.xpReward} XP
-            </Text>
-          </View>
         </View>
-      </Surface>
+      </View>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   surface: {
-    borderRadius: 16,
+    borderRadius: 20, // More rounded for modern feel
     marginHorizontal: 16,
     marginVertical: 6,
     overflow: 'hidden',
   },
   content: {
     flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    gap: 12,
+    alignItems: 'flex-start',
+    padding: 16,
+    gap: 16,
   },
   iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
-  },
-  icon: {
-    fontSize: 28,
   },
   completedBadge: {
     position: 'absolute',
     bottom: -2,
     right: -2,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 18,
+    height: 18, // Slightly smaller
+    borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  completedIcon: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-  },
   infoContainer: {
     flex: 1,
-    gap: 2,
+    gap: 6,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 2,
+    gap: 8,
   },
   title: {
     fontWeight: '700',
     letterSpacing: -0.2,
+    fontSize: 15,
+    flex: 1,
   },
   description: {
-    lineHeight: 16,
-    opacity: 0.8,
+    lineHeight: 18,
+    opacity: 0.7,
+    marginBottom: 8,
   },
   progressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 6,
+    gap: 10,
+    marginBottom: 8,
   },
   progressBar: {
     flex: 1,
-    height: 6,
-    borderRadius: 3,
+    height: 8,
+    borderRadius: 4,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 4,
   },
   progressText: {
     fontWeight: '600',
     minWidth: 40,
     textAlign: 'right',
+    fontSize: 11,
   },
   statusRow: {
-    marginTop: 4,
+    marginTop: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   statusText: {
     fontWeight: '600',
+    fontSize: 12,
   },
   xpBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingVertical: 2,
+    borderRadius: 12, // Pill shape
   },
   xpText: {
     fontWeight: '700',
-    fontSize: 11,
+    fontSize: 10,
   },
   compactContainer: {
     width: 64,
@@ -351,10 +364,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     margin: 4,
     padding: 8,
-  },
-  compactIcon: {
-    fontSize: 24,
-    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: 'transparent', // Prepare for border
   },
   compactProgress: {
     width: '100%',

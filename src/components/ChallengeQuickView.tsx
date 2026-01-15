@@ -87,11 +87,8 @@ export const ChallengeQuickView: React.FC<ChallengeQuickViewProps> = ({
   const cardStyle = useAnimatedStyle(() => ({
     transform: [{ scale: cardScale.value }],
     opacity: cardOpacity.value,
-    shadowOpacity: shadowOpacity.value * 0.15,
-    shadowRadius: shadowOpacity.value * 12,
-    shadowOffset: { width: 0, height: shadowOpacity.value * 4 },
-    shadowColor: '#000',
-    elevation: shadowOpacity.value * 3,
+    // Removed shadows as requested
+    elevation: 0, 
   }));
 
   if (!visible || !challenge) return null;
@@ -117,7 +114,17 @@ export const ChallengeQuickView: React.FC<ChallengeQuickViewProps> = ({
         style={[styles.cardContainer, cardStyle]}
         pointerEvents="none"
       >
-        <Surface style={[styles.card, { backgroundColor: theme.colors.surface }]} elevation={0}>
+        <Surface 
+          style={[
+            styles.card, 
+            { 
+              backgroundColor: theme.colors.surface,
+              borderWidth: 1,
+              borderColor: theme.colors.outlineVariant,
+            }
+          ]} 
+          elevation={0}
+        >
           {/* Header */}
           <View style={styles.header}>
             <View style={[

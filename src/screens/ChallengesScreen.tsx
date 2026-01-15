@@ -163,7 +163,14 @@ export const ChallengesScreen: React.FC = () => {
       >
         {/* Stats Card */}
         <Surface
-          style={[styles.statsCard, { backgroundColor: theme.colors.tertiaryContainer }]}
+          style={[
+            styles.statsCard, 
+            { 
+              backgroundColor: theme.colors.tertiaryContainer,
+              borderWidth: 1,
+              borderColor: 'rgba(0,0,0,0.05)', // Subtle border for container
+            }
+          ]}
           elevation={0}
         >
           <View style={styles.statsContent}>
@@ -181,7 +188,7 @@ export const ChallengesScreen: React.FC = () => {
                 Active
               </Text>
             </View>
-            <View style={styles.statDivider} />
+            <View style={[styles.statDivider, { backgroundColor: theme.colors.onTertiaryContainer, opacity: 0.1 }]} />
             <View style={styles.statItem}>
               <Text
                 variant="displaySmall"
@@ -196,7 +203,7 @@ export const ChallengesScreen: React.FC = () => {
                 Completed
               </Text>
             </View>
-            <View style={styles.statDivider} />
+            <View style={[styles.statDivider, { backgroundColor: theme.colors.onTertiaryContainer, opacity: 0.1 }]} />
             <View style={styles.statItem}>
               <Text
                 variant="displaySmall"
@@ -273,7 +280,14 @@ export const ChallengesScreen: React.FC = () => {
 
         {/* Info Section */}
         <Surface
-          style={[styles.infoCard, { backgroundColor: theme.colors.surfaceVariant }]}
+          style={[
+            styles.infoCard, 
+            { 
+              backgroundColor: theme.colors.surfaceVariant,
+              borderWidth: 1,
+              borderColor: theme.colors.outlineVariant,
+            }
+          ]}
           elevation={0}
         >
           <ThemedIcon 
