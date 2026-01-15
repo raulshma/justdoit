@@ -294,6 +294,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = () => {
     await saveSettings({ showTabBarLabels: newEnabled }, newEnabled ? 'Tab Labels ON' : 'Tab Labels OFF');
   }, [settings, saveSettings]);
 
+  const handleMinimalGoalsToggle = useCallback(async () => {
+    const newEnabled = !settings.minimalGoalsView;
+    await saveSettings({ minimalGoalsView: newEnabled }, newEnabled ? 'Minimal View ON' : 'Minimal View OFF');
+  }, [settings, saveSettings]);
+
   const handleColorPaletteChange = useCallback(async (palette: ColorPalette) => {
     await saveSettings({ colorPalette: palette }, 'Theme Updated');
   }, [saveSettings]);
@@ -525,6 +530,18 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = () => {
                 <Switch
                   value={settings.showTabBarLabels}
                   onValueChange={handleTabBarLabelsToggle}
+                  color={theme.colors.primary}
+                />
+              }
+            />
+            <SettingRow
+              icon="view-agenda-outline"
+              title="Minimal Goals View"
+              subtitle="Use simplified goals page"
+              right={
+                <Switch
+                  value={settings.minimalGoalsView}
+                  onValueChange={handleMinimalGoalsToggle}
                   color={theme.colors.primary}
                 />
               }

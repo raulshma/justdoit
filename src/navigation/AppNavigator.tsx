@@ -23,6 +23,7 @@ import {
   LogsScreen,
   AISettingsScreen,
   OnboardingScreen,
+  MinimalGoalsScreen,
 } from '../screens';
 
 // Create navigators
@@ -64,6 +65,15 @@ function HomeStackNavigator() {
         name="Home"
         component={HomeScreen}
         options={{ title: 'My Goals' }}
+      />
+      <HomeStack.Screen
+        name="MinimalGoals"
+        component={MinimalGoalsScreen}
+        options={{ 
+          title: 'Goals',
+          animation: 'fade',
+          animationDuration: 100,
+        }}
       />
     </HomeStack.Navigator>
   );

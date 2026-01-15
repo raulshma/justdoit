@@ -130,7 +130,9 @@ export class StorageService implements IStorageService {
       if (!settingsJson) {
         return { ...DEFAULT_SETTINGS };
       }
-      return JSON.parse(settingsJson) as AppSettings;
+      // Merge with defaults to ensure new properties are included
+      const storedSettings = JSON.parse(settingsJson) as Partial<AppSettings>;
+      return { ...DEFAULT_SETTINGS, ...storedSettings };
     } catch (error) {
       console.error('Failed to get settings:', error);
       // Return default settings on parse error (Requirement 8.3)

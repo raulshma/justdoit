@@ -11,6 +11,7 @@ export { ChallengesScreen } from './ChallengesScreen';
 export { LogsScreen } from './LogsScreen';
 export { AISettingsScreen } from './AISettingsScreen';
 export { OnboardingScreen } from './OnboardingScreen';
+export { MinimalGoalsScreen } from './MinimalGoalsScreen';
 
 // Re-export types
 export type { GoalFormMode } from '../navigation/types';

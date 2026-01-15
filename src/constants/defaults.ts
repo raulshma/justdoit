@@ -24,6 +24,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   gamificationEnabled: true,
   showTabBarLabels: false,
   hasCompletedOnboarding: false,
+  minimalGoalsView: false,
 };
 
 /**

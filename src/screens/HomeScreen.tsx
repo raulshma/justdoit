@@ -49,7 +49,7 @@ const getTomorrowDate = (): string => {
  * 
  * Requirements: 1.4, 2.1, 6.1, 6.6, 7.3, 3.4, 9.4
  */
-export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
+export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
   const theme = useTheme();
   const { categories } = useCategories();
   const { settings } = useSettings();
@@ -163,6 +163,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const handleCategorySelect = useCallback((categoryId: string | null) => {
     setSelectedCategoryId(categoryId);
   }, []);
+
+  /**
+   * Auto-redirect to minimal view on initial mount if setting is enabled
+   * Unless explicitly ignored via navigation params (when switching back manually)
+   */
+  const hasRedirectedRef = React.useRef(false);
+  const ignoreRedirect = route.params?.ignoreMinimalRedirect ?? false;
+  
+  React.useEffect(() => {
+    // Only redirect on initial mount, not on subsequent focuses
+    // And only if we haven't been explicitly told to ignore the redirect
+    if (settings.minimalGoalsView && !hasRedirectedRef.current && !ignoreRedirect) {
+      hasRedirectedRef.current = true;
+      navigation.replace('MinimalGoals');
+    }
+  }, [settings.minimalGoalsView, navigation, ignoreRedirect]);
 
   /**
    * Refresh goals on screen focus
@@ -355,6 +371,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   }, [navigation]);
 
   /**
+   * Switch to minimal goals view
+   */
+  const handleSwitchToMinimal = useCallback(() => {
+    navigation.replace('MinimalGoals');
+  }, [navigation]);
+
+  /**
    * Dismiss celebration modal
    */
   const handleDismissCelebration = useCallback(() => {
@@ -487,18 +510,33 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 </View>
               )}
 
-              {/* Level Progress (Subtle) */}
-              {settings.gamificationEnabled && (
-                <View style={styles.levelProgressContainer}>
-                  <LevelProgress
-                    currentLevel={currentLevel}
-                    currentXP={levelProgress.current}
-                    requiredXP={levelProgress.required}
-                    percentage={levelProgress.percentage}
-                    compact
+              {/* Level Progress with Minimal View Toggle */}
+              <View style={styles.levelProgressRow}>
+                {settings.gamificationEnabled && (
+                  <View style={styles.levelProgressContainer}>
+                    <LevelProgress
+                      currentLevel={currentLevel}
+                      currentXP={levelProgress.current}
+                      requiredXP={levelProgress.required}
+                      percentage={levelProgress.percentage}
+                      compact
+                    />
+                  </View>
+                )}
+                
+                {/* Minimal View Toggle Button */}
+                <TouchableOpacity
+                  onPress={handleSwitchToMinimal}
+                  style={[styles.minimalViewButton, { backgroundColor: theme.colors.surfaceVariant }]}
+                  activeOpacity={0.7}
+                >
+                  <ThemedIcon 
+                    name="view-agenda-outline" 
+                    size={18} 
+                    color={theme.colors.onSurfaceVariant} 
                   />
-                </View>
-              )}
+                </TouchableOpacity>
+              </View>
             </View>
             
             {/* Calendar Events Section */}
@@ -657,8 +695,22 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     fontSize: 16,
   },
-  levelProgressContainer: {
+  levelProgressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginTop: 24,
+    gap: 12,
+  },
+  levelProgressContainer: {
+    flex: 1,
+  },
+  minimalViewButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   streakContainer: {
     flexDirection: 'row',

@@ -12,7 +12,8 @@ export type GoalFormMode = 'add' | 'view' | 'edit';
  * Home Stack parameter list
  */
 export type HomeStackParamList = {
-  Home: undefined;
+  Home: { ignoreMinimalRedirect?: boolean } | undefined;
+  MinimalGoals: undefined;
 };
 
 /**

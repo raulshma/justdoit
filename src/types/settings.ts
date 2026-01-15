@@ -88,5 +88,7 @@ export interface AppSettings {
   convexUrl?: string;
   /** Convex authentication token for cloud backup */
   convexToken?: string;
+  /** Whether to use minimal goals view by default */
+  minimalGoalsView: boolean;
 }
 
