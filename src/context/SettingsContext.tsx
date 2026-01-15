@@ -38,6 +38,7 @@ interface SettingsContextValue extends SettingsState {
   setDailyReminderEnabled: (enabled: boolean) => Promise<void>;
   setDailyReminderTime: (time: string) => Promise<void>;
   setColorPalette: (palette: ColorPalette) => Promise<void>;
+  completeOnboarding: () => Promise<void>;
   // Refresh
   refreshSettings: () => void;
 }
@@ -59,6 +60,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   calendarIntegrationEnabled: false,
   gamificationEnabled: true,
   showTabBarLabels: false,
+  hasCompletedOnboarding: false,
 };
 
 /**
@@ -204,6 +206,13 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
     await updateSettings({ colorPalette: palette });
   }, [updateSettings]);
 
+  /**
+   * Complete onboarding and set flag in settings
+   */
+  const completeOnboarding = useCallback(async (): Promise<void> => {
+    await updateSettings({ hasCompletedOnboarding: true });
+  }, [updateSettings]);
+
   const value: SettingsContextValue = {
     ...state,
     updateSettings,
@@ -212,6 +221,7 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
     setDailyReminderEnabled,
     setDailyReminderTime,
     setColorPalette,
+    completeOnboarding,
     refreshSettings,
   };
 

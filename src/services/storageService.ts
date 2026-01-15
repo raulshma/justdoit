@@ -28,6 +28,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   calendarIntegrationEnabled: false,
   gamificationEnabled: false,
   showTabBarLabels: false,
+  hasCompletedOnboarding: false,
 };
 
 /**

@@ -57,6 +57,7 @@ export type RootStackParamList = {
   Achievements: undefined;
   Challenges: undefined;
   Logs: undefined;
+  AISettings: undefined;
 };
 
 /**

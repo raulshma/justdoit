@@ -15,3 +15,5 @@ export * from './challengeService';
 export * from './personalBestService';
 export * from './aiLogService';
 export * from './calendarService';
+export * from './aiStatsService';
+

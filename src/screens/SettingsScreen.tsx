@@ -521,69 +521,26 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = () => {
           </Surface>
         </View>
 
-        {/* AI Features Group */}
+        {/* AI Features Group - Links to dedicated AI Settings */}
         <View style={styles.sectionContainer}>
           <Text variant="labelLarge" style={[styles.sectionHeader, { color: theme.colors.primary }]}>
             AI FEATURES
           </Text>
           <Surface style={[styles.card, { backgroundColor: theme.colors.surface }]} elevation={0}>
             <SettingRow
-              icon="key-outline"
-              title="OpenRouter API Key"
-              subtitle={settings.openRouterApiKey ? "••••••••" + settings.openRouterApiKey.slice(-4) : "Not configured"}
-              onPress={() => setShowApiKeyModal(true)}
-              isLast={!settings.openRouterApiKey}
+              icon="robot-happy-outline"
+              title="AI Settings"
+              subtitle={settings.openRouterApiKey ? "Configure AI, view stats & insights" : "Set up AI-powered features"}
+              isLast={true}
+              onPress={() => navigation.navigate('AISettings')}
               right={
-                <View style={[styles.smallBadge, { backgroundColor: settings.openRouterApiKey ? theme.colors.primaryContainer : theme.colors.errorContainer + '50' }]}>
-                  <Text variant="labelMedium" style={{ color: settings.openRouterApiKey ? theme.colors.primary : theme.colors.error }}>
-                    {settings.openRouterApiKey ? "Set" : "Required"}
+                <View style={[styles.smallBadge, { backgroundColor: settings.openRouterApiKey ? theme.colors.primaryContainer : theme.colors.secondaryContainer + '50' }]}>
+                  <Text variant="labelMedium" style={{ color: settings.openRouterApiKey ? theme.colors.primary : theme.colors.onSecondaryContainer }}>
+                    {settings.openRouterApiKey ? "Active" : "Setup"}
                   </Text>
                 </View>
               }
             />
-            {settings.openRouterApiKey && (
-              <>
-                <SettingRow
-                  icon="robot-outline"
-                  title="AI Model"
-                  subtitle={settings.selectedAiModel || "Default (Llama 3.3)"}
-                  onPress={handleOpenModelSelection}
-                  right={
-                    <View style={[styles.smallBadge, { backgroundColor: theme.colors.secondaryContainer + '50' }]}>
-                      <Text variant="labelMedium" style={{ color: theme.colors.onSecondaryContainer }}>
-                        Select
-                      </Text>
-                    </View>
-                  }
-                />
-                <SettingRow
-                  icon="brain"
-                  title="Smart Reminders"
-                  subtitle="AI suggests optimal reminder times"
-                  right={
-                    <Switch
-                      value={settings.smartRemindersEnabled}
-                      onValueChange={handleSmartRemindersToggle}
-                      color={theme.colors.primary}
-                    />
-                  }
-                />
-                <SettingRow
-                  icon="file-document-outline"
-                  title="View AI Logs"
-                  subtitle="Debug AI requests & responses"
-                  isLast={true}
-                  onPress={() => navigation.navigate('Logs' as never)}
-                  right={
-                     <View style={[styles.smallBadge, { backgroundColor: theme.colors.surfaceVariant }]}>
-                       <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                         {aiLogService.getLogCount()}
-                       </Text>
-                     </View>
-                  }
-                />
-              </>
-            )}
           </Surface>
         </View>
 

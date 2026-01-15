@@ -36,6 +36,17 @@ export interface ThemeMoodInfo {
 }
 
 /**
+ * User's selected focus area for AI personalization
+ */
+export type AIFocusArea = 
+  | 'productivity'
+  | 'health'
+  | 'learning'
+  | 'wellness'
+  | 'creativity'
+  | 'finance';
+
+/**
  * Application settings for user preferences
  */
 export interface AppSettings {
@@ -65,4 +76,13 @@ export interface AppSettings {
   gamificationEnabled: boolean;
   /** Show labels on the bottom navigation tab bar */
   showTabBarLabels: boolean;
+  /** User's selected AI focus area for personalized suggestions */
+  aiFocusArea?: AIFocusArea;
+  /** Enable AI personality insights tracking */
+  aiPersonalityEnabled?: boolean;
+  /** Enable PII anonymization before sending data to AI */
+  aiPiiAnonymizationEnabled?: boolean;
+  /** Whether user has completed the onboarding flow */
+  hasCompletedOnboarding: boolean;
 }
+

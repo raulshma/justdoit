@@ -18,3 +18,5 @@ export * from './gamification';
 
 // AI feature types
 export * from './aiTypes';
+export * from './aiSettings';
+

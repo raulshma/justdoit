@@ -21,6 +21,8 @@ import {
   AchievementsScreen,
   ChallengesScreen,
   LogsScreen,
+  AISettingsScreen,
+  OnboardingScreen,
 } from '../screens';
 
 // Create navigators
@@ -229,6 +231,12 @@ function MainTabNavigator() {
  */
 export function AppNavigator() {
   const theme = useTheme();
+  const { settings, isLoading } = useSettings();
+
+  // Show onboarding for first-time users
+  if (!isLoading && !settings.hasCompletedOnboarding) {
+    return <OnboardingScreen />;
+  }
 
   return (
     <RootStack.Navigator
@@ -296,6 +304,16 @@ export function AppNavigator() {
       <RootStack.Screen
         name="Logs"
         component={LogsScreen}
+        options={{
+          presentation: 'pageSheet',
+          animation: 'slide_from_bottom',
+          animationDuration: 100,
+          headerShown: false,
+        }}
+      />
+      <RootStack.Screen
+        name="AISettings"
+        component={AISettingsScreen}
         options={{
           presentation: 'pageSheet',
           animation: 'slide_from_bottom',
