@@ -8,8 +8,9 @@ import Animated, {
   withRepeat, 
   withTiming, 
   withSequence,
+  withDelay,
   Easing,
-  withSpring
+  withSpring,
 } from 'react-native-reanimated';
 import { focusTimerService } from '../services/focusTimerService';
 import type { FocusTimerState, FocusSession } from '../types';
@@ -53,14 +54,36 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
   const pulseScale = useSharedValue(1);
   const glowOpacity = useSharedValue(0);
   const progressValue = useSharedValue(0);
+  
+  // Entry animation values - staggered: content first, then shadow
+  const contentOpacity = useSharedValue(0);
+  const shadowOpacity = useSharedValue(0);
 
   // Keep screen awake during active timer
   useKeepAwake();
+  
+  // Trigger entry animation on mount
+  useEffect(() => {
+    // Content fades in first
+    contentOpacity.value = withTiming(1, { duration: 400, easing: Easing.out(Easing.ease) });
+    // Shadow fades in after content with a delay
+    shadowOpacity.value = withDelay(300, withTiming(1, { duration: 400, easing: Easing.out(Easing.ease) }));
+  }, []);
 
   // Animation styles
   const pulseStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pulseScale.value }],
     opacity: glowOpacity.value,
+  }));
+  
+  // Staggered entry style for timer content - content fades in first
+  const timerContentAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: contentOpacity.value,
+  }));
+  
+  // Shadow layer fades in after content
+  const shadowLayerStyle = useAnimatedStyle(() => ({
+    opacity: shadowOpacity.value,
   }));
 
   const startPulse = useCallback(() => {
@@ -238,8 +261,17 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
           ]} 
         />
         
-        {/* Timer Content */}
-        <View style={[styles.timerContent, { backgroundColor: theme.colors.background }]}>
+        {/* Shadow Layer - fades in after content */}
+        <Animated.View 
+          style={[
+            styles.timerShadow, 
+            { backgroundColor: theme.colors.background },
+            shadowLayerStyle
+          ]} 
+        />
+        
+        {/* Timer Content - fades in first */}
+        <Animated.View style={[styles.timerContent, { backgroundColor: theme.colors.background }, timerContentAnimatedStyle]}>
           <Text variant="labelMedium" style={[styles.sessionLabel, { color: getSessionColor() }]}>
             {getSessionLabel()}
           </Text>
@@ -265,7 +297,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
               </Text>
             </View>
           )}
-        </View>
+        </Animated.View>
       </View>
 
       {/* Controls */}
@@ -374,12 +406,19 @@ const styles = StyleSheet.create({
     borderRadius: 999, // circle
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 2,
+  },
+  timerShadow: {
+    position: 'absolute',
+    width: '92%',
+    height: '92%',
+    borderRadius: 999,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
-    zIndex: 2,
+    zIndex: 1,
   },
   sessionLabel: {
     fontWeight: '800',
