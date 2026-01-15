@@ -8,7 +8,8 @@
     "ios": "bun expo run:ios",
     "web": "bun expo start --web",
     "test": "bun jest",
-    "clean:prebuild": "bun expo prebuild --clean --platform android"
+    "clean:prebuild": "bun expo prebuild --clean --platform android",
+    "build:apk": "cd android && ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
