@@ -9,6 +9,7 @@ export const STORAGE_KEYS = {
   SETTINGS: 'settings',
   STATISTICS: 'statistics',
   STREAK_DATA: 'streakData',
+  FOCUS_SESSIONS: 'focus_sessions',
 } as const;
 
 // XP and leveling storage keys

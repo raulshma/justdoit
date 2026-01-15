@@ -20,4 +20,6 @@ export * from './backupService';
 export * from './convexSyncService';
 export * from './voiceParserService';
 export * from './voiceNoteService';
+export * from './focusTimerService';
+export * from './ambientSoundService';
 

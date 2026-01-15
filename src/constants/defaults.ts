@@ -25,6 +25,15 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showTabBarLabels: false,
   hasCompletedOnboarding: false,
   minimalGoalsView: false,
+  // Focus Timer defaults
+  focusWorkDuration: 25,
+  focusShortBreakDuration: 5,
+  focusLongBreakDuration: 15,
+  focusSessionsUntilLongBreak: 4,
+  focusBreakRemindersEnabled: true,
+  focusAmbientSoundEnabled: false,
+  focusAmbientSound: 'none',
+  focusAutoCompleteEnabled: false,
 };
 
 /**

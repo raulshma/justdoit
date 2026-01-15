@@ -17,7 +17,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { SettingsScreenProps } from '../navigation/types';
 import type { AppSettings, ColorPalette } from '../types';
-import { notificationService, aiLogService, calendarService, backupService, convexSyncService } from '../services';
+import { notificationService, aiLogService, calendarService, backupService, convexSyncService, ambientSoundService } from '../services';
 import { colorPaletteInfoList, themeMoods, getPalettesByMood } from '../theme/colors';
 import type { ThemeMood } from '../types/settings';
 import { useSettings } from '../context/SettingsContext';
@@ -816,6 +816,156 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = () => {
           </Surface>
         </View>
 
+        {/* Focus Timer Group */}
+        <View style={styles.sectionContainer}>
+          <Text variant="labelLarge" style={[styles.sectionHeader, { color: theme.colors.primary }]}>
+            FOCUS TIMER
+          </Text>
+          <Surface style={[styles.card, { backgroundColor: theme.colors.surface }]} elevation={0}>
+            <SettingRow
+              icon="timer-sand"
+              title="Work Duration"
+              subtitle={`${settings.focusWorkDuration} minutes per session`}
+              right={
+                <View style={styles.durationControls}>
+                  <TouchableRipple
+                    onPress={() => settings.focusWorkDuration > 15 && saveSettings({ focusWorkDuration: settings.focusWorkDuration - 5 }, 'Work duration updated')}
+                    style={[styles.durationButton, { backgroundColor: theme.colors.surfaceVariant }]}
+                    borderless
+                  >
+                    <Icon source="minus" size={18} color={theme.colors.onSurfaceVariant} />
+                  </TouchableRipple>
+                  <Text variant="titleMedium" style={{ color: theme.colors.primary, minWidth: 32, textAlign: 'center' }}>
+                    {settings.focusWorkDuration}
+                  </Text>
+                  <TouchableRipple
+                    onPress={() => settings.focusWorkDuration < 60 && saveSettings({ focusWorkDuration: settings.focusWorkDuration + 5 }, 'Work duration updated')}
+                    style={[styles.durationButton, { backgroundColor: theme.colors.surfaceVariant }]}
+                    borderless
+                  >
+                    <Icon source="plus" size={18} color={theme.colors.onSurfaceVariant} />
+                  </TouchableRipple>
+                </View>
+              }
+            />
+            <SettingRow
+              icon="coffee-outline"
+              title="Short Break"
+              subtitle={`${settings.focusShortBreakDuration} minutes`}
+              right={
+                <View style={styles.durationControls}>
+                  <TouchableRipple
+                    onPress={() => settings.focusShortBreakDuration > 3 && saveSettings({ focusShortBreakDuration: settings.focusShortBreakDuration - 1 }, 'Break duration updated')}
+                    style={[styles.durationButton, { backgroundColor: theme.colors.surfaceVariant }]}
+                    borderless
+                  >
+                    <Icon source="minus" size={18} color={theme.colors.onSurfaceVariant} />
+                  </TouchableRipple>
+                  <Text variant="titleMedium" style={{ color: theme.colors.primary, minWidth: 32, textAlign: 'center' }}>
+                    {settings.focusShortBreakDuration}
+                  </Text>
+                  <TouchableRipple
+                    onPress={() => settings.focusShortBreakDuration < 15 && saveSettings({ focusShortBreakDuration: settings.focusShortBreakDuration + 1 }, 'Break duration updated')}
+                    style={[styles.durationButton, { backgroundColor: theme.colors.surfaceVariant }]}
+                    borderless
+                  >
+                    <Icon source="plus" size={18} color={theme.colors.onSurfaceVariant} />
+                  </TouchableRipple>
+                </View>
+              }
+            />
+            <SettingRow
+              icon="bell-ring-outline"
+              title="Break Reminders"
+              subtitle="Get notified when breaks end"
+              right={
+                <Switch
+                  value={settings.focusBreakRemindersEnabled}
+                  onValueChange={() => saveSettings({ focusBreakRemindersEnabled: !settings.focusBreakRemindersEnabled }, settings.focusBreakRemindersEnabled ? 'Break reminders OFF' : 'Break reminders ON')}
+                  color={theme.colors.primary}
+                />
+              }
+            />
+            <SettingRow
+              icon="music-note"
+              title="Ambient Sounds"
+              subtitle="Background audio during focus"
+              right={
+                <Switch
+                  value={settings.focusAmbientSoundEnabled}
+                  onValueChange={() => saveSettings({ focusAmbientSoundEnabled: !settings.focusAmbientSoundEnabled }, settings.focusAmbientSoundEnabled ? 'Ambient sounds OFF' : 'Ambient sounds ON')}
+                  color={theme.colors.primary}
+                />
+              }
+            />
+            {settings.focusAmbientSoundEnabled && (
+              <View style={styles.soundOptionsContainer}>
+                {(['rain', 'forest', 'cafe', 'waves'] as const).map((sound) => {
+                  const soundLabels = {
+                    rain: { name: 'Rain', icon: 'weather-rainy' },
+                    forest: { name: 'Forest', icon: 'tree' },
+                    cafe: { name: 'Cafe', icon: 'coffee' },
+                    waves: { name: 'Waves', icon: 'wave' },
+                  };
+                  const isSelected = settings.focusAmbientSound === sound;
+                  return (
+                    <TouchableRipple
+                      key={sound}
+                      onPress={() => {
+                        saveSettings({ focusAmbientSound: sound }, `Sound: ${soundLabels[sound].name}`);
+                        ambientSoundService.playPreview(sound);
+                      }}
+                      style={[
+                        styles.soundOption,
+                        { 
+                          backgroundColor: isSelected ? theme.colors.primaryContainer : theme.colors.surfaceVariant,
+                          borderColor: isSelected ? theme.colors.primary : 'transparent',
+                          borderWidth: isSelected ? 2 : 0,
+                        }
+                      ]}
+                      borderless
+                    >
+                      <View style={styles.soundOptionContent}>
+                        <Icon 
+                          source={soundLabels[sound].icon} 
+                          size={20} 
+                          color={isSelected ? theme.colors.primary : theme.colors.onSurfaceVariant} 
+                        />
+                        <Text 
+                          variant="labelMedium" 
+                          style={{ 
+                            color: isSelected ? theme.colors.primary : theme.colors.onSurfaceVariant,
+                            marginTop: 4,
+                            fontWeight: isSelected ? '600' : '400',
+                          }}
+                        >
+                          {soundLabels[sound].name}
+                        </Text>
+                        {isSelected && (
+                          <Icon source="check" size={12} color={theme.colors.primary} />
+                        )}
+                      </View>
+                    </TouchableRipple>
+                  );
+                })}
+              </View>
+            )}
+            <SettingRow
+              icon="check-circle-outline"
+              title="Auto-Complete Goals"
+              subtitle="Complete goals after focus sessions"
+              isLast={true}
+              right={
+                <Switch
+                  value={settings.focusAutoCompleteEnabled}
+                  onValueChange={() => saveSettings({ focusAutoCompleteEnabled: !settings.focusAutoCompleteEnabled }, settings.focusAutoCompleteEnabled ? 'Auto-complete OFF' : 'Auto-complete ON')}
+                  color={theme.colors.primary}
+                />
+              }
+            />
+          </Surface>
+        </View>
+
         {/* About / Info Section - Redesigned as unique footer */}
         <View style={styles.aboutContainer}>
            <Icon source="code-tags" size={32} color={theme.colors.primary + '80'} />
@@ -1288,6 +1438,42 @@ const styles = StyleSheet.create({
   },
   footerSpacing: {
     height: 80, // Extra space at bottom
+  },
+  
+  // Focus Timer duration controls
+  durationControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  durationButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  
+  // Sound options
+  soundOptionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingBottom: 16,
+  },
+  soundOption: {
+    flex: 1,
+    minWidth: 70,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  soundOptionContent: {
+    alignItems: 'center',
+    gap: 2,
   },
 });
 

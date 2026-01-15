@@ -71,4 +71,12 @@ export interface Goal {
   voiceNoteUri?: string;
   /** Duration of voice note in seconds */
   voiceNoteDuration?: number;
+  
+  // Focus timer fields
+  /** Number of completed focus sessions for this goal */
+  focusSessionsCompleted?: number;
+  /** Total minutes spent in focus sessions */
+  totalFocusMinutes?: number;
+  /** Auto-complete after this many sessions (optional threshold) */
+  focusSessionsToComplete?: number;
 }

@@ -31,10 +31,18 @@ export type SettingsStackParamList = {
 };
 
 /**
+ * Focus Stack parameter list
+ */
+export type FocusStackParamList = {
+  FocusMode: undefined;
+};
+
+/**
  * Root Bottom Tab parameter list
  */
 export type RootTabParamList = {
   HomeTab: NavigatorScreenParams<HomeStackParamList>;
+  FocusTab: NavigatorScreenParams<FocusStackParamList>;
   StatisticsTab: NavigatorScreenParams<StatisticsStackParamList>;
   SettingsTab: NavigatorScreenParams<SettingsStackParamList>;
 };

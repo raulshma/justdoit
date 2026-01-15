@@ -70,3 +70,9 @@ export { NewPersonalBestModal } from './NewPersonalBestModal';
 
 // AI components
 export { AIAssistantPanel } from './AIAssistantPanel';
+
+// Focus Timer components
+export { FocusTimer } from './FocusTimer';
+export { GoalSelectorForFocus } from './GoalSelectorForFocus';
+export { AmbientSoundPicker } from './AmbientSoundPicker';
+export { FocusSessionStats } from './FocusSessionStats';

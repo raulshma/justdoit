@@ -92,5 +92,23 @@ export interface AppSettings {
   convexToken?: string;
   /** Whether to use minimal goals view by default */
   minimalGoalsView: boolean;
+  
+  // Focus Timer Settings
+  /** Work session duration in minutes (default: 25) */
+  focusWorkDuration: number;
+  /** Short break duration in minutes (default: 5) */
+  focusShortBreakDuration: number;
+  /** Long break duration in minutes (default: 15) */
+  focusLongBreakDuration: number;
+  /** Number of work sessions until long break (default: 4) */
+  focusSessionsUntilLongBreak: number;
+  /** Enable break reminder notifications */
+  focusBreakRemindersEnabled: boolean;
+  /** Enable ambient sounds during focus */
+  focusAmbientSoundEnabled: boolean;
+  /** Selected ambient sound */
+  focusAmbientSound: 'rain' | 'forest' | 'cafe' | 'waves' | 'none';
+  /** Auto-complete goals after reaching focus session threshold */
+  focusAutoCompleteEnabled: boolean;
 }
 

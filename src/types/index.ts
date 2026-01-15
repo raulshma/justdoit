@@ -20,3 +20,6 @@ export * from './gamification';
 export * from './aiTypes';
 export * from './aiSettings';
 
+// Focus timer types
+export * from './focusSession';
+

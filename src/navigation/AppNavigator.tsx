@@ -8,6 +8,7 @@ import type {
   HomeStackParamList,
   StatisticsStackParamList,
   SettingsStackParamList,
+  FocusStackParamList,
   RootTabParamList,
   RootStackParamList,
 } from './types';
@@ -16,6 +17,7 @@ import {
   GoalFormScreen,
   StatisticsScreen,
   SettingsScreen,
+  FocusModeScreen,
   ModelSelectionScreen,
   TemplatesScreen,
   AchievementsScreen,
@@ -30,6 +32,7 @@ import {
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const StatisticsStack = createNativeStackNavigator<StatisticsStackParamList>();
 const SettingsStack = createNativeStackNavigator<SettingsStackParamList>();
+const FocusStack = createNativeStackNavigator<FocusStackParamList>();
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 
@@ -151,6 +154,42 @@ function SettingsStackNavigator() {
   );
 }
 
+/**
+ * Focus Stack Navigator
+ * Contains: Focus Mode screen for Pomodoro timer
+ * Requirements: 7.3 - Smooth, subtle animations for transitions
+ */
+function FocusStackNavigator() {
+  const theme = useTheme();
+
+  return (
+    <FocusStack.Navigator
+      screenOptions={{
+        headerShown: false,
+        headerStyle: {
+          backgroundColor: theme.colors.surface,
+        },
+        headerTintColor: theme.colors.onSurface,
+        headerTitleStyle: {
+          fontWeight: '600',
+        },
+        contentStyle: {
+          backgroundColor: theme.colors.background,
+        },
+        // Subtle fade animation for screen transitions
+        animation: 'fade',
+        animationDuration: 200,
+      }}
+    >
+      <FocusStack.Screen
+        name="FocusMode"
+        component={FocusModeScreen}
+        options={{ title: 'Focus' }}
+      />
+    </FocusStack.Navigator>
+  );
+}
+
 
 /**
  * Tab bar icon component using MaterialCommunityIcons
@@ -158,6 +197,7 @@ function SettingsStackNavigator() {
 function TabIcon({ name, color, size }: { name: string; color: string; size: number }) {
   const icons: Record<string, React.ComponentProps<typeof Icon>['name']> = {
     home: 'bullseye-arrow',
+    focus: 'timer-outline',
     stats: 'chart-timeline-variant',
     settings: 'cog-outline',
   };
@@ -204,6 +244,17 @@ function MainTabNavigator() {
           tabBarLabel: 'Goals',
           tabBarIcon: ({ color, size }) => (
             <TabIcon name="home" color={color} size={showLabels ? size : 26} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="FocusTab"
+        component={FocusStackNavigator}
+        options={{
+          headerShown: false,
+          tabBarLabel: 'Focus',
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon name="focus" color={color} size={showLabels ? size : 26} />
           ),
         }}
       />

@@ -1,11 +1,16 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { Text, useTheme, FAB, Snackbar, Surface, Icon } from 'react-native-paper';
+import { Text, useTheme, FAB, Snackbar, Surface, Icon, IconButton } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { Goal } from '../types';
-import { goalManager } from '../services';
-import { GoalCard } from '../components';
+import type { Goal, FocusSession } from '../types';
+import { goalManager, focusTimerService } from '../services';
+import {
+  GoalCard,
+  FocusTimer,
+  GoalSelectorForFocus,
+  FocusSessionStats,
+} from '../components';
 
 /**
  * Gets today's date in ISO format (YYYY-MM-DD)
@@ -15,8 +20,8 @@ const getTodayDate = (): string => {
 };
 
 /**
- * FocusModeScreen - Shows only the top 3 most important goals for today
- * Clean, distraction-free view to help users focus on what matters most
+ * FocusModeScreen - Focus timer with goal integration
+ * Enhanced Pomodoro-style focus sessions linked to daily goals
  */
 export const FocusModeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const theme = useTheme();
@@ -24,6 +29,9 @@ export const FocusModeScreen: React.FC<{ navigation: any }> = ({ navigation }) =
   const [refreshing, setRefreshing] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [goalSelectorVisible, setGoalSelectorVisible] = useState(false);
+  const [linkedGoal, setLinkedGoal] = useState<{ id: string; title: string } | null>(null);
+  const [showGoals, setShowGoals] = useState(false);
 
   /**
    * Load and filter top 3 priority goals for today
@@ -73,7 +81,7 @@ export const FocusModeScreen: React.FC<{ navigation: any }> = ({ navigation }) =
       const updatedGoal = await goalManager.toggleComplete(goalId);
       loadGoals();
       setSnackbarMessage(
-        updatedGoal.isCompleted ? 'Goal completed!' : 'Goal marked incomplete'
+        updatedGoal.isCompleted ? 'Goal completed! 🎉' : 'Goal marked incomplete'
       );
       setSnackbarVisible(true);
     } catch (error) {
@@ -104,6 +112,50 @@ export const FocusModeScreen: React.FC<{ navigation: any }> = ({ navigation }) =
     }
   }, [loadGoals]);
 
+  /**
+   * Handle linking a goal to focus session
+   */
+  const handleLinkGoal = useCallback((goalId: string, goalTitle: string) => {
+    setLinkedGoal({ id: goalId, title: goalTitle });
+    focusTimerService.linkToGoal(goalId);
+    setGoalSelectorVisible(false);
+    setSnackbarMessage(`Linked: ${goalTitle}`);
+    setSnackbarVisible(true);
+  }, []);
+
+  /**
+   * Handle starting focus without goal
+   */
+  const handleFocusWithoutGoal = useCallback(() => {
+    setLinkedGoal(null);
+    focusTimerService.unlinkGoal();
+    setGoalSelectorVisible(false);
+  }, []);
+
+  /**
+   * Handle session completion
+   */
+  const handleSessionComplete = useCallback((session: FocusSession) => {
+    if (session.type === 'work') {
+      setSnackbarMessage(`Focus session complete! +25 XP 🧠`);
+      loadGoals(); // Refresh to show updated focus stats
+    } else {
+      setSnackbarMessage('Break time is over!');
+    }
+    setSnackbarVisible(true);
+  }, [loadGoals]);
+
+  /**
+   * Start focus on a specific goal
+   */
+  const handleStartFocusOnGoal = useCallback((goal: Goal) => {
+    setLinkedGoal({ id: goal.id, title: goal.title });
+    focusTimerService.linkToGoal(goal.id);
+    focusTimerService.startSession(goal.id);
+    setSnackbarMessage(`Focus started: ${goal.title}`);
+    setSnackbarVisible(true);
+  }, []);
+
   const allDone = goals.length === 0;
 
   return (
@@ -122,51 +174,97 @@ export const FocusModeScreen: React.FC<{ navigation: any }> = ({ navigation }) =
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text variant="labelMedium" style={[styles.badge, { color: theme.colors.primary }]}>
-            FOCUS MODE
-          </Text>
+          <View style={styles.headerRow}>
+            <Text variant="labelMedium" style={[styles.badge, { color: theme.colors.primary }]}>
+              FOCUS MODE
+            </Text>
+            <IconButton
+              icon={linkedGoal ? 'link' : 'link-off'}
+              iconColor={linkedGoal ? theme.colors.primary : theme.colors.onSurfaceVariant}
+              size={20}
+              onPress={() => setGoalSelectorVisible(true)}
+            />
+          </View>
           <Text variant="displaySmall" style={[styles.title, { color: theme.colors.onSurface }]}>
-            Your Top Priorities
+            Deep Work
           </Text>
-          <Text variant="bodyLarge" style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
-            {allDone 
-              ? "All done! You've conquered your priorities."
-              : `${goals.length} goal${goals.length !== 1 ? 's' : ''} to focus on`
-            }
-          </Text>
+          {linkedGoal && (
+            <Text 
+              variant="bodyLarge" 
+              style={[styles.subtitle, { color: theme.colors.primary }]}
+              numberOfLines={1}
+            >
+              Working on: {linkedGoal.title}
+            </Text>
+          )}
         </View>
 
-        {/* Goals or Empty State */}
-        {allDone ? (
-          <Surface style={[styles.emptyCard, { backgroundColor: theme.colors.primaryContainer }]} elevation={0}>
-            <Icon source="check-decagram" size={64} color={theme.colors.primary} />
-            <Text variant="headlineSmall" style={[styles.emptyTitle, { color: theme.colors.onPrimaryContainer }]}>
-              Fantastic Work!
+        {/* Focus Timer */}
+        <FocusTimer
+          linkedGoalId={linkedGoal?.id}
+          linkedGoalTitle={linkedGoal?.title}
+          onSessionComplete={handleSessionComplete}
+        />
+
+        {/* Stats Section */}
+        <View style={styles.statsSection}>
+          <FocusSessionStats goalId={linkedGoal?.id} />
+        </View>
+
+        {/* Toggle Goals Section */}
+        <View style={styles.goalsSection}>
+          <View style={styles.sectionHeader}>
+            <Text variant="titleMedium" style={{ color: theme.colors.onSurface, fontWeight: '600' }}>
+              Today's Priorities
             </Text>
-            <Text variant="bodyLarge" style={[styles.emptySubtitle, { color: theme.colors.onPrimaryContainer }]}>
-              You've completed all your priority goals for today. 
-              Take a well-deserved break or add new goals.
-            </Text>
-          </Surface>
-        ) : (
-          <View style={styles.goalsList}>
-            {goals.map((goal, index) => (
-              <View key={goal.id} style={styles.goalWrapper}>
-                <View style={[styles.priorityBadge, { backgroundColor: theme.colors.primaryContainer }]}>
-                  <Text variant="labelSmall" style={{ color: theme.colors.primary, fontWeight: '700' }}>
-                    #{index + 1}
-                  </Text>
-                </View>
-                <GoalCard
-                  goal={goal}
-                  onToggleComplete={handleToggleComplete}
-                  onPress={handleGoalPress}
-                  onDelete={handleDeleteGoal}
-                />
-              </View>
-            ))}
+            <IconButton
+              icon={showGoals ? 'chevron-up' : 'chevron-down'}
+              size={20}
+              onPress={() => setShowGoals(!showGoals)}
+            />
           </View>
-        )}
+
+          {showGoals && (
+            <>
+              {allDone ? (
+                <Surface style={[styles.emptyCard, { backgroundColor: theme.colors.primaryContainer }]} elevation={0}>
+                  <Icon source="check-decagram" size={48} color={theme.colors.primary} />
+                  <Text variant="titleMedium" style={[styles.emptyTitle, { color: theme.colors.onPrimaryContainer }]}>
+                    All Done!
+                  </Text>
+                  <Text variant="bodyMedium" style={[styles.emptySubtitle, { color: theme.colors.onPrimaryContainer }]}>
+                    You've completed all priority goals for today.
+                  </Text>
+                </Surface>
+              ) : (
+                <View style={styles.goalsList}>
+                  {goals.map((goal, index) => (
+                    <View key={goal.id} style={styles.goalWrapper}>
+                      <View style={[styles.priorityBadge, { backgroundColor: theme.colors.primaryContainer }]}>
+                        <Text variant="labelSmall" style={{ color: theme.colors.primary, fontWeight: '700' }}>
+                          #{index + 1}
+                        </Text>
+                      </View>
+                      <GoalCard
+                        goal={goal}
+                        onToggleComplete={handleToggleComplete}
+                        onPress={handleGoalPress}
+                        onDelete={handleDeleteGoal}
+                      />
+                      <IconButton
+                        icon="play-circle"
+                        iconColor={theme.colors.primary}
+                        size={24}
+                        style={styles.playButton}
+                        onPress={() => handleStartFocusOnGoal(goal)}
+                      />
+                    </View>
+                  ))}
+                </View>
+              )}
+            </>
+          )}
+        </View>
 
         {/* Motivational footer */}
         <View style={styles.footer}>
@@ -175,6 +273,14 @@ export const FocusModeScreen: React.FC<{ navigation: any }> = ({ navigation }) =
           </Text>
         </View>
       </ScrollView>
+
+      {/* Goal Selector Modal */}
+      <GoalSelectorForFocus
+        visible={goalSelectorVisible}
+        onDismiss={() => setGoalSelectorVisible(false)}
+        onSelect={handleLinkGoal}
+        onSelectNone={handleFocusWithoutGoal}
+      />
 
       {/* Add Goal FAB */}
       <FAB
@@ -205,21 +311,37 @@ const styles = StyleSheet.create({
   },
   header: {
     marginTop: 24,
-    marginBottom: 32,
+    marginBottom: 24,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   badge: {
     letterSpacing: 2,
     fontWeight: '700',
-    marginBottom: 8,
     opacity: 0.9,
   },
   title: {
     fontWeight: '800',
     letterSpacing: -1,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   subtitle: {
-    opacity: 0.8,
+    fontWeight: '500',
+  },
+  statsSection: {
+    marginTop: 20,
+  },
+  goalsSection: {
+    marginTop: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
   goalsList: {
     gap: 20,
@@ -236,22 +358,26 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
   },
+  playButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 10,
+  },
   emptyCard: {
-    padding: 40,
-    borderRadius: 28,
+    padding: 32,
+    borderRadius: 24,
     alignItems: 'center',
-    marginTop: 20,
   },
   emptyTitle: {
     fontWeight: '700',
-    marginTop: 20,
+    marginTop: 16,
     marginBottom: 8,
     textAlign: 'center',
   },
   emptySubtitle: {
     textAlign: 'center',
     opacity: 0.8,
-    lineHeight: 24,
   },
   footer: {
     marginTop: 40,
