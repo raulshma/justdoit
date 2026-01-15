@@ -65,4 +65,6 @@ export interface Goal {
   postponeCount?: number;
   /** ISO timestamp when last postponed */
   lastPostponedAt?: string;
+  /** Optional attached image URI (local file path) */
+  imageUri?: string;
 }

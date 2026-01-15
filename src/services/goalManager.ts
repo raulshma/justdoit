@@ -13,6 +13,7 @@ export interface CreateGoalInput {
   priority?: Priority;
   recurrence?: RecurrencePattern;
   reminderTime?: string;
+  imageUri?: string;
 }
 
 /**
@@ -26,6 +27,7 @@ export interface UpdateGoalInput {
   recurrence?: RecurrencePattern;
   reminderTime?: string;
   isCompleted?: boolean;
+  imageUri?: string;
 }
 
 /**
@@ -111,6 +113,7 @@ export class GoalManager implements IGoalManager {
       priority: input.priority ?? 'medium',
       recurrence: input.recurrence ?? { type: 'none' },
       reminderTime: input.reminderTime,
+      imageUri: input.imageUri,
     };
 
     // Schedule reminder if reminderTime is provided (Requirement 4.1)
@@ -156,6 +159,7 @@ export class GoalManager implements IGoalManager {
       ...(updates.recurrence !== undefined && { recurrence: updates.recurrence }),
       ...(updates.reminderTime !== undefined && { reminderTime: updates.reminderTime }),
       ...(updates.isCompleted !== undefined && { isCompleted: updates.isCompleted }),
+      ...(updates.imageUri !== undefined && { imageUri: updates.imageUri }),
     };
 
     this.storageService.saveGoal(updatedGoal);

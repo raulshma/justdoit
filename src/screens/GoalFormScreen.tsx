@@ -29,6 +29,7 @@ import {
   VoiceInputButton,
   SubgoalList,
   AIAssistantPanel,
+  ImageAttachmentPicker,
 } from '../components';
 import { ThemedIcon } from '../components/ThemedIcon';
 
@@ -115,6 +116,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
   const [priority, setPriority] = useState<Priority>('medium');
   const [recurrence, setRecurrence] = useState<RecurrencePattern>({ type: 'none' });
   const [reminderTime, setReminderTime] = useState<string | undefined>(undefined);
+  const [imageUri, setImageUri] = useState<string | undefined>(undefined);
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -161,6 +163,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
         setPriority(loadedGoal.priority);
         setRecurrence(loadedGoal.recurrence);
         setReminderTime(loadedGoal.reminderTime);
+        setImageUri(loadedGoal.imageUri);
         
         // Load subgoals
         const loadedSubgoals = loadedGoal.subgoals || [];
@@ -189,12 +192,13 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
         dueDate.toISOString().split('T')[0] !== goal.dueDate ||
         priority !== goal.priority ||
         JSON.stringify(recurrence) !== JSON.stringify(goal.recurrence) ||
-        reminderTime !== goal.reminderTime;
+        reminderTime !== goal.reminderTime ||
+        imageUri !== goal.imageUri;
       setHasChanges(changed);
     } else if (isAdding) {
       setHasChanges(title.trim().length > 0);
     }
-  }, [goal, title, description, dueDate, priority, recurrence, reminderTime, isEditing, isAdding]);
+  }, [goal, title, description, dueDate, priority, recurrence, reminderTime, imageUri, isEditing, isAdding]);
 
   const handleDateSelect = (date: Date) => {
     setDueDate(date);
@@ -310,6 +314,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
           priority,
           recurrence,
           reminderTime,
+          imageUri,
         });
       } else if (isEditing && goalId) {
         goalManager.updateGoal(goalId, {
@@ -319,6 +324,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
           priority,
           recurrence,
           reminderTime,
+          imageUri,
         });
       }
       navigation.goBack();
@@ -327,7 +333,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
     } finally {
       setIsSubmitting(false);
     }
-  }, [title, description, dueDate, priority, recurrence, reminderTime, navigation, isAdding, isEditing, goalId]);
+  }, [title, description, dueDate, priority, recurrence, reminderTime, imageUri, navigation, isAdding, isEditing, goalId]);
 
   /**
    * Handle delete
@@ -829,6 +835,13 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
               goalDescription={description}
             />
           )}
+
+          {/* Image Attachment Section */}
+          <ImageAttachmentPicker
+            value={imageUri}
+            onChange={setImageUri}
+            disabled={isReadOnly}
+          />
 
           {/* Subgoals Section - Only show for existing goals */}
           {goalId && (

@@ -8,6 +8,7 @@ export { RecurrencePicker } from './RecurrencePicker';
 export { ReminderTimePicker } from './ReminderTimePicker';
 export { VoiceInputButton } from './VoiceInputButton';
 export { ThemedIcon } from './ThemedIcon';
+export { ImageAttachmentPicker } from './ImageAttachmentPicker';
 
 // Category components
 export { CategoryBadge } from './CategoryBadge';

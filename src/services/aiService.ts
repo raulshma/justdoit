@@ -2,7 +2,7 @@ import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { generateText } from 'ai';
 import { storageService } from './storageService';
 import { aiLogService } from './aiLogService';
-import type { AIGoalAnalysis, Category, Goal } from '../types';
+import type { AIGoalAnalysis, AIProviderMetadata, Category, Goal } from '../types';
 
 /**
  * OpenRouter model architecture information
@@ -110,6 +110,61 @@ export class AIService implements IAIService {
   }
 
   /**
+   * Extract provider metadata from generateText response
+   */
+  private extractProviderMetadata(
+    result: Awaited<ReturnType<typeof generateText>>,
+    durationMs: number,
+    modelId: string
+  ): AIProviderMetadata {
+    const metadata: AIProviderMetadata = {
+      modelId,
+    };
+
+    // Extract usage information
+    if (result.usage) {
+      metadata.inputTokens = result.usage.inputTokens;
+      metadata.outputTokens = result.usage.outputTokens;
+      metadata.totalTokens = result.usage.totalTokens;
+    }
+
+    // Extract finish reason
+    if (result.finishReason) {
+      metadata.finishReason = result.finishReason;
+    }
+
+    // Extract response headers if available
+    if (result.response?.headers) {
+      const headers: Record<string, string> = {};
+      // Convert headers to plain object
+      if (typeof result.response.headers === 'object') {
+        const headerObj = result.response.headers as Record<string, string>;
+        for (const [key, value] of Object.entries(headerObj)) {
+          if (typeof value === 'string') {
+            headers[key] = value;
+          }
+        }
+      }
+      if (Object.keys(headers).length > 0) {
+        metadata.headers = headers;
+      }
+    }
+
+    // Extract raw provider metadata
+    if (result.providerMetadata) {
+      metadata.raw = result.providerMetadata as Record<string, unknown>;
+    }
+
+    // Calculate throughput (tokens per second)
+    if (metadata.outputTokens && durationMs > 0) {
+      metadata.tokensPerSecond = Math.round((metadata.outputTokens / durationMs) * 1000 * 100) / 100;
+    }
+
+    return metadata;
+  }
+
+
+  /**
    * Fetch available models from OpenRouter API
    * Groups by free/paid and sorts by creation date (newest first)
    */
@@ -184,14 +239,10 @@ export class AIService implements IAIService {
       return null;
     }
 
-    try {
-      const openrouter = createOpenRouter({
-        apiKey,
-      });
+    const startTime = Date.now();
+    const modelId = this.getSelectedModel();
 
-      const model = openrouter(this.getSelectedModel());
-
-      const prompt = `You are an AI assistant helping users set optimal reminder times for their goals.
+    const prompt = `You are an AI assistant helping users set optimal reminder times for their goals.
 
 Based on the user's historical completion patterns and the goal details, suggest the best time to set a reminder.
 
@@ -213,25 +264,80 @@ Respond in this exact JSON format:
   "confidence": "high|medium|low"
 }`;
 
-      const { text } = await generateText({
+    const requestBody = { model: modelId, prompt };
+
+    try {
+      const openrouter = createOpenRouter({
+        apiKey,
+      });
+
+      const model = openrouter(modelId);
+
+      const generateResult = await generateText({
         model,
         prompt,
       });
 
+      const durationMs = Date.now() - startTime;
+      const providerMetadata = this.extractProviderMetadata(generateResult, durationMs, modelId);
+
       // Parse the JSON response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const jsonMatch = generateResult.text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        console.error('Failed to parse AI response:', text);
+        console.error('Failed to parse AI response:', generateResult.text);
+        
+        // Log failed parse attempt with all available info
+        aiLogService.log({
+          type: 'reminder_suggestion',
+          request: { prompt, model: modelId, goalTitle, body: requestBody },
+          response: {
+            success: false,
+            rawText: generateResult.text,
+            body: generateResult.response?.body,
+            error: 'Failed to parse JSON response',
+          },
+          providerMetadata,
+          durationMs,
+        });
         return null;
       }
 
       const result = JSON.parse(jsonMatch[0]);
+
+      // Log successful request with comprehensive info
+      aiLogService.log({
+        type: 'reminder_suggestion',
+        request: { prompt, model: modelId, goalTitle, body: requestBody },
+        response: {
+          success: true,
+          data: result,
+          rawText: generateResult.text,
+          body: generateResult.response?.body,
+        },
+        providerMetadata,
+        durationMs,
+      });
+
       return {
         suggestedTime: result.suggestedTime,
         rationale: result.rationale,
         confidence: result.confidence as 'high' | 'medium' | 'low',
       };
     } catch (error) {
+      const durationMs = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      // Log failed request
+      aiLogService.log({
+        type: 'reminder_suggestion',
+        request: { prompt, model: modelId, goalTitle, body: requestBody },
+        response: {
+          success: false,
+          error: errorMessage,
+        },
+        durationMs,
+      });
+
       console.error('Failed to get AI suggestion:', error);
       return null;
     }
@@ -260,7 +366,7 @@ Respond in this exact JSON format:
     }
 
     const startTime = Date.now();
-    const model = this.getSelectedModel();
+    const modelId = this.getSelectedModel();
 
     // Build category list for the prompt
     const categoryList = categories.map(c => `- ${c.id}: ${c.name}`).join('\n');
@@ -317,36 +423,51 @@ If the goal is already clear, set clarifiedGoal to null.
 If no related goals exist, set relatedGoals to empty array [].
 Always suggest at least 3 subgoals.`;
 
+    const requestBody = { model: modelId, prompt };
+
     try {
       const openrouter = createOpenRouter({ apiKey });
-      const aiModel = openrouter(model);
+      const aiModel = openrouter(modelId);
 
-      const { text } = await generateText({
+      const generateResult = await generateText({
         model: aiModel,
         prompt,
       });
 
+      const durationMs = Date.now() - startTime;
+      const providerMetadata = this.extractProviderMetadata(generateResult, durationMs, modelId);
+
       // Parse the JSON response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const jsonMatch = generateResult.text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        const durationMs = Date.now() - startTime;
         aiLogService.log({
           type: 'goal_analysis',
-          request: { prompt, model, goalTitle },
-          response: { success: false, error: 'Failed to parse JSON response' },
+          request: { prompt, model: modelId, goalTitle, body: requestBody },
+          response: {
+            success: false,
+            rawText: generateResult.text,
+            body: generateResult.response?.body,
+            error: 'Failed to parse JSON response',
+          },
+          providerMetadata,
           durationMs,
         });
         return null;
       }
 
       const result = JSON.parse(jsonMatch[0]) as AIGoalAnalysis;
-      const durationMs = Date.now() - startTime;
 
-      // Log successful request
+      // Log successful request with comprehensive info
       aiLogService.log({
         type: 'goal_analysis',
-        request: { prompt, model, goalTitle },
-        response: { success: true, data: result },
+        request: { prompt, model: modelId, goalTitle, body: requestBody },
+        response: {
+          success: true,
+          data: result,
+          rawText: generateResult.text,
+          body: generateResult.response?.body,
+        },
+        providerMetadata,
         durationMs,
       });
 
@@ -358,8 +479,11 @@ Always suggest at least 3 subgoals.`;
       // Log failed request
       aiLogService.log({
         type: 'goal_analysis',
-        request: { prompt, model, goalTitle },
-        response: { success: false, error: errorMessage },
+        request: { prompt, model: modelId, goalTitle, body: requestBody },
+        response: {
+          success: false,
+          error: errorMessage,
+        },
         durationMs,
       });
 

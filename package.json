@@ -23,6 +23,7 @@
     "expo-calendar": "~15.0.8",
     "expo-crypto": "^15.0.8",
     "expo-dev-client": "~6.0.20",
+    "expo-image-picker": "~17.0.10",
     "expo-notifications": "^0.32.16",
     "expo-speech-recognition": "^3.0.1",
     "expo-status-bar": "~3.0.9",

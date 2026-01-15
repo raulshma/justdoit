@@ -27,6 +27,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   carryForwardEnabled: true,
   calendarIntegrationEnabled: false,
   gamificationEnabled: false,
+  showTabBarLabels: false,
 };
 
 /**
