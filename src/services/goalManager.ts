@@ -1,8 +1,10 @@
 import { randomUUID } from 'expo-crypto';
-import { Goal, Priority, RecurrencePattern } from '../types';
+import { Goal, Priority, RecurrencePattern, GoalImage } from '../types';
 import { StorageService, storageService as defaultStorageService } from './storageService';
 import { NotificationService, notificationService as defaultNotificationService } from './notificationService';
 import { voiceNoteService } from './voiceNoteService';
+import { goalImageService } from './goalImageService';
+import { dependencyService, DependencyService } from './dependencyService';
 
 /**
  * Input for creating a new goal
@@ -17,6 +19,15 @@ export interface CreateGoalInput {
   imageUri?: string;
   voiceNoteUri?: string;
   voiceNoteDuration?: number;
+  // Dependency fields
+  dependsOn?: string[];
+  isMilestone?: boolean;
+  childGoalIds?: string[];
+  // Rich media fields
+  coverImage?: string;
+  progressPhotos?: GoalImage[];
+  moodBoardImages?: GoalImage[];
+  visionBoardImages?: GoalImage[];
 }
 
 /**
@@ -33,6 +44,15 @@ export interface UpdateGoalInput {
   imageUri?: string;
   voiceNoteUri?: string | null;
   voiceNoteDuration?: number | null;
+  // Dependency fields
+  dependsOn?: string[];
+  isMilestone?: boolean;
+  childGoalIds?: string[];
+  // Rich media fields
+  coverImage?: string;
+  progressPhotos?: GoalImage[];
+  moodBoardImages?: GoalImage[];
+  visionBoardImages?: GoalImage[];
 }
 
 /**
@@ -107,9 +127,34 @@ export class GoalManager implements IGoalManager {
     }
 
     const now = new Date().toISOString();
+    const goalId = randomUUID();
+    
+    // Validate dependencies exist if provided
+    if (input.dependsOn && input.dependsOn.length > 0) {
+      const allGoals = this.storageService.getAllGoals();
+      for (const depId of input.dependsOn) {
+        const dep = allGoals.find(g => g.id === depId);
+        if (!dep) {
+          throw new Error(`Dependency goal with id ${depId} not found`);
+        }
+      }
+    }
+
+    // Calculate initial blockedBy
+    let blockedBy: string | undefined;
+    if (input.dependsOn && input.dependsOn.length > 0) {
+      const allGoals = this.storageService.getAllGoals();
+      for (const depId of input.dependsOn) {
+        const dep = allGoals.find(g => g.id === depId);
+        if (dep && !dep.isCompleted) {
+          blockedBy = depId;
+          break;
+        }
+      }
+    }
     
     const goal: Goal = {
-      id: randomUUID(), // Unique identifier (Requirement 1.3)
+      id: goalId, // Unique identifier (Requirement 1.3)
       title: input.title.trim(),
       description: input.description?.trim(),
       dueDate: input.dueDate ?? getTomorrowDate(), // Default to tomorrow (Requirement 1.3)
@@ -121,6 +166,16 @@ export class GoalManager implements IGoalManager {
       imageUri: input.imageUri,
       voiceNoteUri: input.voiceNoteUri,
       voiceNoteDuration: input.voiceNoteDuration,
+      // Dependency fields
+      dependsOn: input.dependsOn,
+      blockedBy,
+      isMilestone: input.isMilestone,
+      childGoalIds: input.childGoalIds,
+      // Rich media fields
+      coverImage: input.coverImage,
+      progressPhotos: input.progressPhotos,
+      moodBoardImages: input.moodBoardImages,
+      visionBoardImages: input.visionBoardImages,
     };
 
     // Save voice note to permanent storage if present
@@ -170,6 +225,42 @@ export class GoalManager implements IGoalManager {
       throw new Error('Goal title cannot be empty or whitespace-only');
     }
 
+    // Validate and check for cycles if dependencies are being updated
+    if (updates.dependsOn !== undefined && updates.dependsOn.length > 0) {
+      const allGoals = this.storageService.getAllGoals();
+      
+      // Validate all dependencies exist
+      for (const depId of updates.dependsOn) {
+        const dep = allGoals.find(g => g.id === depId);
+        if (!dep) {
+          throw new Error(`Dependency goal with id ${depId} not found`);
+        }
+        
+        // Check for circular dependencies
+        if (dependencyService.wouldCreateCycle(id, depId, allGoals)) {
+          throw new Error(`Adding dependency on ${depId} would create a circular reference`);
+        }
+      }
+    }
+
+    // Calculate new blockedBy if dependencies changed
+    let newBlockedBy: string | undefined = existingGoal.blockedBy;
+    const depsToCheck = updates.dependsOn ?? existingGoal.dependsOn;
+    if (depsToCheck && depsToCheck.length > 0) {
+      const allGoals = this.storageService.getAllGoals();
+      newBlockedBy = undefined;
+      for (const depId of depsToCheck) {
+        const dep = allGoals.find(g => g.id === depId);
+        if (dep && !dep.isCompleted) {
+          newBlockedBy = depId;
+          break;
+        }
+      }
+    } else if (updates.dependsOn !== undefined && updates.dependsOn.length === 0) {
+      // Dependencies were explicitly cleared
+      newBlockedBy = undefined;
+    }
+
     const updatedGoal: Goal = {
       ...existingGoal,
       ...(updates.title !== undefined && { title: updates.title.trim() }),
@@ -182,6 +273,11 @@ export class GoalManager implements IGoalManager {
       ...(updates.imageUri !== undefined && { imageUri: updates.imageUri }),
       ...(updates.voiceNoteUri !== undefined && { voiceNoteUri: updates.voiceNoteUri ?? undefined }),
       ...(updates.voiceNoteDuration !== undefined && { voiceNoteDuration: updates.voiceNoteDuration ?? undefined }),
+      // Dependency fields
+      ...(updates.dependsOn !== undefined && { dependsOn: updates.dependsOn }),
+      ...(updates.isMilestone !== undefined && { isMilestone: updates.isMilestone }),
+      ...(updates.childGoalIds !== undefined && { childGoalIds: updates.childGoalIds }),
+      blockedBy: newBlockedBy,
     };
 
     // Handle voice note update
@@ -230,6 +326,17 @@ export class GoalManager implements IGoalManager {
       await voiceNoteService.deleteVoiceNote(goal.voiceNoteUri);
     }
 
+    // Delete all goal images
+    if (goal) {
+      await goalImageService.deleteAllGoalImages(
+        goal.id,
+        goal.coverImage,
+        goal.progressPhotos,
+        goal.moodBoardImages,
+        goal.visionBoardImages
+      );
+    }
+
     this.storageService.deleteGoal(id);
   }
 
@@ -265,6 +372,8 @@ export class GoalManager implements IGoalManager {
    * Toggles the completion status of a goal
    * If completing a recurring goal, generates the next occurrence
    * Cancels reminder when marking as complete
+   * Updates dependent goals' blockedBy status
+   * Checks for milestone auto-completion
    * @param id - The goal ID to toggle
    * @returns The updated goal
    * @throws Error if goal not found
@@ -293,6 +402,52 @@ export class GoalManager implements IGoalManager {
     }
 
     this.storageService.saveGoal(updatedGoal);
+
+    // If marking as complete, update dependent goals' blockedBy cache
+    if (!wasCompleted && updatedGoal.isCompleted) {
+      const allGoals = this.storageService.getAllGoals();
+      const dependentGoals = dependencyService.getDependentGoals(id, allGoals);
+      
+      for (const depGoal of dependentGoals) {
+        // Recalculate blockedBy for dependent goal
+        const newBlockingId = dependencyService.getBlockingGoalId(depGoal.id, allGoals);
+        if (depGoal.blockedBy !== newBlockingId) {
+          const updatedDepGoal: Goal = {
+            ...depGoal,
+            blockedBy: newBlockingId,
+          };
+          this.storageService.saveGoal(updatedDepGoal);
+        }
+      }
+
+      // Check for milestone auto-completion
+      const milestonesWithThisChild = allGoals.filter(
+        g => g.isMilestone && g.childGoalIds?.includes(id) && !g.isCompleted
+      );
+      
+      for (const milestone of milestonesWithThisChild) {
+        // Re-fetch to get latest state
+        const currentMilestone = this.storageService.getGoal(milestone.id);
+        const currentAllGoals = this.storageService.getAllGoals();
+        
+        if (currentMilestone && dependencyService.shouldMilestoneComplete(currentMilestone, currentAllGoals)) {
+          // Auto-complete the milestone
+          const completedMilestone: Goal = {
+            ...currentMilestone,
+            isCompleted: true,
+            completedAt: now,
+          };
+          
+          // Cancel milestone's reminder if it has one
+          if (currentMilestone.reminderId) {
+            await this.notificationService.cancelReminder(currentMilestone.reminderId);
+            completedMilestone.reminderId = undefined;
+          }
+          
+          this.storageService.saveGoal(completedMilestone);
+        }
+      }
+    }
 
     // If marking as complete and it's a recurring goal, generate next occurrence
     // Requirements: 10.2

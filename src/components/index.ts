@@ -76,3 +76,13 @@ export { FocusTimer } from './FocusTimer';
 export { GoalSelectorForFocus } from './GoalSelectorForFocus';
 export { AmbientSoundPicker } from './AmbientSoundPicker';
 export { FocusSessionStats } from './FocusSessionStats';
+
+// Dependency components
+export { DependencyPicker } from './DependencyPicker';
+export { BlockedIndicator } from './BlockedIndicator';
+
+// Rich Media components
+export { VisionBoardGrid } from './VisionBoardGrid';
+export { GoalCoverImage } from './GoalCoverImage';
+export { ProgressPhotoPicker } from './ProgressPhotoPicker';
+export { MoodBoardSection } from './MoodBoardSection';

@@ -249,6 +249,42 @@ export const GoalQuickView: React.FC<GoalQuickViewProps> = ({
                 </Text>
               </View>
             )}
+
+            {/* Dependencies/Prerequisites */}
+            {goal.dependsOn && goal.dependsOn.length > 0 && (
+              <View style={styles.metadataRow}>
+                <ThemedIcon 
+                  name={goal.blockedBy ? "lock" : "link-variant"} 
+                  size={20} 
+                  color={goal.blockedBy ? theme.colors.error : theme.colors.primary} 
+                />
+                <Text style={[styles.metadataLabel, { color: theme.colors.onSurfaceVariant }]}>
+                  Prerequisites
+                </Text>
+                <Text style={[
+                  styles.metadataValue, 
+                  { color: goal.blockedBy ? theme.colors.error : theme.colors.primary }
+                ]}>
+                  {goal.blockedBy 
+                    ? `Blocked (${goal.dependsOn.length})`
+                    : `${goal.dependsOn.length} complete`
+                  }
+                </Text>
+              </View>
+            )}
+
+            {/* Milestone children */}
+            {goal.isMilestone && goal.childGoalIds && goal.childGoalIds.length > 0 && (
+              <View style={styles.metadataRow}>
+                <ThemedIcon name="flag-checkered" size={20} themeColor="secondary" />
+                <Text style={[styles.metadataLabel, { color: theme.colors.onSurfaceVariant }]}>
+                  Milestone
+                </Text>
+                <Text style={[styles.metadataValue, { color: theme.colors.secondary }]}>
+                  {goal.childGoalIds.length} child goals
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* Priority */}

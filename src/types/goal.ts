@@ -22,6 +22,29 @@ export interface RecurrencePattern {
 }
 
 /**
+ * Image types for goal media
+ */
+export type GoalImageType = 'cover' | 'progress' | 'mood' | 'vision';
+
+/**
+ * Goal image metadata
+ */
+export interface GoalImage {
+  /** Unique identifier for the image */
+  id: string;
+  /** Local file URI */
+  uri: string;
+  /** Type of image */
+  type: GoalImageType;
+  /** ISO timestamp when added */
+  createdAt: string;
+  /** Optional caption for the image */
+  caption?: string;
+  /** Order for vision board display */
+  order?: number;
+}
+
+/**
  * Goal entity representing a task or objective the user wants to accomplish
  */
 export interface Goal {
@@ -79,4 +102,24 @@ export interface Goal {
   totalFocusMinutes?: number;
   /** Auto-complete after this many sessions (optional threshold) */
   focusSessionsToComplete?: number;
+  
+  // Dependency & sequence fields
+  /** IDs of goals that must be completed before this goal can start */
+  dependsOn?: string[];
+  /** ID of goal currently blocking this one (computed/cached) */
+  blockedBy?: string;
+  /** If true, this is a milestone that auto-completes when all child goals complete */
+  isMilestone?: boolean;
+  /** Child goal IDs for milestone goals */
+  childGoalIds?: string[];
+  
+  // Rich media fields
+  /** Cover/hero image URI for the goal */
+  coverImage?: string;
+  /** Progress photos timeline */
+  progressPhotos?: GoalImage[];
+  /** Mood board inspirational images (max 6) */
+  moodBoardImages?: GoalImage[];
+  /** Vision board grid images (max 9) */
+  visionBoardImages?: GoalImage[];
 }

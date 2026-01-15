@@ -26,6 +26,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { CategoryBadge } from './CategoryBadge';
 import { CompactProgressIndicator } from './ProgressIndicator';
 import { PostponedIndicator } from './PostponedIndicator';
+import { BlockedIndicator } from './BlockedIndicator';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.25;
@@ -41,6 +42,10 @@ interface GoalCardProps {
   onLongPress?: (goalId: string) => void;
   onLongPressEnd?: (goalId: string) => void;
   isToday?: boolean;
+  // Dependency props
+  isBlocked?: boolean;
+  blockingGoal?: Goal | null;
+  onBlockingGoalPress?: (goalId: string) => void;
 }
 
 /**
@@ -104,6 +109,9 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   onLongPress,
   onLongPressEnd,
   isToday = true,
+  isBlocked = false,
+  blockingGoal,
+  onBlockingGoalPress,
 }) => {
   const theme = useTheme();
   
@@ -339,8 +347,17 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                   <PriorityIndicator priority={goal.priority} colors={theme.colors} />
                 </View>
 
-                  {(goal.description || goal.reminderTime || goal.recurrence.type !== 'none' || category) && (
+                  {(goal.description || goal.reminderTime || goal.recurrence.type !== 'none' || category || isBlocked) && (
                   <View style={styles.metaRow}>
+                    {/* Blocked indicator - high priority display */}
+                    {isBlocked && (
+                      <BlockedIndicator
+                        blockingGoal={blockingGoal}
+                        size="small"
+                        onPress={onBlockingGoalPress && blockingGoal ? () => onBlockingGoalPress(blockingGoal.id) : undefined}
+                      />
+                    )}
+                    
                     {category && (
                       <CategoryBadge category={category} size="small" />
                     )}

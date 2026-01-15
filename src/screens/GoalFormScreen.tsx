@@ -19,7 +19,7 @@ import {
 } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { GoalFormScreenProps, GoalFormMode } from '../navigation/types';
-import type { Priority, RecurrencePattern, Goal, Subgoal, SubgoalProgress, AIGoalAnalysis, SuggestedSubgoal, ClarifiedGoal, CategorySuggestion } from '../types';
+import type { Priority, RecurrencePattern, Goal, Subgoal, SubgoalProgress, AIGoalAnalysis, SuggestedSubgoal, ClarifiedGoal, CategorySuggestion, GoalImage } from '../types';
 import { goalManager, subgoalManager, templateService, aiService, categoryManager } from '../services';
 import { useSettings } from '../context/SettingsContext';
 import {
@@ -32,6 +32,11 @@ import {
   ImageAttachmentPicker,
   VoiceNotePlayer,
   VoiceNoteRecorder,
+  DependencyPicker,
+  GoalCoverImage,
+  VisionBoardGrid,
+  ProgressPhotoPicker,
+  MoodBoardSection,
 } from '../components';
 import { ThemedIcon } from '../components/ThemedIcon';
 
@@ -121,6 +126,16 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
   const [imageUri, setImageUri] = useState<string | undefined>(undefined);
   const [voiceNoteUri, setVoiceNoteUri] = useState<string | undefined>(undefined);
   const [voiceNoteDuration, setVoiceNoteDuration] = useState<number | undefined>(undefined);
+  
+  // Dependency state
+  const [dependsOn, setDependsOn] = useState<string[]>([]);
+  const [allGoals, setAllGoals] = useState<Goal[]>([]);
+  
+  // Rich media state
+  const [coverImage, setCoverImage] = useState<string | undefined>(undefined);
+  const [progressPhotos, setProgressPhotos] = useState<GoalImage[]>([]);
+  const [moodBoardImages, setMoodBoardImages] = useState<GoalImage[]>([]);
+  const [visionBoardImages, setVisionBoardImages] = useState<GoalImage[]>([]);
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -157,6 +172,10 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
    * Load goal data when viewing/editing
    */
   useEffect(() => {
+    // Load all goals for dependency picker
+    const loadedAllGoals = goalManager.getAllGoals();
+    setAllGoals(loadedAllGoals);
+    
     if (goalId) {
       const loadedGoal = goalManager.getGoal(goalId);
       if (loadedGoal) {
@@ -170,6 +189,12 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
         setImageUri(loadedGoal.imageUri);
         setVoiceNoteUri(loadedGoal.voiceNoteUri);
         setVoiceNoteDuration(loadedGoal.voiceNoteDuration);
+        setDependsOn(loadedGoal.dependsOn || []);
+        // Load rich media
+        setCoverImage(loadedGoal.coverImage || loadedGoal.imageUri); // Fallback to legacy imageUri
+        setProgressPhotos(loadedGoal.progressPhotos || []);
+        setMoodBoardImages(loadedGoal.moodBoardImages || []);
+        setVisionBoardImages(loadedGoal.visionBoardImages || []);
         
         // Load subgoals
         const loadedSubgoals = loadedGoal.subgoals || [];
@@ -323,6 +348,11 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
           imageUri,
           voiceNoteUri,
           voiceNoteDuration,
+          dependsOn: dependsOn.length > 0 ? dependsOn : undefined,
+          coverImage,
+          progressPhotos: progressPhotos.length > 0 ? progressPhotos : undefined,
+          moodBoardImages: moodBoardImages.length > 0 ? moodBoardImages : undefined,
+          visionBoardImages: visionBoardImages.length > 0 ? visionBoardImages : undefined,
         });
       } else if (isEditing && goalId) {
         await goalManager.updateGoal(goalId, {
@@ -335,6 +365,11 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
           imageUri,
           voiceNoteUri,
           voiceNoteDuration,
+          dependsOn,
+          coverImage,
+          progressPhotos,
+          moodBoardImages,
+          visionBoardImages,
         });
       }
       navigation.goBack();
@@ -343,7 +378,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
     } finally {
       setIsSubmitting(false);
     }
-  }, [title, description, dueDate, priority, recurrence, reminderTime, imageUri, voiceNoteUri, voiceNoteDuration, navigation, isAdding, isEditing, goalId]);
+  }, [title, description, dueDate, priority, recurrence, reminderTime, imageUri, voiceNoteUri, voiceNoteDuration, dependsOn, coverImage, progressPhotos, moodBoardImages, visionBoardImages, navigation, isAdding, isEditing, goalId]);
 
   /**
    * Handle delete
@@ -596,12 +631,13 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           {/* Completion Status Badge (for view/edit modes) */}
           {goal && (
@@ -846,6 +882,16 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
             />
           )}
 
+          {/* Dependencies Section */}
+          <DependencyPicker
+            selectedIds={dependsOn}
+            onChange={setDependsOn}
+            availableGoals={allGoals}
+            currentGoalId={goalId}
+            disabled={isReadOnly}
+            label="PREREQUISITES"
+          />
+
           {/* Image Attachment Section */}
           <ImageAttachmentPicker
             value={imageUri}
@@ -889,6 +935,49 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
               </Text>
             )}
           </View>
+
+          {/* Rich Media Section */}
+          <View style={[styles.divider, { backgroundColor: theme.colors.outlineVariant }]} />
+          
+          {/* Cover Image */}
+          {goalId && (
+            <GoalCoverImage
+              value={coverImage}
+              onChange={setCoverImage}
+              goalId={goalId}
+              disabled={isReadOnly}
+            />
+          )}
+
+          {/* Vision Board - Only for existing goals */}
+          {goalId && (
+            <VisionBoardGrid
+              goalId={goalId}
+              images={visionBoardImages}
+              onImagesChange={setVisionBoardImages}
+              disabled={isReadOnly}
+            />
+          )}
+
+          {/* Progress Photos - Only for existing goals */}
+          {goalId && (
+            <ProgressPhotoPicker
+              goalId={goalId}
+              photos={progressPhotos}
+              onPhotosChange={setProgressPhotos}
+              disabled={isReadOnly}
+            />
+          )}
+
+          {/* Mood Board - Only for existing goals */}
+          {goalId && (
+            <MoodBoardSection
+              goalId={goalId}
+              images={moodBoardImages}
+              onImagesChange={setMoodBoardImages}
+              disabled={isReadOnly}
+            />
+          )}
 
           {/* Subgoals Section - Only show for existing goals */}
           {goalId && (

@@ -18,6 +18,7 @@ import { categoryManager, CategoryManager } from '../services/categoryManager';
 import { subgoalManager, SubgoalManager } from '../services/subgoalManager';
 import { postponeService, PostponeService } from '../services/postponeService';
 import { statisticsService } from '../services/statisticsService';
+import { dependencyService, DependencyStatus } from '../services/dependencyService';
 
 /**
  * Goal state interface
@@ -88,6 +89,14 @@ interface GoalContextValue extends GoalState {
   onGoalCompleted?: (goal: Goal, currentStreak: number) => void;
   onSubgoalCompleted?: (goalId: string, subgoalId: string) => void;
   setGamificationCallbacks: (callbacks: GamificationCallbacks) => void;
+  
+  // Dependency operations
+  isGoalBlocked: (goalId: string) => boolean;
+  getBlockingGoal: (goalId: string) => Goal | null;
+  getBlockedGoals: (goalId: string) => Goal[];
+  getDependencyStatus: (goalId: string) => DependencyStatus;
+  addDependency: (goalId: string, dependsOnId: string) => Promise<void>;
+  removeDependency: (goalId: string, dependsOnId: string) => Promise<void>;
 }
 
 /**
@@ -505,6 +514,78 @@ export function GoalProvider({
   const setGamificationCallbacks = useCallback((callbacks: GamificationCallbacks): void => {
     gamificationCallbacksRef.current = callbacks;
   }, []);
+  
+  // ============================================
+  // Dependency Operations
+  // ============================================
+  
+  /**
+   * Check if a goal is blocked by incomplete prerequisites
+   */
+  const isGoalBlocked = useCallback((goalId: string): boolean => {
+    return dependencyService.isBlocked(goalId, state.goals);
+  }, [state.goals]);
+  
+  /**
+   * Get the goal that is blocking another goal
+   */
+  const getBlockingGoal = useCallback((goalId: string): Goal | null => {
+    const blockingId = dependencyService.getBlockingGoalId(goalId, state.goals);
+    if (!blockingId) return null;
+    return state.goals.find(g => g.id === blockingId) ?? null;
+  }, [state.goals]);
+  
+  /**
+   * Get all goals that are blocked by a specific goal
+   */
+  const getBlockedGoals = useCallback((goalId: string): Goal[] => {
+    return dependencyService.getBlockedGoals(goalId, state.goals);
+  }, [state.goals]);
+  
+  /**
+   * Get full dependency status for a goal
+   */
+  const getDependencyStatus = useCallback((goalId: string): DependencyStatus => {
+    return dependencyService.getDependencyStatus(goalId, state.goals);
+  }, [state.goals]);
+  
+  /**
+   * Add a dependency relationship between goals
+   */
+  const addDependency = useCallback(async (goalId: string, dependsOnId: string): Promise<void> => {
+    const goal = goalMgr.getGoal(goalId);
+    if (!goal) {
+      throw new Error(`Goal with id ${goalId} not found`);
+    }
+    
+    const currentDeps = goal.dependsOn ?? [];
+    if (currentDeps.includes(dependsOnId)) {
+      return; // Already a dependency
+    }
+    
+    const updatedGoal = await goalMgr.updateGoal(goalId, {
+      dependsOn: [...currentDeps, dependsOnId],
+    });
+    dispatch({ type: 'UPDATE_GOAL', payload: updatedGoal });
+  }, [goalMgr]);
+  
+  /**
+   * Remove a dependency relationship between goals
+   */
+  const removeDependency = useCallback(async (goalId: string, dependsOnId: string): Promise<void> => {
+    const goal = goalMgr.getGoal(goalId);
+    if (!goal) {
+      throw new Error(`Goal with id ${goalId} not found`);
+    }
+    
+    const currentDeps = goal.dependsOn ?? [];
+    const updatedDeps = currentDeps.filter(id => id !== dependsOnId);
+    
+    const updatedGoal = await goalMgr.updateGoal(goalId, {
+      dependsOn: updatedDeps,
+    });
+    dispatch({ type: 'UPDATE_GOAL', payload: updatedGoal });
+  }, [goalMgr]);
 
   const value: GoalContextValue = {
     ...state,
@@ -542,6 +623,13 @@ export function GoalProvider({
     canUndoPostpone,
     // Gamification callbacks
     setGamificationCallbacks,
+    // Dependency operations
+    isGoalBlocked,
+    getBlockingGoal,
+    getBlockedGoals,
+    getDependencyStatus,
+    addDependency,
+    removeDependency,
   };
 
   return <GoalContext.Provider value={value}>{children}</GoalContext.Provider>;
