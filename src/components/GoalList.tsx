@@ -14,6 +14,7 @@ interface GoalListProps {
   onLongPress?: (goalId: string) => void;
   onLongPressEnd?: (goalId: string) => void;
   scrollEnabled?: boolean;
+  itemVariant?: 'default' | 'minimal';
 }
 
 interface GoalSection {
@@ -165,6 +166,7 @@ export const GoalList: React.FC<GoalListProps & {
   refreshing,
   onRefresh,
   scrollEnabled = true,
+  itemVariant = 'default',
 }) => {
   const theme = useTheme();
 
@@ -193,6 +195,7 @@ export const GoalList: React.FC<GoalListProps & {
       onLongPress={onLongPress}
       onLongPressEnd={onLongPressEnd}
       isToday={(section as GoalSection).isToday}
+      variant={itemVariant}
     />
   );
 
@@ -215,7 +218,7 @@ export const GoalList: React.FC<GoalListProps & {
       contentContainerStyle={styles.listContent}
       stickySectionHeadersEnabled={false} // Cleaner scroll without sticky headers blocking content
       showsVerticalScrollIndicator={false}
-      ItemSeparatorComponent={() => <View style={styles.separator} />}
+      ItemSeparatorComponent={() => itemVariant === 'minimal' ? null : <View style={styles.separator} />}
       ListHeaderComponent={ListHeaderComponent}
       ListFooterComponent={ListFooterComponent}
       refreshing={refreshing}

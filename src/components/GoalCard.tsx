@@ -49,6 +49,7 @@ interface GoalCardProps {
   blockingGoal?: Goal | null;
   onBlockingGoalPress?: (goalId: string) => void;
   prediction?: CompletionPrediction;
+  variant?: 'default' | 'minimal';
 }
 
 /**
@@ -116,6 +117,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   blockingGoal,
   onBlockingGoalPress,
   prediction,
+  variant = 'default',
 }) => {
   const theme = useTheme();
   
@@ -129,6 +131,16 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   useEffect(() => {
     cardOpacity.value = withTiming(goal.isCompleted ? 0.5 : 1, { duration: 400 });
   }, [goal.isCompleted]);
+
+  const hasImages = !!(
+    goal.imageUri || 
+    goal.coverImage || 
+    (goal.progressPhotos?.length ?? 0) > 0 || 
+    (goal.moodBoardImages?.length ?? 0) > 0 || 
+    (goal.visionBoardImages?.length ?? 0) > 0
+  );
+  
+  const hasVoice = !!goal.voiceNoteUri;
 
   // Handle swipe-to-delete (swipe left-to-right)
   const handleSwipeDelete = useCallback(() => {
@@ -272,13 +284,14 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   }, [onToggleComplete, goal.id]);
 
   return (
-    <View style={styles.container}>
-      {/* Delete Action Layer (left side - revealed when swiping right) */}
+    <View style={[styles.container, variant === 'minimal' && styles.minimalContainer]}>
+      {/* Delete Action Layer */}
       <Animated.View
         style={[
           styles.deleteLayer,
           { backgroundColor: theme.colors.errorContainer },
           deleteLayerStyle,
+          variant === 'minimal' && styles.minimalActionLayer,
         ]}
       >
         <IconButton
@@ -288,12 +301,13 @@ export const GoalCard: React.FC<GoalCardProps> = ({
         />
       </Animated.View>
 
-      {/* Complete Action Layer (right side - revealed when swiping left) */}
+      {/* Complete Action Layer */}
       <Animated.View
         style={[
           styles.completeLayer,
           { backgroundColor: theme.colors.primaryContainer },
           completeLayerStyle,
+          variant === 'minimal' && styles.minimalActionLayer,
         ]}
       >
         <IconButton
@@ -303,18 +317,19 @@ export const GoalCard: React.FC<GoalCardProps> = ({
         />
       </Animated.View>
 
-      {/* Main Card Surface */}
+      {/* Main Content */}
       <GestureDetector gesture={gesture}>
-        <Animated.View style={[styles.cardWrapper, cardStyle]}>
+        <Animated.View style={[styles.cardWrapper, cardStyle, variant === 'minimal' && styles.minimalCardWrapper]}>
           <Surface
             style={[
               styles.surface,
-              { backgroundColor: theme.colors.surfaceVariant },
+              variant === 'default' && { backgroundColor: theme.colors.surfaceVariant },
+              variant === 'minimal' && styles.minimalSurface,
             ]}
             elevation={0}
           >
-            <View style={styles.contentRow}>
-              {/* Left: Minimal Checkbox */}
+            <View style={[styles.contentRow, variant === 'minimal' && styles.minimalContentRow]}>
+              {/* Left: Checkbox */}
               <View style={styles.actionContainer}>
                 <TouchableRipple
                   onPress={handleCheckboxPress}
@@ -342,6 +357,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                       {
                         color: goal.isCompleted ? theme.colors.onSurfaceDisabled : theme.colors.onSurface,
                         textDecorationLine: goal.isCompleted ? 'line-through' : 'none',
+                        fontSize: variant === 'minimal' ? 16 : 17,
                       },
                     ]}
                     numberOfLines={1}
@@ -351,7 +367,37 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                   <PriorityIndicator priority={goal.priority} colors={theme.colors} />
                 </View>
 
-                  {(goal.description || goal.reminderTime || goal.recurrence.type !== 'none' || category || isBlocked || prediction) && (
+                {goal.description && (
+                  <Text 
+                    variant="bodySmall" 
+                    style={{ 
+                      color: theme.colors.onSurfaceVariant, 
+                      marginTop: 2,
+                      opacity: 0.8 
+                    }} 
+                    numberOfLines={1}
+                  >
+                    {goal.description}
+                  </Text>
+                )}
+
+                {(hasImages || hasVoice) && (
+                  <View style={{ flexDirection: 'row', gap: 12, marginTop: 4, alignItems: 'center' }}>
+                    {hasVoice && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <ThemedIcon name="microphone" size={14} color={theme.colors.primary} />
+                      </View>
+                    )}
+                    {hasImages && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <ThemedIcon name="image-outline" size={14} color={theme.colors.secondary} />
+                      </View>
+                    )}
+                  </View>
+                )}
+
+                  {/* Meta Row: Detailed info for default view, or critical info for minimal */}
+                  {(goal.reminderTime || goal.recurrence.type !== 'none' || category || isBlocked || prediction) && variant !== 'minimal' && (
                   <View style={styles.metaRow}>
                     {/* Blocked indicator - high priority display */}
                     {isBlocked && (
@@ -391,7 +437,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
               </View>
 
               {/* Right: Subtle Indicators (only if highly relevant) */}
-              {(goal.subgoals && goal.subgoals.length > 0) && (
+              {(goal.subgoals && goal.subgoals.length > 0) && variant !== 'minimal' && (
                  <View style={styles.progressContainer}>
                    <CompactProgressIndicator
                       progress={{
@@ -504,6 +550,27 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
+  },
+  minimalContainer: {
+    marginHorizontal: 0,
+    marginVertical: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  minimalSurface: {
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+  },
+  minimalCardWrapper: {
+    borderRadius: 0,
+  },
+  minimalContentRow: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    minHeight: 56,
+  },
+  minimalActionLayer: {
+    borderRadius: 0,
   },
 });
 

@@ -24,11 +24,13 @@ interface VoiceInputButtonProps {
 
 // Global ref to track which button instance is currently active
 let activeInstanceId: string | null = null;
+const MIN_VOLUME = -2;
+const MAX_VOLUME = 10;
 
 /**
  * VoiceInputButton - A reusable voice input button component
  * Each instance tracks its own recording state independently
- * Includes an audio visualizer with animated bars
+ * Includes an audio visualizer with animated bars using live data
  */
 export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
   onTranscript,
@@ -45,7 +47,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
   // Unique instance ID
   const instanceId = useRef(`voice-btn-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`).current;
   
-  // Animation refs for visualizer bars
+  // Animation refs for visualizer bars (5 bars)
   const barAnims = useRef([
     new Animated.Value(0.3),
     new Animated.Value(0.3),
@@ -67,6 +69,8 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
       setIsRecognizing(false);
       setIsThisInstanceActive(false);
       activeInstanceId = null;
+      // Reset visualizer bars
+      barAnims.forEach(anim => anim.setValue(0.3));
     }
   });
 
@@ -86,53 +90,53 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
     }
   });
 
+  // Volume change event for realtime visualization
+  useSpeechRecognitionEvent('volumechange', (event) => {
+    if (activeInstanceId !== instanceId) return;
+    
+    // Normalize volume from [-2, 10] to [0, 1]
+    const normalizedVolume = Math.max(0, Math.min(1, (event.value - MIN_VOLUME) / (MAX_VOLUME - MIN_VOLUME)));
+    
+    // Update each bar with slightly different values for wave effect
+    barAnims.forEach((anim, index) => {
+      // Create a wave pattern - bars in the middle are taller (index 2 is center of 5)
+      const centerIndex = 2; 
+      const distanceFromCenter = Math.abs(index - centerIndex) / centerIndex;
+      const waveMultiplier = 1 - (distanceFromCenter * 0.4);
+      
+      // Add some randomness for natural feel
+      const randomVariation = 0.9 + Math.random() * 0.2;
+      
+      // Base height (0.3) + volume-based height
+      const targetHeight = 0.3 + (normalizedVolume * 1.5 * waveMultiplier * randomVariation);
+      
+      Animated.timing(anim, {
+        toValue: targetHeight,
+        duration: 80,
+        useNativeDriver: true,
+      }).start();
+    });
+  });
+
   useSpeechRecognitionEvent('error', (event) => {
     if (activeInstanceId === instanceId) {
       setIsRecognizing(false);
       setIsThisInstanceActive(false);
       activeInstanceId = null;
+      // Reset bars
+      barAnims.forEach(anim => anim.setValue(0.3));
+      
       const errorMessage = event.message || 'Speech recognition error';
       console.warn('Speech recognition error:', event.error, errorMessage);
       onError?.(errorMessage);
     }
   });
 
-  // Animated visualizer bars
-  useEffect(() => {
-    if (isThisInstanceActive) {
-      const animations = barAnims.map((anim, index) => {
-        return Animated.loop(
-          Animated.sequence([
-            Animated.timing(anim, {
-              toValue: 0.3 + Math.random() * 0.7,
-              duration: 150 + index * 50,
-              useNativeDriver: true,
-            }),
-            Animated.timing(anim, {
-              toValue: 0.3,
-              duration: 150 + index * 50,
-              useNativeDriver: true,
-            }),
-          ])
-        );
-      });
-      
-      animations.forEach(anim => anim.start());
-      
-      return () => {
-        animations.forEach(anim => anim.stop());
-        barAnims.forEach(anim => anim.setValue(0.3));
-      };
-    } else {
-      barAnims.forEach(anim => anim.setValue(0.3));
-    }
-  }, [isThisInstanceActive, barAnims]);
-
   const handlePress = useCallback(async () => {
     if (disabled) return;
 
     if (isThisInstanceActive) {
-      // Stop recognition
+      // Stop recognition manually
       ExpoSpeechRecognitionModule.stop();
       return;
     }
@@ -166,8 +170,12 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
       ExpoSpeechRecognitionModule.start({
         lang,
         interimResults: true,
-        continuous: false,
+        continuous: true, // Continuous recording until stopped manually
         maxAlternatives: 1,
+        volumeChangeEventOptions: {
+          enabled: true,
+          intervalMillis: 100, 
+        },
       });
     } catch (error) {
       activeInstanceId = null;

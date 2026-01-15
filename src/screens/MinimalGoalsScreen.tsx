@@ -272,6 +272,7 @@ export const MinimalGoalsScreen: React.FC<MinimalGoalsScreenProps> = ({ navigati
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Goal List with Minimal Header */}
       <GoalList
+        itemVariant="minimal"
         goals={goals}
         onToggleComplete={handleToggleComplete}
         onGoalPress={handleGoalPress}
