@@ -4,8 +4,8 @@ import { FAB, useTheme, Snackbar, Text, Surface } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { HomeScreenProps } from '../navigation/types';
-import type { Goal, Challenge, CalendarEvent } from '../types';
-import { goalManager, calendarService } from '../services';
+import type { Goal, Challenge, CalendarEvent, PatternInsight, MotivationalMessage, RescheduleSuggestion } from '../types';
+import { goalManager, calendarService, advancedAIService } from '../services';
 import { useCategories } from '../context/CategoryContext';
 import { useGamification } from '../context/GamificationContext';
 import { useStatistics } from '../context/StatisticsContext';
@@ -24,6 +24,9 @@ import {
   ChallengeQuickView,
   ActionToast,
   VoiceGoalCreator,
+  PatternInsightCard,
+  MotivationalMessageCard,
+  RescheduleSuggestionCard,
 } from '../components';
 
 /**
@@ -94,6 +97,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => 
   const [pendingDeleteGoal, setPendingDeleteGoal] = useState<Goal | null>(null);
   const [deleteToastVisible, setDeleteToastVisible] = useState(false);
 
+  // AI Insights state
+  const [patternInsights, setPatternInsights] = useState<PatternInsight[]>([]);
+  const [motivationalMessage, setMotivationalMessage] = useState<MotivationalMessage | null>(null);
+  const [rescheduleSuggestions, setRescheduleSuggestions] = useState<RescheduleSuggestion[]>([]);
+
   /**
    * Load goals from storage
    */
@@ -143,6 +151,43 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => 
       setCalendarEvents([]);
     }
   }, [settings.calendarIntegrationEnabled]);
+
+  /**
+   * Load AI insights (patterns, motivation, reschedule suggestions)
+   */
+  const loadAIInsights = useCallback(async () => {
+    if (!settings.openRouterApiKey) return;
+
+    try {
+      // Load pattern insights if enabled
+      if (settings.aiPatternDetectionEnabled && patternInsights.length === 0) {
+        const insights = await advancedAIService.detectPatterns();
+        setPatternInsights(insights.slice(0, 3)); // Limit to 3 insights
+      }
+
+      // Load motivational message if enabled
+      if (settings.aiMotivationalEnabled && !motivationalMessage) {
+        const context = advancedAIService.buildMotivationContext();
+        const message = await advancedAIService.generateMotivation(context);
+        if (message) setMotivationalMessage(message);
+      }
+
+      // Check for overdue goals and get reschedule suggestions
+      if (settings.aiSmartReschedulingEnabled) {
+        const allGoals = goalManager.getAllGoals();
+        const today = getTodayDate();
+        const overdueGoals = allGoals.filter(
+          g => !g.isCompleted && g.dueDate < today
+        );
+        if (overdueGoals.length > 0 && rescheduleSuggestions.length === 0) {
+          const suggestions = await advancedAIService.suggestReschedules(overdueGoals.slice(0, 3));
+          setRescheduleSuggestions(suggestions);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load AI insights:', error);
+    }
+  }, [settings, patternInsights.length, motivationalMessage, rescheduleSuggestions.length]);
   
   /**
    * Filter goals by selected category
@@ -187,8 +232,38 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => 
     useCallback(() => {
       loadGoals();
       loadCalendarEvents();
-    }, [loadGoals, loadCalendarEvents])
+      loadAIInsights();
+    }, [loadGoals, loadCalendarEvents, loadAIInsights])
   );
+
+  /**
+   * Handle AI insight dismissals
+   */
+  const handleDismissPatternInsight = useCallback((insightId: string) => {
+    setPatternInsights(prev => prev.filter(i => i.id !== insightId));
+  }, []);
+
+  const handleDismissMotivation = useCallback(() => {
+    setMotivationalMessage(null);
+  }, []);
+
+  const handleAcceptReschedule = useCallback(async (suggestion: RescheduleSuggestion) => {
+    try {
+      await goalManager.updateGoal(suggestion.goalId, {
+        dueDate: suggestion.suggestedDueDate,
+      });
+      setRescheduleSuggestions(prev => prev.filter(s => s.goalId !== suggestion.goalId));
+      loadGoals();
+      setSnackbarMessage('Goal rescheduled!');
+      setSnackbarVisible(true);
+    } catch (error) {
+      console.error('Failed to reschedule:', error);
+    }
+  }, [loadGoals]);
+
+  const handleDismissReschedule = useCallback((goalId: string) => {
+    setRescheduleSuggestions(prev => prev.filter(s => s.goalId !== goalId));
+  }, []);
 
   /**
    * Handle pull-to-refresh
@@ -561,6 +636,44 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => 
             />
             
             <MotivationalBanner />
+            
+            {/* AI Motivational Message */}
+            {motivationalMessage && (
+              <View style={{ marginHorizontal: 24, marginBottom: 12 }}>
+                <MotivationalMessageCard
+                  message={motivationalMessage}
+                  onDismiss={handleDismissMotivation}
+                />
+              </View>
+            )}
+            
+            {/* AI Reschedule Suggestions */}
+            {rescheduleSuggestions.length > 0 && (
+              <View style={{ marginHorizontal: 24, marginBottom: 12 }}>
+                {rescheduleSuggestions.map((suggestion) => (
+                  <RescheduleSuggestionCard
+                    key={suggestion.goalId}
+                    suggestion={suggestion}
+                    onAccept={handleAcceptReschedule}
+                    onModify={(s) => navigation.navigate('GoalForm', { goalId: s.goalId, mode: 'edit' })}
+                    onDismiss={handleDismissReschedule}
+                  />
+                ))}
+              </View>
+            )}
+            
+            {/* AI Pattern Insights */}
+            {patternInsights.length > 0 && (
+              <View style={{ marginHorizontal: 24, marginBottom: 12 }}>
+                {patternInsights.map((insight) => (
+                  <PatternInsightCard
+                    key={insight.id}
+                    insight={insight}
+                    onDismiss={handleDismissPatternInsight}
+                  />
+                ))}
+              </View>
+            )}
           </View>
         }
         ListFooterComponent={

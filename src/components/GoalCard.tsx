@@ -27,6 +27,8 @@ import { CategoryBadge } from './CategoryBadge';
 import { CompactProgressIndicator } from './ProgressIndicator';
 import { PostponedIndicator } from './PostponedIndicator';
 import { BlockedIndicator } from './BlockedIndicator';
+import { PredictionBadge } from './PredictionBadge';
+import type { CompletionPrediction } from '../types/advancedAITypes';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.25;
@@ -46,6 +48,7 @@ interface GoalCardProps {
   isBlocked?: boolean;
   blockingGoal?: Goal | null;
   onBlockingGoalPress?: (goalId: string) => void;
+  prediction?: CompletionPrediction;
 }
 
 /**
@@ -112,6 +115,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   isBlocked = false,
   blockingGoal,
   onBlockingGoalPress,
+  prediction,
 }) => {
   const theme = useTheme();
   
@@ -347,7 +351,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                   <PriorityIndicator priority={goal.priority} colors={theme.colors} />
                 </View>
 
-                  {(goal.description || goal.reminderTime || goal.recurrence.type !== 'none' || category || isBlocked) && (
+                  {(goal.description || goal.reminderTime || goal.recurrence.type !== 'none' || category || isBlocked || prediction) && (
                   <View style={styles.metaRow}>
                     {/* Blocked indicator - high priority display */}
                     {isBlocked && (
@@ -375,6 +379,12 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                            {new Date(goal.reminderTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                          </Text>
                        </View>
+                    )}
+
+                    {prediction && (
+                      <View style={styles.metaItem}>
+                        <PredictionBadge prediction={prediction} size="small" />
+                      </View>
                     )}
                   </View>
                 )}

@@ -19,6 +19,7 @@ export * from './gamification';
 // AI feature types
 export * from './aiTypes';
 export * from './aiSettings';
+export * from './advancedAITypes';
 
 // Focus timer types
 export * from './focusSession';

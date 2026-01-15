@@ -70,6 +70,12 @@ export { NewPersonalBestModal } from './NewPersonalBestModal';
 
 // AI components
 export { AIAssistantPanel } from './AIAssistantPanel';
+export { AIGoalCoach } from './AIGoalCoach';
+export { PatternInsightCard } from './PatternInsightCard';
+export { RescheduleSuggestionCard } from './RescheduleSuggestionCard';
+export { MotivationalMessageCard } from './MotivationalMessageCard';
+export { PredictionBadge } from './PredictionBadge';
+export { GoalBreakdownModal } from './GoalBreakdownModal';
 
 // Focus Timer components
 export { FocusTimer } from './FocusTimer';

@@ -110,5 +110,19 @@ export interface AppSettings {
   focusAmbientSound: 'rain' | 'forest' | 'cafe' | 'waves' | 'none';
   /** Auto-complete goals after reaching focus session threshold */
   focusAutoCompleteEnabled: boolean;
+  
+  // Advanced AI Settings
+  /** Enable AI Goal Coach for conversational goal-setting */
+  aiGoalCoachEnabled?: boolean;
+  /** Enable smart rescheduling suggestions for overdue goals */
+  aiSmartReschedulingEnabled?: boolean;
+  /** Enable pattern detection insights */
+  aiPatternDetectionEnabled?: boolean;
+  /** Enable AI goal breakdown into subgoals */
+  aiGoalBreakdownEnabled?: boolean;
+  /** Enable motivational AI messages */
+  aiMotivationalEnabled?: boolean;
+  /** Enable predictive completion probability */
+  aiPredictiveEnabled?: boolean;
 }
 

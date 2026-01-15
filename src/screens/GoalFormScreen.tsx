@@ -19,8 +19,8 @@ import {
 } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { GoalFormScreenProps, GoalFormMode } from '../navigation/types';
-import type { Priority, RecurrencePattern, Goal, Subgoal, SubgoalProgress, AIGoalAnalysis, SuggestedSubgoal, ClarifiedGoal, CategorySuggestion, GoalImage } from '../types';
-import { goalManager, subgoalManager, templateService, aiService, categoryManager } from '../services';
+import type { Priority, RecurrencePattern, Goal, Subgoal, SubgoalProgress, AIGoalAnalysis, SuggestedSubgoal, ClarifiedGoal, CategorySuggestion, GoalImage, GoalSuggestion, AIGeneratedSubgoal } from '../types';
+import { goalManager, subgoalManager, templateService, aiService, categoryManager, advancedAIService } from '../services';
 import { useSettings } from '../context/SettingsContext';
 import {
   PriorityPicker,
@@ -37,6 +37,8 @@ import {
   VisionBoardGrid,
   ProgressPhotoPicker,
   MoodBoardSection,
+  AIGoalCoach,
+  GoalBreakdownModal,
 } from '../components';
 import { ThemedIcon } from '../components/ThemedIcon';
 
@@ -163,6 +165,10 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
   const [aiAnalysis, setAIAnalysis] = useState<AIGoalAnalysis | null>(null);
   const [aiError, setAIError] = useState<string | null>(null);
   const [addedSubgoalsFromAI, setAddedSubgoalsFromAI] = useState<Set<string>>(new Set());
+  
+  // Advanced AI state
+  const [showAICoach, setShowAICoach] = useState(false);
+  const [showBreakdownModal, setShowBreakdownModal] = useState(false);
 
   const isReadOnly = mode === 'view';
   const isEditing = mode === 'edit';
@@ -572,6 +578,47 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
   }, [navigation]);
 
   /**
+   * Handle AI Coach suggestion application
+   */
+  const handleApplyCoachSuggestion = useCallback((suggestion: GoalSuggestion) => {
+    if (suggestion.title) setTitle(suggestion.title);
+    if (suggestion.description) setDescription(suggestion.description);
+    if (suggestion.priority) setPriority(suggestion.priority);
+    if (suggestion.dueDate) setDueDate(new Date(suggestion.dueDate));
+    setShowAICoach(false);
+  }, []);
+
+  /**
+   * Handle AI Breakdown subgoals application
+   */
+  const handleApplyBreakdownSubgoals = useCallback((aiSubgoals: AIGeneratedSubgoal[]) => {
+    if (!goalId) {
+      Alert.alert(
+        'Save Goal First',
+        'Save the goal first, then you can add the generated subgoals.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    try {
+      for (const subgoal of aiSubgoals) {
+        subgoalManager.createSubgoal(goalId, subgoal.title, subgoal.isMilestone);
+      }
+      refreshSubgoals();
+      Alert.alert('Success', `Added ${aiSubgoals.length} subgoal${aiSubgoals.length > 1 ? 's' : ''}!`);
+    } catch (error) {
+      console.error('Failed to add breakdown subgoals:', error);
+      Alert.alert('Error', 'Failed to add subgoals. Please try again.');
+    }
+  }, [goalId, refreshSubgoals]);
+
+  /**
+   * Get categories for AI components
+   */
+  const categories = useMemo(() => categoryManager.getCategories(), []);
+
+  /**
    * Get header title based on mode
    */
   const headerTitle = useMemo(() => {
@@ -762,19 +809,47 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
             </View>
           )}
 
-          {/* AI Assist Button - Only show in add/edit modes when AI is configured */}
+          {/* AI Assist Buttons - Only show in add/edit modes when AI is configured */}
           {!isReadOnly && settings.openRouterApiKey && (
-            <TouchableOpacity
-              onPress={handleAIAnalysis}
-              disabled={aiLoading}
-              style={[styles.aiAssistButton, { backgroundColor: theme.colors.primaryContainer }]}
-              activeOpacity={0.7}
-            >
-              <ThemedIcon name="auto-fix" size={18} themeColor="primary" />
-              <Text variant="labelLarge" style={{ color: theme.colors.primary, marginLeft: 8, fontWeight: '600' }}>
-                AI Assist
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.aiButtonsRow}>
+              <TouchableOpacity
+                onPress={handleAIAnalysis}
+                disabled={aiLoading}
+                style={[styles.aiAssistButton, { backgroundColor: theme.colors.primaryContainer, flex: 1 }]}
+                activeOpacity={0.7}
+              >
+                <ThemedIcon name="auto-fix" size={18} themeColor="primary" />
+                <Text variant="labelLarge" style={{ color: theme.colors.primary, marginLeft: 8, fontWeight: '600' }}>
+                  AI Assist
+                </Text>
+              </TouchableOpacity>
+              
+              {settings.aiGoalCoachEnabled && (
+                <TouchableOpacity
+                  onPress={() => setShowAICoach(true)}
+                  style={[styles.aiAssistButton, { backgroundColor: theme.colors.secondaryContainer, flex: 1, marginLeft: 8 }]}
+                  activeOpacity={0.7}
+                >
+                  <ThemedIcon name="robot-happy" size={18} themeColor="secondary" />
+                  <Text variant="labelLarge" style={{ color: theme.colors.secondary, marginLeft: 8, fontWeight: '600' }}>
+                    Coach
+                  </Text>
+                </TouchableOpacity>
+              )}
+              
+              {settings.aiGoalBreakdownEnabled && goalId && (
+                <TouchableOpacity
+                  onPress={() => setShowBreakdownModal(true)}
+                  style={[styles.aiAssistButton, { backgroundColor: theme.colors.tertiaryContainer, flex: 1, marginLeft: 8 }]}
+                  activeOpacity={0.7}
+                >
+                  <ThemedIcon name="puzzle-outline" size={18} themeColor="tertiary" />
+                  <Text variant="labelLarge" style={{ color: theme.colors.tertiary, marginLeft: 8, fontWeight: '600' }}>
+                    Break Down
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           )}
 
           {/* AI Assistant Panel */}
@@ -1229,6 +1304,23 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
           </View>
         </Modal>
       </Portal>
+
+      {/* AI Goal Coach Modal */}
+      <AIGoalCoach
+        visible={showAICoach}
+        onDismiss={() => setShowAICoach(false)}
+        onApplySuggestion={handleApplyCoachSuggestion}
+        categories={categories}
+      />
+
+      {/* AI Goal Breakdown Modal */}
+      <GoalBreakdownModal
+        visible={showBreakdownModal}
+        goal={goal}
+        categories={categories}
+        onDismiss={() => setShowBreakdownModal(false)}
+        onApplySubgoals={handleApplyBreakdownSubgoals}
+      />
     </View>
   );
 };
@@ -1453,15 +1545,18 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: 12,
   },
+  aiButtonsRow: {
+    flexDirection: 'row',
+    marginTop: 12,
+    gap: 8,
+  },
   aiAssistButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     borderRadius: 16,
-    marginTop: 12,
-    alignSelf: 'flex-start',
   },
 });
 

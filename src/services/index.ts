@@ -23,4 +23,5 @@ export * from './voiceNoteService';
 export * from './focusTimerService';
 export * from './ambientSoundService';
 export * from './goalImageService';
+export * from './advancedAIService';
 
