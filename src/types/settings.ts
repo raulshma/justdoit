@@ -84,5 +84,9 @@ export interface AppSettings {
   aiPiiAnonymizationEnabled?: boolean;
   /** Whether user has completed the onboarding flow */
   hasCompletedOnboarding: boolean;
+  /** Convex deployment URL for cloud backup */
+  convexUrl?: string;
+  /** Convex authentication token for cloud backup */
+  convexToken?: string;
 }
 

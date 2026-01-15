@@ -16,4 +16,6 @@ export * from './personalBestService';
 export * from './aiLogService';
 export * from './calendarService';
 export * from './aiStatsService';
+export * from './backupService';
+export * from './convexSyncService';
 

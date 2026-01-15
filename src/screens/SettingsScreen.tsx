@@ -17,7 +17,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { SettingsScreenProps } from '../navigation/types';
 import type { AppSettings, ColorPalette } from '../types';
-import { notificationService, aiLogService, calendarService } from '../services';
+import { notificationService, aiLogService, calendarService, backupService, convexSyncService } from '../services';
 import { colorPaletteInfoList, themeMoods, getPalettesByMood } from '../theme/colors';
 import type { ThemeMood } from '../types/settings';
 import { useSettings } from '../context/SettingsContext';
@@ -215,6 +215,13 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = () => {
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [themeExpanded, setThemeExpanded] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [showConvexCredentialsModal, setShowConvexCredentialsModal] = useState(false);
+  const [convexUrlInput, setConvexUrlInput] = useState('');  
+  const [convexTokenInput, setConvexTokenInput] = useState('');
 
   // Toggle theme section with smooth animation
   const toggleThemeSection = useCallback(() => {
@@ -339,6 +346,85 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = () => {
   const handleOpenModelSelection = useCallback(() => {
     navigation.navigate('ModelSelection');
   }, [navigation]);
+
+  const handleExportData = useCallback(async () => {
+    setIsExporting(true);
+    try {
+      const result = await backupService.exportToFile();
+      if (result.success) {
+        setSnackbarMessage('Data exported successfully');
+      } else {
+        setSnackbarMessage(result.error || 'Export failed');
+      }
+      setSnackbarVisible(true);
+    } finally {
+      setIsExporting(false);
+    }
+  }, []);
+
+  const handleImportData = useCallback(async () => {
+    setIsImporting(true);
+    try {
+      const result = await backupService.importFromFile();
+      if (result.success) {
+        setSnackbarMessage('Data imported! Restart the app to see changes.');
+      } else if (result.error !== 'No file selected') {
+        setSnackbarMessage(result.error || 'Import failed');
+      }
+      setSnackbarVisible(true);
+    } finally {
+      setIsImporting(false);
+    }
+  }, []);
+
+  const handleSaveConvexCredentials = useCallback(async () => {
+    setShowConvexCredentialsModal(false);
+    const updates: { convexUrl?: string; convexToken?: string } = {};
+    
+    if (convexUrlInput.trim()) {
+      updates.convexUrl = convexUrlInput.trim();
+    }
+    if (convexTokenInput.trim()) {
+      updates.convexToken = convexTokenInput.trim();
+    }
+    
+    if (Object.keys(updates).length > 0) {
+      await saveSettings(updates, 'Convex credentials saved');
+    }
+    
+    setConvexUrlInput('');
+    setConvexTokenInput('');
+  }, [convexUrlInput, convexTokenInput, saveSettings]);
+
+  const handleSyncToCloud = useCallback(async () => {
+    setIsSyncing(true);
+    try {
+      const result = await convexSyncService.syncToCloud();
+      if (result.success) {
+        setSnackbarMessage('Data synced to cloud!');
+      } else {
+        setSnackbarMessage(result.error || 'Sync failed');
+      }
+      setSnackbarVisible(true);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, []);
+
+  const handleRestoreFromCloud = useCallback(async () => {
+    setIsRestoring(true);
+    try {
+      const result = await convexSyncService.syncFromCloud();
+      if (result.success) {
+        setSnackbarMessage('Data restored! Restart the app to see changes.');
+      } else {
+        setSnackbarMessage(result.error || 'Restore failed');
+      }
+      setSnackbarVisible(true);
+    } finally {
+      setIsRestoring(false);
+    }
+  }, []);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -544,6 +630,117 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = () => {
           </Surface>
         </View>
 
+        {/* Data Backup Group */}
+        <View style={styles.sectionContainer}>
+          <Text variant="labelLarge" style={[styles.sectionHeader, { color: theme.colors.primary }]}>
+            DATA & BACKUP
+          </Text>
+          <Surface style={[styles.card, { backgroundColor: theme.colors.surface }]} elevation={0}>
+            <SettingRow
+              icon="export"
+              title="Export Data"
+              subtitle="Save all your data to a file"
+              onPress={handleExportData}
+              disabled={isExporting}
+              right={
+                isExporting ? (
+                  <Text variant="labelMedium" style={{ color: theme.colors.primary }}>
+                    Exporting...
+                  </Text>
+                ) : (
+                  <View style={[styles.smallBadge, { backgroundColor: theme.colors.secondaryContainer + '50' }]}>
+                    <Text variant="labelMedium" style={{ color: theme.colors.onSecondaryContainer }}>
+                      JSON
+                    </Text>
+                  </View>
+                )
+              }
+            />
+            <SettingRow
+              icon="import"
+              title="Import Data"
+              subtitle="Restore from a backup file"
+              onPress={handleImportData}
+              disabled={isImporting}
+              right={
+                isImporting ? (
+                  <Text variant="labelMedium" style={{ color: theme.colors.primary }}>
+                    Importing...
+                  </Text>
+                ) : (
+                  <View style={[styles.smallBadge, { backgroundColor: theme.colors.secondaryContainer + '50' }]}>
+                    <Text variant="labelMedium" style={{ color: theme.colors.onSecondaryContainer }}>
+                      Restore
+                    </Text>
+                  </View>
+                )
+              }
+            />
+            <SettingRow
+              icon="cloud-sync-outline"
+              title="Convex Credentials"
+              subtitle={settings.convexUrl && settings.convexToken ? "Configured" : "Set URL and Token for cloud sync"}
+              onPress={() => {
+                setConvexUrlInput(settings.convexUrl || '');
+                setConvexTokenInput(settings.convexToken || '');
+                setShowConvexCredentialsModal(true);
+              }}
+              right={
+                <View style={[styles.smallBadge, { backgroundColor: (settings.convexUrl && settings.convexToken) ? theme.colors.primaryContainer : theme.colors.secondaryContainer + '50' }]}>
+                  <Text variant="labelMedium" style={{ color: (settings.convexUrl && settings.convexToken) ? theme.colors.primary : theme.colors.onSecondaryContainer }}>
+                    {(settings.convexUrl && settings.convexToken) ? "Ready" : "Setup"}
+                  </Text>
+                </View>
+              }
+            />
+            {settings.convexUrl && settings.convexToken && (
+              <>
+                <SettingRow
+                  icon="cloud-upload-outline"
+                  title="Sync to Cloud"
+                  subtitle="Upload your data to Convex"
+                  onPress={handleSyncToCloud}
+                  disabled={isSyncing}
+                  right={
+                    isSyncing ? (
+                      <Text variant="labelMedium" style={{ color: theme.colors.primary }}>
+                        Syncing...
+                      </Text>
+                    ) : (
+                      <View style={[styles.smallBadge, { backgroundColor: theme.colors.primaryContainer }]}>
+                        <Text variant="labelMedium" style={{ color: theme.colors.primary }}>
+                          Sync
+                        </Text>
+                      </View>
+                    )
+                  }
+                />
+                <SettingRow
+                  icon="cloud-download-outline"
+                  title="Restore from Cloud"
+                  subtitle="Download your data from Convex"
+                  onPress={handleRestoreFromCloud}
+                  disabled={isRestoring}
+                  isLast={true}
+                  right={
+                    isRestoring ? (
+                      <Text variant="labelMedium" style={{ color: theme.colors.primary }}>
+                        Restoring...
+                      </Text>
+                    ) : (
+                      <View style={[styles.smallBadge, { backgroundColor: theme.colors.secondaryContainer + '50' }]}>
+                        <Text variant="labelMedium" style={{ color: theme.colors.onSecondaryContainer }}>
+                          Restore
+                        </Text>
+                      </View>
+                    )
+                  }
+                />
+              </>
+            )}
+          </Surface>
+        </View>
+
         {/* Smart Features Group */}
         <View style={styles.sectionContainer}>
           <Text variant="labelLarge" style={[styles.sectionHeader, { color: theme.colors.primary }]}>
@@ -708,6 +905,86 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = () => {
               mode="contained" 
               onPress={handleSaveApiKey}
               disabled={!apiKeyInput.trim()}
+            >
+              Save
+            </Button>
+          </View>
+        </Modal>
+      </Portal>
+
+      {/* Convex Credentials Modal */}
+      <Portal>
+        <Modal
+          visible={showConvexCredentialsModal}
+          onDismiss={() => {
+            setShowConvexCredentialsModal(false);
+            setConvexUrlInput('');
+            setConvexTokenInput('');
+          }}
+          contentContainerStyle={[
+            styles.modalContainer,
+            { backgroundColor: theme.colors.surface }
+          ]}
+        >
+          <Text variant="headlineSmall" style={[styles.modalTitle, { color: theme.colors.onSurface }]}>
+            Convex Credentials
+          </Text>
+          <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, textAlign: 'center', marginBottom: 16 }}>
+            Enter your Convex deployment URL and auth token
+          </Text>
+          <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 4 }}>
+            Deployment URL
+          </Text>
+          <TextInput
+            value={convexUrlInput}
+            onChangeText={setConvexUrlInput}
+            placeholder="https://your-project.convex.cloud"
+            placeholderTextColor={theme.colors.onSurfaceVariant + '80'}
+            style={[
+              styles.apiKeyInput,
+              {
+                backgroundColor: theme.colors.surfaceVariant + '50',
+                color: theme.colors.onSurface,
+                borderColor: theme.colors.outline + '30',
+                marginBottom: 12,
+              }
+            ]}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+          />
+          <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 4 }}>
+            Auth Token
+          </Text>
+          <TextInput
+            value={convexTokenInput}
+            onChangeText={setConvexTokenInput}
+            placeholder="Your secure token"
+            placeholderTextColor={theme.colors.onSurfaceVariant + '80'}
+            secureTextEntry
+            style={[
+              styles.apiKeyInput,
+              {
+                backgroundColor: theme.colors.surfaceVariant + '50',
+                color: theme.colors.onSurface,
+                borderColor: theme.colors.outline + '30',
+              }
+            ]}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <View style={styles.modalButtons}>
+            <Button mode="text" onPress={() => {
+              setShowConvexCredentialsModal(false);
+              setConvexUrlInput('');
+              setConvexTokenInput('');
+            }}>
+              Cancel
+            </Button>
+            <Button 
+              mode="contained" 
+              onPress={handleSaveConvexCredentials}
+              disabled={!convexUrlInput.trim() && !convexTokenInput.trim()}
             >
               Save
             </Button>
