@@ -594,7 +594,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
               { 
                 backgroundColor: goal.isCompleted 
                   ? theme.colors.primaryContainer 
-                  : theme.colors.surfaceVariant + '60' 
+                  : theme.colors.surfaceVariant
               }
             ]}>
               <ThemedIcon 
@@ -622,7 +622,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
 
           {/* Recurring indicator */}
           {isRecurring && (
-            <View style={[styles.recurringBadge, { backgroundColor: theme.colors.secondaryContainer + '60' }]}>
+            <View style={[styles.recurringBadge, { backgroundColor: theme.colors.secondaryContainer }]}>
               <ThemedIcon name="repeat" size={16} themeColor="secondary" />
               <Text variant="labelMedium" style={{ color: theme.colors.secondary, marginLeft: 8 }}>
                 Recurring Goal
@@ -642,7 +642,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
                   value={title}
                   onChangeText={setTitle}
                   placeholder="I want to..."
-                  placeholderTextColor={theme.colors.onSurfaceVariant + '80'}
+                  placeholderTextColor={theme.colors.outline}
                   style={[styles.titleInput, styles.inputFlex, { color: theme.colors.onSurface }]}
                   multiline
                   maxLength={200}
@@ -662,7 +662,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
                 />
               </View>
               {titleInterim ? (
-                <Text style={[styles.interimText, { color: theme.colors.primary + '70' }]}>
+                <Text style={[styles.interimText, { color: theme.colors.tertiary }]}>
                   {titleInterim}
                 </Text>
               ) : null}
@@ -683,7 +683,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
                   value={description}
                   onChangeText={setDescription}
                   placeholder="Add details, motivation, or notes..."
-                  placeholderTextColor={theme.colors.onSurfaceVariant + '60'}
+                  placeholderTextColor={theme.colors.outline}
                   style={[styles.descInput, styles.inputFlex, { color: theme.colors.onSurfaceVariant }]}
                   multiline
                   maxLength={1000}
@@ -703,7 +703,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
                 />
               </View>
               {descInterim ? (
-                <Text style={[styles.interimText, { color: theme.colors.primary + '70' }]}>
+                <Text style={[styles.interimText, { color: theme.colors.tertiary }]}>
                   {descInterim}
                 </Text>
               ) : null}
@@ -739,11 +739,11 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
             addedSubgoals={addedSubgoalsFromAI}
           />
 
-          <View style={[styles.divider, { backgroundColor: theme.colors.outline + '20' }]} />
+          <View style={[styles.divider, { backgroundColor: theme.colors.outlineVariant }]} />
 
           {/* Date Section */}
           {isReadOnly ? (
-            <View style={[styles.infoRow, { backgroundColor: theme.colors.surfaceVariant + '40' }]}>
+            <View style={[styles.infoRow, { backgroundColor: theme.colors.surfaceVariant }]}>
               <View style={styles.infoLabelRow}>
                 <ThemedIcon name="calendar-month-outline" size={24} themeColor="primary" />
                 <View>
@@ -756,7 +756,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
             <TouchableOpacity 
               onPress={() => setShowDatePicker(true)}
               activeOpacity={0.7}
-              style={[styles.dateRow, { backgroundColor: theme.colors.surfaceVariant + '40' }]}
+              style={[styles.dateRow, { backgroundColor: theme.colors.surfaceVariant }]}
             >
               <View style={styles.dateLabelRow}>
                 <ThemedIcon name="calendar-month-outline" size={24} themeColor="primary" />
@@ -771,7 +771,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
 
           {/* Priority Section */}
           {isReadOnly ? (
-            <View style={[styles.infoRow, { backgroundColor: theme.colors.surfaceVariant + '40' }]}>
+            <View style={[styles.infoRow, { backgroundColor: theme.colors.surfaceVariant }]}>
               <View style={styles.infoLabelRow}>
                 <ThemedIcon name="flag-outline" size={24} themeColor="primary" />
                 <View>
@@ -786,7 +786,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
           
           {/* Recurrence Section */}
           {isReadOnly ? (
-            <View style={[styles.infoRow, { backgroundColor: theme.colors.surfaceVariant + '40' }]}>
+            <View style={[styles.infoRow, { backgroundColor: theme.colors.surfaceVariant }]}>
               <View style={styles.infoLabelRow}>
                 <ThemedIcon name="repeat" size={24} themeColor="primary" />
                 <View>
@@ -802,7 +802,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
           {/* Reminder Section */}
           {isReadOnly ? (
             reminderTime && (
-              <View style={[styles.infoRow, { backgroundColor: theme.colors.surfaceVariant + '40' }]}>
+              <View style={[styles.infoRow, { backgroundColor: theme.colors.surfaceVariant }]}>
                 <View style={styles.infoLabelRow}>
                   <ThemedIcon name="bell-outline" size={24} themeColor="primary" />
                   <View>
@@ -833,7 +833,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
           {/* Subgoals Section - Only show for existing goals */}
           {goalId && (
             <>
-              <View style={[styles.divider, { backgroundColor: theme.colors.outline + '20' }]} />
+              <View style={[styles.divider, { backgroundColor: theme.colors.outlineVariant }]} />
               <SubgoalList
                 subgoals={subgoals}
                 progress={subgoalProgress}
@@ -850,7 +850,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
           {/* Delete Button (for view/edit modes) */}
           {goal && !isAdding && (
             <>
-              <View style={[styles.divider, { backgroundColor: theme.colors.outline + '20' }]} />
+              <View style={[styles.divider, { backgroundColor: theme.colors.outlineVariant }]} />
               
               {/* Save as Template Button - Requirements: 3.6, 3.7 */}
               {subgoals.length > 0 && (

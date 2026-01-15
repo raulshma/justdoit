@@ -63,4 +63,6 @@ export interface AppSettings {
   calendarIntegrationEnabled: boolean;
   /** Enable gamification features (XP, badges, challenges, personal bests) */
   gamificationEnabled: boolean;
+  /** Show labels on the bottom navigation tab bar */
+  showTabBarLabels: boolean;
 }

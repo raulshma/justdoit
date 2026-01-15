@@ -22,6 +22,7 @@ import {
   CalendarEventCard,
   WeeklyChallengesWidget,
   ChallengeQuickView,
+  ActionToast,
 } from '../components';
 
 /**
@@ -86,6 +87,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   
   // Calendar state
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  
+  // Pending delete state for undo functionality
+  const [pendingDeleteGoal, setPendingDeleteGoal] = useState<Goal | null>(null);
+  const [deleteToastVisible, setDeleteToastVisible] = useState(false);
 
   /**
    * Load goals from storage
@@ -213,7 +218,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   }, [navigation]);
 
   /**
-   * Handle goal deletion
+   * Handle goal deletion (immediate, no undo)
    * Requirements: 2.4
    */
   const handleDeleteGoal = useCallback(async (goalId: string) => {
@@ -225,6 +230,74 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     } catch (error) {
       console.error('Failed to delete goal:', error);
       setSnackbarMessage('Failed to delete goal');
+      setSnackbarVisible(true);
+    }
+  }, [loadGoals]);
+
+  /**
+   * Handle swipe-to-delete (left-to-right swipe)
+   * Shows undo toast for 6 seconds before permanently deleting
+   */
+  const handleSwipeDelete = useCallback((goalId: string) => {
+    const goal = goals.find(g => g.id === goalId);
+    if (goal) {
+      // Store the goal for potential undo
+      setPendingDeleteGoal(goal);
+      // Optimistically remove from UI
+      setGoals(prev => prev.filter(g => g.id !== goalId));
+      setFilteredGoals(prev => prev.filter(g => g.id !== goalId));
+      // Show undo toast
+      setDeleteToastVisible(true);
+    }
+  }, [goals]);
+
+  /**
+   * Handle undo of swipe-to-delete
+   * Restores the goal to the list
+   */
+  const handleUndoDelete = useCallback(() => {
+    if (pendingDeleteGoal) {
+      // Restore the goal to the list
+      loadGoals();
+      setPendingDeleteGoal(null);
+    }
+  }, [pendingDeleteGoal, loadGoals]);
+
+  /**
+   * Handle dismiss of delete toast (confirms deletion)
+   * Actually deletes the goal from storage
+   */
+  const handleDeleteToastDismiss = useCallback(async () => {
+    setDeleteToastVisible(false);
+    if (pendingDeleteGoal) {
+      try {
+        await goalManager.deleteGoal(pendingDeleteGoal.id);
+      } catch (error) {
+        console.error('Failed to delete goal:', error);
+        // Restore on error
+        loadGoals();
+      }
+      setPendingDeleteGoal(null);
+    }
+  }, [pendingDeleteGoal, loadGoals]);
+
+  /**
+   * Handle swipe-to-complete (right-to-left swipe)
+   * Immediately toggles completion status
+   */
+  const handleSwipeComplete = useCallback(async (goalId: string) => {
+    try {
+      const updatedGoal = await goalManager.toggleComplete(goalId);
+      loadGoals();
+
+      // Check if all today's goals are now complete
+      const today = getTodayDate();
+      if (updatedGoal.isCompleted && goalManager.allGoalsCompleted(today)) {
+        setShowCelebration(true);
+      }
+    } catch (error) {
+      console.error('Failed to complete goal:', error);
+      setSnackbarMessage('Failed to complete goal');
       setSnackbarVisible(true);
     }
   }, [loadGoals]);
@@ -335,6 +408,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         onToggleComplete={handleToggleComplete}
         onGoalPress={handleGoalPress}
         onDeleteGoal={handleDeleteGoal}
+        onSwipeDelete={handleSwipeDelete}
+        onSwipeComplete={handleSwipeComplete}
         onLongPress={handleLongPress}
         onLongPressEnd={handleLongPressEnd}
         refreshing={refreshing}
@@ -503,6 +578,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         challenge={quickViewChallenge}
         visible={challengeQuickViewVisible}
         onDismiss={handleChallengeLongPressEnd}
+      />
+      
+      {/* Delete Undo Toast */}
+      <ActionToast
+        visible={deleteToastVisible}
+        actionType="delete"
+        goalTitle={pendingDeleteGoal?.title || ''}
+        onUndo={handleUndoDelete}
+        onDismiss={handleDeleteToastDismiss}
       />
     </SafeAreaView>
   );

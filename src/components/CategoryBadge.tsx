@@ -9,7 +9,22 @@ interface CategoryBadgeProps {
 }
 
 /**
+ * Helper to determine if a color is light or dark
+ * Returns true if the color is light (needs dark text)
+ */
+const isLightColor = (hexColor: string): boolean => {
+  const hex = hexColor.replace('#', '');
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  // Calculate relative luminance
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.5;
+};
+
+/**
  * CategoryBadge - Displays a color-coded category label
+ * Uses proper contrast colors for accessibility (WCAG AA compliant)
  * Requirements: 1.3
  */
 export const CategoryBadge: React.FC<CategoryBadgeProps> = ({
@@ -19,13 +34,18 @@ export const CategoryBadge: React.FC<CategoryBadgeProps> = ({
   const theme = useTheme();
 
   const isSmall = size === 'small';
+  
+  // Determine text color based on category color luminance for proper contrast
+  const textColor = isLightColor(category.color) 
+    ? '#1A1A1A' // Dark text for light backgrounds
+    : category.color; // Use category color for dark backgrounds (on light badge)
 
   return (
     <View
       style={[
         styles.badge,
         {
-          backgroundColor: `${category.color}20`, // 20% opacity
+          backgroundColor: `${category.color}25`, // 25% opacity for better visibility
           paddingHorizontal: isSmall ? 6 : 10,
           paddingVertical: isSmall ? 2 : 4,
           borderRadius: isSmall ? 6 : 8,
@@ -46,7 +66,7 @@ export const CategoryBadge: React.FC<CategoryBadgeProps> = ({
         style={[
           styles.text,
           {
-            color: category.color,
+            color: textColor,
             fontSize: isSmall ? 10 : 12,
           },
         ]}

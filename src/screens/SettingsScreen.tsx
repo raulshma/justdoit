@@ -282,6 +282,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = () => {
     await saveSettings({ darkModeEnabled: newEnabled }, newEnabled ? 'Dark Mode ON' : 'Light Mode ON');
   }, [settings, saveSettings]);
 
+  const handleTabBarLabelsToggle = useCallback(async () => {
+    const newEnabled = !settings.showTabBarLabels;
+    await saveSettings({ showTabBarLabels: newEnabled }, newEnabled ? 'Tab Labels ON' : 'Tab Labels OFF');
+  }, [settings, saveSettings]);
+
   const handleColorPaletteChange = useCallback(async (palette: ColorPalette) => {
     await saveSettings({ colorPalette: palette }, 'Theme Updated');
   }, [saveSettings]);
@@ -422,6 +427,18 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = () => {
                 <Switch
                   value={settings.darkModeEnabled}
                   onValueChange={handleDarkModeToggle}
+                  color={theme.colors.primary}
+                />
+              }
+            />
+            <SettingRow
+              icon="format-text"
+              title="Tab Bar Labels"
+              subtitle="Show text labels below icons"
+              right={
+                <Switch
+                  value={settings.showTabBarLabels}
+                  onValueChange={handleTabBarLabelsToggle}
                   color={theme.colors.primary}
                 />
               }

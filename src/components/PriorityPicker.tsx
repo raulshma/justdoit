@@ -19,6 +19,7 @@ const PRIORITIES: { value: Priority; label: string; colorKey: string; icon: stri
 /**
  * PriorityPicker - High Fidelity
  * Uses animated floating pills instead of segmented buttons.
+ * WCAG AA compliant with proper contrast ratios.
  */
 export const PriorityPicker: React.FC<PriorityPickerProps> = ({
   value,
@@ -26,6 +27,17 @@ export const PriorityPicker: React.FC<PriorityPickerProps> = ({
   label = 'Priority',
 }) => {
   const theme = useTheme();
+
+  // Get appropriate text color for each priority based on background
+  const getTextColor = (colorKey: string, isSelected: boolean) => {
+    if (!isSelected) return theme.colors.onSurfaceVariant;
+    // For error (high priority), use onError for proper contrast
+    if (colorKey === 'error') return theme.colors.onError;
+    // For tertiary and secondary, use onTertiary/onSecondary
+    if (colorKey === 'tertiary') return theme.colors.onTertiary;
+    if (colorKey === 'secondary') return theme.colors.onSecondary;
+    return theme.colors.onPrimary;
+  };
 
   return (
     <View style={styles.container}>
@@ -41,6 +53,7 @@ export const PriorityPicker: React.FC<PriorityPickerProps> = ({
           const isSelected = value === item.value;
           // Dynamically get color from theme based on key
           const activeColor = (theme.colors as any)[item.colorKey];
+          const textColor = getTextColor(item.colorKey, isSelected);
           
           return (
             <TouchableOpacity
@@ -63,15 +76,15 @@ export const PriorityPicker: React.FC<PriorityPickerProps> = ({
                 <ThemedIcon 
                     name={item.icon as any} 
                     size={16} 
-                    color={isSelected ? theme.colors.onPrimary : theme.colors.onSurfaceVariant} 
+                    color={textColor} 
                     style={styles.icon}
                 />
                 <Text
                   style={[
                     styles.text,
                     {
-                      color: isSelected ? theme.colors.onPrimary : theme.colors.onSurfaceVariant,
-                      fontWeight: isSelected ? '700' : '400',
+                      color: textColor,
+                      fontWeight: isSelected ? '700' : '500',
                     },
                   ]}
                 >

@@ -24,6 +24,7 @@ export { ProgressIndicator, CompactProgressIndicator } from './ProgressIndicator
 export { PostponeMenu } from './PostponeMenu';
 export { PostponeToast } from './PostponeToast';
 export { PostponedIndicator } from './PostponedIndicator';
+export { ActionToast } from './ActionToast';
 
 // Template components
 export { TemplateCard } from './TemplateCard';

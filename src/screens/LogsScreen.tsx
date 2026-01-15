@@ -28,11 +28,6 @@ import { ThemedIcon } from '../components/ThemedIcon';
 import { aiLogService } from '../services';
 import type { AILogEntry } from '../types';
 
-// Enable LayoutAnimation for Android
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
-
 type FilterType = 'all' | 'success' | 'error';
 
 /**

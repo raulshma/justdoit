@@ -36,6 +36,8 @@ interface GoalCardProps {
   onToggleComplete: (goalId: string) => void;
   onPress: (goalId: string) => void;
   onDelete: (goalId: string) => void;
+  onSwipeDelete?: (goalId: string) => void; // Called on swipe-to-delete (left-to-right)
+  onSwipeComplete?: (goalId: string) => void; // Called on swipe-to-complete (right-to-left)
   onLongPress?: (goalId: string) => void;
   onLongPressEnd?: (goalId: string) => void;
   isToday?: boolean;
@@ -97,6 +99,8 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   onToggleComplete,
   onPress,
   onDelete,
+  onSwipeDelete,
+  onSwipeComplete,
   onLongPress,
   onLongPressEnd,
   isToday = true,
@@ -105,7 +109,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   
   // Reanimated Shared Values
   const translateX = useSharedValue(0);
-  const deleteOpacity = useSharedValue(0);
+  const actionOpacity = useSharedValue(0); // Shared opacity for action layers
   const scale = useSharedValue(1);
   const cardOpacity = useSharedValue(goal.isCompleted ? 0.5 : 1);
   const checkboxScale = useSharedValue(1);
@@ -114,9 +118,23 @@ export const GoalCard: React.FC<GoalCardProps> = ({
     cardOpacity.value = withTiming(goal.isCompleted ? 0.5 : 1, { duration: 400 });
   }, [goal.isCompleted]);
 
-  const handleDelete = useCallback(() => {
-    runOnJS(onDelete)(goal.id);
-  }, [onDelete, goal.id]);
+  // Handle swipe-to-delete (swipe left-to-right)
+  const handleSwipeDelete = useCallback(() => {
+    if (onSwipeDelete) {
+      onSwipeDelete(goal.id);
+    } else {
+      onDelete(goal.id);
+    }
+  }, [onSwipeDelete, onDelete, goal.id]);
+
+  // Handle swipe-to-complete (swipe right-to-left)
+  const handleSwipeComplete = useCallback(() => {
+    if (onSwipeComplete) {
+      onSwipeComplete(goal.id);
+    } else {
+      onToggleComplete(goal.id);
+    }
+  }, [onSwipeComplete, onToggleComplete, goal.id]);
 
   // Gesture State Constants
   const STATE_IDLE = 0;
@@ -182,7 +200,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
 
       if (gestureState.value === STATE_SWIPING) {
         translateX.value = e.translationX;
-        deleteOpacity.value = Math.min(Math.abs(e.translationX) / SWIPE_THRESHOLD, 1);
+        actionOpacity.value = Math.min(Math.abs(e.translationX) / SWIPE_THRESHOLD, 1);
       }
     })
     .onEnd(() => {
@@ -190,13 +208,19 @@ export const GoalCard: React.FC<GoalCardProps> = ({
       scale.value = withSpring(1);
 
       if (gestureState.value === STATE_SWIPING) {
-        if (translateX.value < -SWIPE_THRESHOLD) {
+        // Swipe left-to-right (positive) = Delete
+        if (translateX.value > SWIPE_THRESHOLD) {
+           translateX.value = withTiming(SCREEN_WIDTH, { duration: 300 }, (finished) => {
+             if (finished) runOnJS(handleSwipeDelete)();
+           });
+        // Swipe right-to-left (negative) = Complete
+        } else if (translateX.value < -SWIPE_THRESHOLD) {
            translateX.value = withTiming(-SCREEN_WIDTH, { duration: 300 }, (finished) => {
-             if (finished) runOnJS(handleDelete)();
+             if (finished) runOnJS(handleSwipeComplete)();
            });
         } else {
            translateX.value = withSpring(0);
-           deleteOpacity.value = withTiming(0);
+           actionOpacity.value = withTiming(0);
         }
       } else if (gestureState.value === STATE_LONG_PRESSING) {
          runOnJS(onLongPressEnd!)(goal.id);
@@ -213,8 +237,14 @@ export const GoalCard: React.FC<GoalCardProps> = ({
     opacity: cardOpacity.value,
   }));
 
+  // Delete layer (left side, revealed when swiping right)
   const deleteLayerStyle = useAnimatedStyle(() => ({
-    opacity: deleteOpacity.value,
+    opacity: translateX.value > 0 ? actionOpacity.value : 0,
+  }));
+
+  // Complete layer (right side, revealed when swiping left)
+  const completeLayerStyle = useAnimatedStyle(() => ({
+    opacity: translateX.value < 0 ? actionOpacity.value : 0,
   }));
 
   const checkboxStyle = useAnimatedStyle(() => ({
@@ -231,7 +261,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Delete Action Layer */}
+      {/* Delete Action Layer (left side - revealed when swiping right) */}
       <Animated.View
         style={[
           styles.deleteLayer,
@@ -246,15 +276,30 @@ export const GoalCard: React.FC<GoalCardProps> = ({
         />
       </Animated.View>
 
+      {/* Complete Action Layer (right side - revealed when swiping left) */}
+      <Animated.View
+        style={[
+          styles.completeLayer,
+          { backgroundColor: theme.colors.primaryContainer },
+          completeLayerStyle,
+        ]}
+      >
+        <IconButton
+          icon="check"
+          iconColor={theme.colors.primary}
+          size={24}
+        />
+      </Animated.View>
+
       {/* Main Card Surface */}
       <GestureDetector gesture={gesture}>
         <Animated.View style={[styles.cardWrapper, cardStyle]}>
           <Surface
             style={[
               styles.surface,
-              { backgroundColor: theme.colors.surface },
+              { backgroundColor: theme.colors.surfaceVariant },
             ]}
-            elevation={isToday ? 2 : 0}
+            elevation={0}
           >
             <View style={styles.contentRow}>
               {/* Left: Minimal Checkbox */}
@@ -345,23 +390,25 @@ const styles = StyleSheet.create({
   },
   deleteLayer: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: 20,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    paddingLeft: 20,
+  },
+  completeLayer: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'flex-end',
     paddingRight: 20,
   },
   cardWrapper: {
-    borderRadius: 20,
+    borderRadius: 24,
   },
   surface: {
-    borderRadius: 20,
+    borderRadius: 24,
     overflow: 'hidden',
-    backgroundColor: '#fff', 
-    // Soft shadow for "floating" feel
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
+    // Removed shadows for a flat, colored design
   },
   contentRow: {
     flexDirection: 'row',

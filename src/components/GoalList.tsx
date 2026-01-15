@@ -9,6 +9,8 @@ interface GoalListProps {
   onToggleComplete: (goalId: string) => void;
   onGoalPress: (goalId: string) => void;
   onDeleteGoal: (goalId: string) => void;
+  onSwipeDelete?: (goalId: string) => void; // Swipe left-to-right to delete with undo
+  onSwipeComplete?: (goalId: string) => void; // Swipe right-to-left to complete
   onLongPress?: (goalId: string) => void;
   onLongPressEnd?: (goalId: string) => void;
   scrollEnabled?: boolean;
@@ -154,6 +156,8 @@ export const GoalList: React.FC<GoalListProps & {
   onToggleComplete,
   onGoalPress,
   onDeleteGoal,
+  onSwipeDelete,
+  onSwipeComplete,
   onLongPress,
   onLongPressEnd,
   ListHeaderComponent,
@@ -184,6 +188,8 @@ export const GoalList: React.FC<GoalListProps & {
       onToggleComplete={onToggleComplete}
       onPress={onGoalPress}
       onDelete={onDeleteGoal}
+      onSwipeDelete={onSwipeDelete}
+      onSwipeComplete={onSwipeComplete}
       onLongPress={onLongPress}
       onLongPressEnd={onLongPressEnd}
       isToday={(section as GoalSection).isToday}

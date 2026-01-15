@@ -101,6 +101,7 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
 
 /**
  * Compact progress indicator for use in cards
+ * Uses proper contrast colors for accessibility
  */
 export const CompactProgressIndicator: React.FC<{
   progress: SubgoalProgress;
@@ -121,8 +122,8 @@ export const CompactProgressIndicator: React.FC<{
           styles.compactBadge,
           {
             backgroundColor: isComplete
-              ? `${theme.colors.primary}20`
-              : `${theme.colors.tertiary}20`,
+              ? theme.colors.primaryContainer
+              : theme.colors.tertiaryContainer,
           },
         ]}
       >
@@ -130,7 +131,7 @@ export const CompactProgressIndicator: React.FC<{
           style={[
             styles.compactText,
             {
-              color: isComplete ? theme.colors.primary : theme.colors.tertiary,
+              color: isComplete ? theme.colors.onPrimaryContainer : theme.colors.onTertiaryContainer,
             },
           ]}
         >

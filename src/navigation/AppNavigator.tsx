@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { useSettings } from '../context/SettingsContext';
 import type {
   HomeStackParamList,
   StatisticsStackParamList,
@@ -160,6 +161,8 @@ function TabIcon({ name, color, size }: { name: string; color: string; size: num
  */
 function MainTabNavigator() {
   const theme = useTheme();
+  const { settings } = useSettings();
+  const showLabels = settings.showTabBarLabels;
 
   return (
     <Tab.Navigator
@@ -169,12 +172,13 @@ function MainTabNavigator() {
           backgroundColor: theme.colors.surface,
           borderTopColor: theme.colors.outline,
           borderTopWidth: 1,
-          paddingBottom: 12,
-          paddingTop: 12,
-          height: 70,
+          paddingBottom: showLabels ? 16 : 24,
+          paddingTop: showLabels ? 12 : 16,
+          height: showLabels ? 75 : 70,
         },
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
+        tabBarShowLabel: showLabels,
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '500',
@@ -187,7 +191,7 @@ function MainTabNavigator() {
         options={{
           tabBarLabel: 'Goals',
           tabBarIcon: ({ color, size }) => (
-            <TabIcon name="home" color={color} size={size} />
+            <TabIcon name="home" color={color} size={showLabels ? size : 26} />
           ),
         }}
       />
@@ -198,7 +202,7 @@ function MainTabNavigator() {
           headerShown: false,
           tabBarLabel: 'Progress',
           tabBarIcon: ({ color, size }) => (
-            <TabIcon name="stats" color={color} size={size} />
+            <TabIcon name="stats" color={color} size={showLabels ? size : 26} />
           ),
         }}
       />
@@ -209,7 +213,7 @@ function MainTabNavigator() {
           headerShown: false,
           tabBarLabel: 'Settings',
           tabBarIcon: ({ color, size }) => (
-            <TabIcon name="settings" color={color} size={size} />
+            <TabIcon name="settings" color={color} size={showLabels ? size : 26} />
           ),
         }}
       />

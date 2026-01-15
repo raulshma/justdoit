@@ -92,7 +92,7 @@ export const SubgoalItem: React.FC<SubgoalItemProps> = ({
               styles.title,
               {
                 color: subgoal.isCompleted
-                  ? theme.colors.outline
+                  ? theme.colors.onSurfaceVariant
                   : theme.colors.onSurface,
                 textDecorationLine: subgoal.isCompleted ? 'line-through' : 'none',
               },

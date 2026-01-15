@@ -36,11 +36,6 @@ import type {
   RelatedGoal,
 } from '../types';
 
-// Enable LayoutAnimation for Android
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
-
 interface AIAssistantPanelProps {
   /** Whether the panel is visible */
   visible: boolean;
