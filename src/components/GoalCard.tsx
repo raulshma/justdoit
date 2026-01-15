@@ -339,18 +339,21 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                   <PriorityIndicator priority={goal.priority} colors={theme.colors} />
                 </View>
 
-                {(goal.description || goal.reminderTime || goal.recurrence.type !== 'none' || category) && (
+                  {(goal.description || goal.reminderTime || goal.recurrence.type !== 'none' || category) && (
                   <View style={styles.metaRow}>
                     {category && (
                       <CategoryBadge category={category} size="small" />
                     )}
                     
                     {goal.recurrence.type !== 'none' && (
-                       <ThemedIcon name="repeat" size={12} color={theme.colors.onSurfaceVariant} />
+                       <View style={[styles.metaItem, { backgroundColor: theme.colors.secondaryContainer, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }]}>
+                         <ThemedIcon name="repeat" size={10} color={theme.colors.onSecondaryContainer} />
+                       </View>
                     )}
 
                     {goal.reminderTime && (
-                       <View style={styles.metaItem}>
+                       <View style={[styles.metaItem, { backgroundColor: theme.colors.surface, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }]}>
+                         <ThemedIcon name="bell-outline" size={12} color={theme.colors.onSurfaceVariant} />
                          <Text style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>
                            {new Date(goal.reminderTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                          </Text>
@@ -413,8 +416,9 @@ const styles = StyleSheet.create({
   contentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    minHeight: 72,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    minHeight: 76,
   },
   actionContainer: {
     marginRight: 16,
@@ -423,12 +427,12 @@ const styles = StyleSheet.create({
   },
   checkTouch: {
     borderRadius: 50,
-    padding: 2,
+    padding: 4, // Larger touch target
   },
   checkButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
@@ -436,7 +440,7 @@ const styles = StyleSheet.create({
   textContainer: {
     flex: 1,
     justifyContent: 'center',
-    gap: 4,
+    gap: 6,
   },
   titleRow: {
     flexDirection: 'row',
@@ -444,15 +448,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   title: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
+    lineHeight: 22,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    opacity: 0.9
+    opacity: 1,
+    marginTop: 2,
   },
   metaItem: {
     flexDirection: 'row',
@@ -460,8 +466,9 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   metaText: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 11, // Slightly smaller for higher density/contrast with chips
+    fontWeight: '600',
+    letterSpacing: 0.1,
   },
   progressContainer: {
     marginLeft: 12,

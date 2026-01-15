@@ -661,9 +661,9 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 20,
+    position: 'relative',
+    right: 8,
+    bottom: 8,
     borderRadius: 20,
   },
   snackbar: {
