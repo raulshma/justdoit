@@ -9,6 +9,7 @@ import React, {
 import { AppSettings, ColorPalette } from '../types';
 import { storageService } from '../services/storageService';
 import { notificationService } from '../services/notificationService';
+import { DEFAULT_SETTINGS } from '../constants';
 
 /**
  * Settings state interface
@@ -42,26 +43,6 @@ interface SettingsContextValue extends SettingsState {
   // Refresh
   refreshSettings: () => void;
 }
-
-/**
- * Default settings
- */
-const DEFAULT_SETTINGS: AppSettings = {
-  dailyReminderEnabled: true,
-  dailyReminderTime: '20:00',
-  notificationsEnabled: true,
-  darkModeEnabled: false,
-  colorPalette: 'default',
-  openRouterApiKey: undefined,
-  selectedAiModel: undefined,
-  smartRemindersEnabled: false,
-  focusModeEnabled: false,
-  carryForwardEnabled: true,
-  calendarIntegrationEnabled: false,
-  gamificationEnabled: true,
-  showTabBarLabels: false,
-  hasCompletedOnboarding: false,
-};
 
 /**
  * Initial state

@@ -4,14 +4,10 @@ import {
   PersonalBestHistory,
 } from '../types/personalBest';
 import { storageService, StorageService } from './storageService';
+import { PERSONAL_BEST_STORAGE_KEYS } from '../constants';
 
-/**
- * Storage keys for personal best data
- */
-export const PERSONAL_BEST_STORAGE_KEYS = {
-  PERSONAL_BESTS: 'personal_bests',
-  PERSONAL_BEST_HISTORY: 'personal_best_history',
-} as const;
+// Re-export PERSONAL_BEST_STORAGE_KEYS for backward compatibility
+export { PERSONAL_BEST_STORAGE_KEYS } from '../constants';
 
 /**
  * Personal Best Service Interface

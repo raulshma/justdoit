@@ -1,11 +1,10 @@
 import { randomUUID } from 'expo-crypto';
 import { GoalTemplate, TemplateSubgoal, BUILT_IN_TEMPLATES, Goal, Subgoal } from '../types';
 import { StorageService, storageService as defaultStorageService } from './storageService';
+import { TEMPLATES_STORAGE_KEY } from '../constants';
 
-/**
- * Storage key for custom templates
- */
-export const TEMPLATES_STORAGE_KEY = 'custom_templates';
+// Re-export TEMPLATES_STORAGE_KEY for backward compatibility
+export { TEMPLATES_STORAGE_KEY } from '../constants';
 
 /**
  * Template Service Interface

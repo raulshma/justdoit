@@ -8,15 +8,10 @@ import {
 import { DEFAULT_CATEGORIES } from '../types/category';
 import { StorageService, storageService } from './storageService';
 import { XPService, xpService } from './xpService';
+import { CHALLENGE_STORAGE_KEYS } from '../constants';
 
-/**
- * Storage keys for challenge data
- */
-export const CHALLENGE_STORAGE_KEYS = {
-  ACTIVE_CHALLENGES: 'challenges_active',
-  CHALLENGE_HISTORY: 'challenges_history',
-  USER_PERFORMANCE: 'challenges_user_performance',
-} as const;
+// Re-export CHALLENGE_STORAGE_KEYS for backward compatibility
+export { CHALLENGE_STORAGE_KEYS } from '../constants';
 
 /**
  * User performance metrics for difficulty scaling

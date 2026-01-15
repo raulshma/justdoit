@@ -1,10 +1,9 @@
 import { Category, DEFAULT_CATEGORIES, Goal } from '../types';
 import { storageService, StorageService } from './storageService';
+import { CATEGORIES_STORAGE_KEY } from '../constants';
 
-/**
- * Storage key for categories
- */
-export const CATEGORIES_STORAGE_KEY = 'categories';
+// Re-export CATEGORIES_STORAGE_KEY for backward compatibility
+export { CATEGORIES_STORAGE_KEY } from '../constants';
 
 /**
  * The "Other" category ID used as fallback when categories are deleted

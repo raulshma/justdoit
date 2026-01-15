@@ -8,6 +8,7 @@ import React, {
 } from 'react';
 import { Statistics } from '../types';
 import { statisticsService } from '../services/statisticsService';
+import { DEFAULT_STATISTICS } from '../constants';
 
 /**
  * Statistics state interface
@@ -39,23 +40,6 @@ interface StatisticsContextValue extends StatisticsState {
   getLast7DaysCompletions: () => number[];
   getAveragePerDay: () => number;
 }
-
-/**
- * Default statistics
- */
-const DEFAULT_STATISTICS: Statistics = {
-  todayCompleted: 0,
-  todayTotal: 0,
-  weeklyCompletionRate: 0,
-  currentStreak: 0,
-  longestStreak: 0,
-  last7DaysCompletions: [0, 0, 0, 0, 0, 0, 0],
-  averagePerDay: 0,
-  completionsByHour: new Array(24).fill(0),
-  completionsByDayOfWeek: new Array(7).fill(0),
-  peakHours: [],
-  lowPerformanceDays: [],
-};
 
 /**
  * Initial state

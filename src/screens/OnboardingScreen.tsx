@@ -15,6 +15,7 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useSettings } from '../context/SettingsContext';
 import { ThemeMood, ColorPalette, ColorPaletteInfo } from '../types/settings';
 import { colorPaletteInfoList } from '../theme/colors';
+import { DEFAULT_REMINDER_TIME } from '../constants';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -68,7 +69,7 @@ export function OnboardingScreen() {
 
   const [selectedMood, setSelectedMood] = useState<ThemeMood>('calm');
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [selectedTime, setSelectedTime] = useState('20:00');
+  const [selectedTime, setSelectedTime] = useState(DEFAULT_REMINDER_TIME);
   const [aiEnabled, setAiEnabled] = useState(false);
   const [gamificationEnabled, setGamificationEnabled] = useState(true);
   const [focusModeEnabled, setFocusModeEnabled] = useState(false);
@@ -236,7 +237,16 @@ export function OnboardingScreen() {
               <View style={[styles.paletteStripe, { backgroundColor: palette.colors[1] }]} />
               <View style={[styles.paletteStripe, { backgroundColor: palette.colors[2] || palette.colors[0] }]} />
             </View>
-            <Text variant="labelSmall" style={{ color: theme.colors.onSurface, marginTop: 4 }}>
+            <Text 
+              variant="labelSmall" 
+              style={{ 
+                color: theme.colors.onSurface, 
+                marginTop: 4,
+                height: 32,
+                textAlign: 'center'
+              }}
+              numberOfLines={2}
+            >
               {palette.name}
             </Text>
           </TouchableOpacity>
@@ -544,8 +554,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   toggleLabel: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    paddingRight: 16,
   },
   moodRow: {
     flexDirection: 'row',

@@ -6,14 +6,10 @@ import {
 } from '../types/badge';
 import { GameEvent } from '../types/gamification';
 import { storageService, StorageService } from './storageService';
+import { ACHIEVEMENT_STORAGE_KEYS } from '../constants';
 
-/**
- * Storage keys for achievement data
- */
-export const ACHIEVEMENT_STORAGE_KEYS = {
-  UNLOCKED_BADGES: 'achievement_unlocked_badges',
-  BADGE_PROGRESS: 'achievement_badge_progress',
-} as const;
+// Re-export ACHIEVEMENT_STORAGE_KEYS for backward compatibility
+export { ACHIEVEMENT_STORAGE_KEYS } from '../constants';
 
 /**
  * Badge progress tracking

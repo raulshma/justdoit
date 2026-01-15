@@ -7,15 +7,10 @@ import {
 } from '../types/xp';
 import { Goal } from '../types/goal';
 import { storageService, StorageService } from './storageService';
+import { XP_STORAGE_KEYS } from '../constants';
 
-/**
- * Storage keys for XP data
- */
-export const XP_STORAGE_KEYS = {
-  TOTAL_XP: 'xp_total',
-  XP_HISTORY: 'xp_history',
-  CURRENT_LEVEL: 'xp_current_level',
-} as const;
+// Re-export XP_STORAGE_KEYS for backward compatibility
+export { XP_STORAGE_KEYS } from '../constants';
 
 /**
  * XP Service Interface

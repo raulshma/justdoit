@@ -346,12 +346,12 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                     )}
                     
                     {goal.recurrence.type !== 'none' && (
-                       <ThemedIcon name="repeat" size={12} color={theme.colors.outline} />
+                       <ThemedIcon name="repeat" size={12} color={theme.colors.onSurfaceVariant} />
                     )}
 
                     {goal.reminderTime && (
                        <View style={styles.metaItem}>
-                         <Text style={[styles.metaText, { color: theme.colors.outline }]}>
+                         <Text style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>
                            {new Date(goal.reminderTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                          </Text>
                        </View>
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    opacity: 0.8,
+    opacity: 0.9
   },
   metaItem: {
     flexDirection: 'row',

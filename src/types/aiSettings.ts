@@ -23,7 +23,7 @@ export const AI_FOCUS_AREAS: AIFocusAreaInfo[] = [
   { id: 'learning', name: 'Learning', icon: 'book-outline', description: 'Education and skill development' },
   { id: 'wellness', name: 'Wellness', icon: 'meditation', description: 'Mental health and balance' },
   { id: 'creativity', name: 'Creativity', icon: 'palette-outline', description: 'Art, music, and creative projects' },
-  { id: 'finance', name: 'Finance', icon: 'cash-outline', description: 'Budgeting and financial goals' },
+  { id: 'finance', name: 'Finance', icon: 'wallet-outline', description: 'Budgeting and financial goals' },
 ];
 
 /**

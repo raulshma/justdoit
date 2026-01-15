@@ -1,52 +1,9 @@
 import { createMMKV, type MMKV } from 'react-native-mmkv';
 import { Goal, AppSettings, Statistics } from '../types';
+import { STORAGE_KEYS, DEFAULT_SETTINGS, DEFAULT_STATISTICS } from '../constants';
 
-/**
- * Storage keys for MMKV persistence
- */
-export const STORAGE_KEYS = {
-  GOALS: 'goals',
-  SETTINGS: 'settings',
-  STATISTICS: 'statistics',
-  STREAK_DATA: 'streakData',
-} as const;
-
-/**
- * Default application settings
- */
-const DEFAULT_SETTINGS: AppSettings = {
-  dailyReminderEnabled: true,
-  dailyReminderTime: '20:00',
-  notificationsEnabled: true,
-  darkModeEnabled: false,
-  colorPalette: 'default',
-  openRouterApiKey: undefined,
-  selectedAiModel: undefined,
-  smartRemindersEnabled: false,
-  focusModeEnabled: false,
-  carryForwardEnabled: true,
-  calendarIntegrationEnabled: false,
-  gamificationEnabled: false,
-  showTabBarLabels: false,
-  hasCompletedOnboarding: false,
-};
-
-/**
- * Default statistics
- */
-const DEFAULT_STATISTICS: Statistics = {
-  todayCompleted: 0,
-  todayTotal: 0,
-  weeklyCompletionRate: 0,
-  currentStreak: 0,
-  longestStreak: 0,
-  last7DaysCompletions: [0, 0, 0, 0, 0, 0, 0],
-  averagePerDay: 0,
-  completionsByHour: new Array(24).fill(0),
-  completionsByDayOfWeek: new Array(7).fill(0),
-  peakHours: [],
-  lowPerformanceDays: [],
-};
+// Re-export STORAGE_KEYS for backward compatibility
+export { STORAGE_KEYS } from '../constants';
 
 /**
  * Storage Service Interface

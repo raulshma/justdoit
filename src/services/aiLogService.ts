@@ -3,9 +3,7 @@
  */
 import { storageService, StorageService } from './storageService';
 import type { AILogEntry, AILogQueryOptions } from '../types/aiTypes';
-
-/** Storage key for AI logs */
-const AI_LOGS_STORAGE_KEY = 'ai_logs';
+import { AI_LOGS_STORAGE_KEY } from '../constants';
 
 /** Maximum number of log entries to retain */
 const MAX_LOG_ENTRIES = 100;
