@@ -157,9 +157,9 @@ function SettingsStackNavigator() {
  */
 function TabIcon({ name, color, size }: { name: string; color: string; size: number }) {
   const icons: Record<string, React.ComponentProps<typeof Icon>['name']> = {
-    home: 'target',
-    stats: 'chart-bar',
-    settings: 'cog',
+    home: 'bullseye-arrow',
+    stats: 'chart-timeline-variant',
+    settings: 'cog-outline',
   };
 
   return (
@@ -182,8 +182,8 @@ function MainTabNavigator() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: theme.colors.surface,
-          borderTopColor: theme.colors.outline,
-          borderTopWidth: 1,
+          borderTopColor: theme.colors.outlineVariant,
+          borderTopWidth: 0.325,
           paddingBottom: showLabels ? 16 : 24,
           paddingTop: showLabels ? 12 : 16,
           height: showLabels ? 75 : 70,
