@@ -27,6 +27,7 @@ import {
   RecurrencePicker,
   ReminderTimePicker,
   VoiceInputButton,
+  RewriteButton,
   SubgoalList,
   AIAssistantPanel,
   ImageAttachmentPicker,
@@ -759,6 +760,14 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
                   onInterimTranscript={setTitleInterim}
                   size={22}
                 />
+                <RewriteButton
+                  text={title}
+                  type="title"
+                  context={description}
+                  onRewrite={setTitle}
+                  size={20}
+                  isConfigured={!!settings.openRouterApiKey}
+                />
               </View>
               {titleInterim ? (
                 <Text style={[styles.interimText, { color: theme.colors.tertiary }]}>
@@ -799,6 +808,14 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
                   }}
                   onInterimTranscript={setDescInterim}
                   size={22}
+                />
+                <RewriteButton
+                  text={description}
+                  type="description"
+                  context={title}
+                  onRewrite={setDescription}
+                  size={20}
+                  isConfigured={!!settings.openRouterApiKey}
                 />
               </View>
               {descInterim ? (

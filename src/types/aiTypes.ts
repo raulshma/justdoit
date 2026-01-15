@@ -102,7 +102,7 @@ export interface AILogEntry {
   /** ISO timestamp when request was made */
   timestamp: string;
   /** Type of AI operation */
-  type: 'goal_analysis' | 'reminder_suggestion' | 'voice_parsing';
+  type: 'goal_analysis' | 'reminder_suggestion' | 'voice_parsing' | 'text_rewrite';
   /** Request details */
   request: {
     /** The prompt sent to AI */
@@ -111,6 +111,8 @@ export interface AILogEntry {
     model: string;
     /** Goal title if applicable */
     goalTitle?: string;
+    /** Text type for rewrite operations */
+    textType?: 'title' | 'description';
     /** Full request body/payload sent */
     body?: Record<string, unknown>;
   };

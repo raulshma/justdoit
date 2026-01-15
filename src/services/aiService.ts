@@ -592,7 +592,102 @@ Always suggest at least 3 subgoals.`;
       return null;
     }
   }
+
+  /**
+   * Rewrite text (title or description) to be clearer and more actionable
+   */
+  async rewriteText(
+    text: string,
+    type: 'title' | 'description',
+    context?: string
+  ): Promise<string | null> {
+    const apiKey = this.getApiKey();
+    if (!apiKey || !text.trim()) {
+      return null;
+    }
+
+    const startTime = Date.now();
+    const modelId = this.getSelectedModel();
+
+    const contextInfo = context?.trim()
+      ? type === 'title'
+        ? `\nGoal Description (for context): ${context}`
+        : `\nGoal Title (for context): ${context}`
+      : '';
+
+    const prompt = type === 'title'
+      ? `You are an AI assistant helping users write better goal titles.
+
+Rewrite this goal title to be:
+- Clear and specific
+- Action-oriented (start with a verb if possible)
+- Concise but descriptive
+- Motivating
+
+Original Title: "${text}"${contextInfo}
+
+Respond with ONLY the rewritten title, nothing else. No quotes, no explanation.`
+      : `You are an AI assistant helping users write better goal descriptions.
+
+Rewrite this goal description to be:
+- Clear and well-structured
+- Include specific details and context
+- Motivating and actionable
+- Concise yet comprehensive
+
+Original Description: "${text}"${contextInfo}
+
+Respond with ONLY the rewritten description, nothing else. No quotes, no explanation.`;
+
+    const requestBody = { model: modelId, prompt };
+
+    try {
+      const openrouter = createOpenRouter({ apiKey });
+      const aiModel = openrouter(modelId);
+
+      const generateResult = await generateText({
+        model: aiModel,
+        prompt,
+      });
+
+      const durationMs = Date.now() - startTime;
+      const providerMetadata = this.extractProviderMetadata(generateResult, durationMs, modelId);
+
+      const rewrittenText = generateResult.text.trim();
+
+      aiLogService.log({
+        type: 'text_rewrite',
+        request: { prompt, model: modelId, textType: type, body: requestBody },
+        response: {
+          success: true,
+          data: { original: text, rewritten: rewrittenText },
+          rawText: generateResult.text,
+        },
+        providerMetadata,
+        durationMs,
+      });
+
+      return rewrittenText;
+    } catch (error) {
+      const durationMs = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      aiLogService.log({
+        type: 'text_rewrite',
+        request: { prompt, model: modelId, textType: type, body: requestBody },
+        response: {
+          success: false,
+          error: errorMessage,
+        },
+        durationMs,
+      });
+
+      console.error('Failed to rewrite text:', error);
+      return null;
+    }
+  }
 }
 
 // Export singleton instance for app-wide use
 export const aiService = new AIService();
+
