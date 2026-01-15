@@ -9,12 +9,14 @@ export type ColorPalette =
   // Elegant & Sophisticated
   | 'lavender' | 'orchid' | 'rosegold' | 'champagne'
   // Bold & Modern
-  | 'brutalist' | 'obsidian' | 'midnight' | 'slate';
+  | 'brutalist' | 'obsidian' | 'midnight' | 'slate'
+  // App Inspired
+  | 'spotify' | 'discord' | 'airbnb' | 'notion' | 'linear';
 
 /**
  * Mood categories for theme grouping
  */
-export type ThemeMood = 'calm' | 'energetic' | 'elegant' | 'bold';
+export type ThemeMood = 'calm' | 'energetic' | 'elegant' | 'bold' | 'inspired';
 
 /**
  * Color palette display information

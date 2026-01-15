@@ -84,7 +84,7 @@ const ColorPaletteItem = memo(function ColorPaletteItem({
         styles.paletteItem,
         {
           borderColor: isSelected ? theme.colors.primary : 'transparent',
-          backgroundColor: isSelected ? theme.colors.primaryContainer + '30' : theme.colors.elevation.level1,
+          backgroundColor: isSelected ? theme.colors.primaryContainer + '30' : theme.colors.surfaceVariant,
           borderWidth: isSelected ? 2 : 0,
         }
       ]}
@@ -158,7 +158,7 @@ const SettingRow = memo(({
       style={[
         styles.settingRow, 
         disabled && styles.disabledRow,
-        !isLast && { borderBottomWidth: 1, borderBottomColor: theme.colors.surfaceVariant + '15' } // Ultra subtle separator
+        !isLast && { borderBottomWidth: 1, borderBottomColor: theme.colors.outlineVariant + '40' } // Subtle separator using outline variant
       ]}
       rippleColor={theme.colors.primaryContainer + '40'}
     >
@@ -550,7 +550,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = () => {
             {/* Theme Accordion Header */}
             <TouchableRipple
               onPress={toggleThemeSection}
-              style={[styles.themeAccordionHeader, { borderTopColor: theme.colors.outline + '15' }]}
+              style={[styles.themeAccordionHeader, { borderTopColor: theme.colors.outlineVariant + '40' }]}
               rippleColor={theme.colors.primaryContainer + '40'}
             >
               <View style={styles.themeAccordionContent}>

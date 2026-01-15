@@ -52,7 +52,7 @@ const StatCard = memo(({
   const theme = useTheme();
   
   return (
-    <Surface style={[styles.statCard, { backgroundColor: theme.colors.elevation.level1 }]} elevation={0}>
+    <Surface style={[styles.statCard, { backgroundColor: theme.colors.surfaceVariant }]} elevation={0}>
       <Icon source={icon} size={24} color={theme.colors.primary} />
       <Text variant="headlineSmall" style={[styles.statValue, { color: theme.colors.onSurface }]}>
         {value}
@@ -80,7 +80,7 @@ const TraitCard = memo(({
   const theme = useTheme();
   
   return (
-    <Surface style={[styles.traitCard, { backgroundColor: theme.colors.elevation.level1 }]} elevation={0}>
+    <Surface style={[styles.traitCard, { backgroundColor: theme.colors.surfaceVariant }]} elevation={0}>
       <View style={styles.traitHeader}>
         <Icon source={trait.icon} size={20} color={theme.colors.primary} />
         <Text variant="titleSmall" style={{ marginLeft: 8, color: theme.colors.onSurface }}>
@@ -133,7 +133,7 @@ const SettingRow = memo(({
       style={[
         styles.settingRow, 
         disabled && styles.disabledRow,
-        !isLast && { borderBottomWidth: 1, borderBottomColor: theme.colors.surfaceVariant + '15' }
+        !isLast && { borderBottomWidth: 1, borderBottomColor: theme.colors.outlineVariant + '40' }
       ]}
       rippleColor={theme.colors.primaryContainer + '40'}
     >
