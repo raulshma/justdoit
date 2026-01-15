@@ -341,44 +341,60 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         onRefresh={handleRefresh}
         ListHeaderComponent={
           <View>
-            {/* XP/Level Display in Header - Requirements: 6.6 */}
+            {/* Header Section - Minimalist & Bold */}
             <View style={styles.headerContainer}>
-              <View style={styles.headerTop}>
-                <View style={styles.headerLeft}>
-                  <Text variant="labelMedium" style={[styles.dateLabel, { color: theme.colors.primary }]}>
-                    {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()}
-                  </Text>
-                  <Text variant="displaySmall" style={[styles.headerTitle, { color: theme.colors.onSurface }]}>
-                    {(() => {
-                      const hour = new Date().getHours();
-                      if (hour < 12) return 'Good Morning,';
-                      if (hour < 18) return 'Good Afternoon,';
-                      return 'Good Evening,';
-                    })()}
-                  </Text>
-                </View>
+              <View style={styles.topBar}>
+                <Text variant="labelLarge" style={[styles.dateLabel, { color: theme.colors.primary }]}>
+                  {new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric' }).toUpperCase()}
+                </Text>
                 
-                {/* XP Display - Compact (only when gamification enabled) */}
+                {/* XP Display - Compact */}
                 {settings.gamificationEnabled && (
                   <TouchableOpacity onPress={handleOpenAchievements} activeOpacity={0.7}>
                     <XPDisplay totalXP={totalXP} currentLevel={currentLevel} compact />
                   </TouchableOpacity>
                 )}
               </View>
+
+              <Text variant="displayMedium" style={[styles.headerTitle, { color: theme.colors.onSurface }]}>
+                {(() => {
+                  const hour = new Date().getHours();
+                  if (hour < 12) return 'Good Morning.';
+                  if (hour < 18) return 'Good Afternoon.';
+                  return 'Good Evening.';
+                })()}
+              </Text>
               
-              <Text variant="headlineMedium" style={[styles.headerSubtitle, { color: theme.colors.onSurfaceVariant }]}>
+              <Text variant="headlineSmall" style={[styles.headerSubtitle, { color: theme.colors.outline }]}>
                 {(() => {
                   const today = getTodayDate();
                   const todayGoals = filteredGoals.filter(g => g.dueDate === today);
                   const remaining = todayGoals.filter(g => !g.isCompleted).length;
                   
-                  if (todayGoals.length === 0) return "Ready to start?";
-                  if (remaining === 0) return "All done for today! 🎉";
-                  return `You have ${remaining} goals left.`;
+                  if (todayGoals.length === 0) return "No tasks scheduled.";
+                  if (remaining === 0) return "All clear.";
+                  return `${remaining} remaining.`;
                 })()}
               </Text>
-              
-              {/* Level Progress Bar (only when gamification enabled) */}
+
+              {/* Minimal Streak Display */}
+              {settings.gamificationEnabled && currentStreak > 0 && (
+                <View style={styles.streakContainer}>
+                  <ThemedIcon name="fire" size={20} color={theme.colors.error} />
+                  <Text variant="titleMedium" style={[styles.streakText, { color: theme.colors.onSurface }]}>
+                    {currentStreak} day streak
+                  </Text>
+                  {streakMultiplierText && (
+                    <View style={[styles.multiplierBadge, { backgroundColor: theme.colors.primaryContainer }]}>
+                      <Text variant="labelSmall" style={[styles.multiplierText, { color: theme.colors.primary }]}>
+                        {streakMultiplierText}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {/* Level Progress (Subtle) */}
               {settings.gamificationEnabled && (
                 <View style={styles.levelProgressContainer}>
                   <LevelProgress
@@ -392,53 +408,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               )}
             </View>
             
-            {/* Streak with Multiplier Indicator - Requirements: 6.6 (only when gamification enabled) */}
-            {settings.gamificationEnabled && currentStreak > 0 && (
-              <Surface style={[styles.streakCard, { backgroundColor: theme.colors.primaryContainer }]} elevation={0}>
-                <View style={styles.streakContent}>
-                  <ThemedIcon name="fire" size={24} color={theme.colors.primary} />
-                  <Text variant="titleMedium" style={[styles.streakText, { color: theme.colors.onPrimaryContainer }]}>
-                    {currentStreak} day streak
-                  </Text>
-                  {streakMultiplierText && (
-                    <View style={[styles.multiplierBadge, { backgroundColor: theme.colors.primary }]}>
-                      <Text variant="labelSmall" style={[styles.multiplierText, { color: theme.colors.onPrimary }]}>
-                        {streakMultiplierText}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              </Surface>
-            )}
-            
-            {/* Active Challenges Preview - Requirements: 7.3 */}
             {/* Calendar Events Section */}
             {settings.calendarIntegrationEnabled && calendarEvents.length > 0 && (
               <View style={styles.calendarSection}>
                 <View style={styles.calendarHeader}>
-                  <ThemedIcon name="calendar-today" size={18} color={theme.colors.primary} />
-                  <Text variant="titleSmall" style={[styles.calendarTitle, { color: theme.colors.onSurface }]}>
-                    Today's Calendar
-                  </Text>
-                  <Text variant="labelSmall" style={[styles.calendarCount, { color: theme.colors.onSurfaceVariant }]}>
-                    {calendarEvents.length} event{calendarEvents.length !== 1 ? 's' : ''}
+                  <Text variant="labelLarge" style={[styles.calendarTitle, { color: theme.colors.onSurface }]}>
+                    SCHEDULE
                   </Text>
                 </View>
                 {calendarEvents.slice(0, 3).map((event) => (
                   <CalendarEventCard key={event.id} event={event} />
                 ))}
-                {calendarEvents.length > 3 && (
-                  <Text 
-                    variant="labelSmall" 
-                    style={[styles.calendarMoreText, { color: theme.colors.onSurfaceVariant }]}
-                  >
-                    +{calendarEvents.length - 3} more events
-                  </Text>
-                )}
               </View>
             )}
             
-            {/* Category Filter Chips - Requirements: 1.4 */}
+            {/* Category Filter Chips */}
             <CategoryFilter
               selectedCategoryId={selectedCategoryId}
               onSelectCategory={handleCategorySelect}
@@ -529,90 +513,74 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerContainer: {
-    paddingHorizontal: 20,
-    marginTop: 24,
-    marginBottom: 16,
+    paddingHorizontal: 24,
+    marginTop: 16,
+    marginBottom: 24,
   },
-  headerTop: {
+  topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 4,
-  },
-  headerLeft: {
-    flex: 1,
+    alignItems: 'center',
+    marginBottom: 16,
   },
   dateLabel: {
-    letterSpacing: 1.5,
+    letterSpacing: 2,
     fontWeight: '700',
-    marginBottom: 8,
-    opacity: 0.9,
+    fontSize: 10,
+    opacity: 0.8,
   },
   headerTitle: {
     fontWeight: '800',
-    letterSpacing: -1,
+    letterSpacing: -1.5,
     marginBottom: 4,
+    fontSize: 32,
+    lineHeight: 40,
   },
   headerSubtitle: {
     fontWeight: '400',
-    opacity: 0.8,
-    fontSize: 24,
-    lineHeight: 32,
+    opacity: 0.6,
+    fontSize: 16,
   },
   levelProgressContainer: {
-    marginTop: 12,
+    marginTop: 24,
   },
-  streakCard: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderRadius: 16,
-    padding: 12,
-  },
-  streakContent: {
+  streakContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 12,
     gap: 8,
   },
   streakText: {
-    fontWeight: '700',
-    flex: 1,
+    fontWeight: '600',
+    fontSize: 14,
   },
   multiplierBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
   },
   multiplierText: {
     fontWeight: '700',
+    fontSize: 10,
   },
   calendarSection: {
-    marginBottom: 12,
+    marginBottom: 24,
   },
   calendarHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 8,
-    gap: 8,
+    paddingHorizontal: 24,
+    marginBottom: 12,
   },
   calendarTitle: {
-    fontWeight: '600',
-    flex: 1,
-  },
-  calendarCount: {
-    opacity: 0.7,
-  },
-  calendarMoreText: {
-    textAlign: 'center',
-    marginTop: 4,
-    marginBottom: 8,
-    opacity: 0.7,
+    fontWeight: '700',
+    letterSpacing: 1,
+    fontSize: 11,
+    opacity: 0.5,
   },
   fab: {
     position: 'absolute',
-    right: 16,
-    bottom: 16,
-    borderRadius: 28,
+    right: 20,
+    bottom: 20,
+    borderRadius: 20,
   },
   snackbar: {
     marginBottom: 80,

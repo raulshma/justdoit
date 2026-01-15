@@ -1,9 +1,8 @@
-import React, { useCallback, useRef, useEffect, useMemo } from 'react';
+import React, { useCallback, useRef, useEffect } from 'react';
 import {
   View,
   StyleSheet,
   Dimensions,
-  Platform,
 } from 'react-native';
 import Animated, { 
   useSharedValue, 
@@ -16,8 +15,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { ThemedIcon } from './ThemedIcon';
 import {
-  Card,
-  Checkbox,
   Text,
   IconButton,
   useTheme,
@@ -45,66 +42,54 @@ interface GoalCardProps {
 }
 
 /**
- * Modern Custom Checkbox - Animated Circle
+ * Minimalist Check Ring
  */
 const CheckButton = ({ 
   isCompleted, 
   color, 
   outlineColor,
   checkColor,
-  onPress 
 }: { 
   isCompleted: boolean; 
   color: string; 
   outlineColor: string;
   checkColor: string;
-  onPress: () => void;
 }) => {
   return (
-    <TouchableRipple
-      onPress={onPress}
-      borderless
+    <View
       style={[
         styles.checkButton,
         {
           borderColor: isCompleted ? color : outlineColor,
           backgroundColor: isCompleted ? color : 'transparent',
+          alignItems: 'center', 
+          justifyContent: 'center'
         }
       ]}
     >
-      {isCompleted ? (
-        <ThemedIcon name="check" size={16} color={checkColor} />
-      ) : (
-        <View />
+      {isCompleted && (
+        <ThemedIcon name="check" size={14} color={checkColor} />
       )}
-    </TouchableRipple>
-  );
-};
-
-/**
- * Priority Pill - Text based styled badge
- */
-const PriorityBadge = ({ priority, colors }: { priority: Priority; colors: any }) => {
-  if (priority === 'medium') return null; // Minimalist: hide medium
-  
-  const config = {
-    high: { color: colors.error, bg: colors.errorContainer, label: 'URGENT' },
-    low: { color: colors.tertiary, bg: colors.tertiaryContainer, label: 'LOW' },
-  };
-
-  const style = config[priority];
-  if (!style) return null;
-
-  return (
-    <View style={[styles.priorityPill, { backgroundColor: style.bg }]}>
-      <Text style={[styles.priorityText, { color: style.color }]}>{style.label}</Text>
     </View>
   );
 };
 
 /**
+ * Minimalist Priority Dot
+ */
+const PriorityIndicator = ({ priority, colors }: { priority: Priority; colors: any }) => {
+  if (priority === 'medium') return null;
+  
+  const color = priority === 'high' ? colors.error : colors.tertiary;
+  
+  return (
+    <View style={[styles.priorityDot, { backgroundColor: color }]} />
+  );
+};
+
+/**
  * GoalCard Component
- * High Fidelity Design: "Floating, Airy, Minimalist"
+ * Design Philosophy: "Intentional Minimalism"
  */
 export const GoalCard: React.FC<GoalCardProps> = ({
   goal,
@@ -122,19 +107,16 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   const translateX = useSharedValue(0);
   const deleteOpacity = useSharedValue(0);
   const scale = useSharedValue(1);
-  const cardOpacity = useSharedValue(goal.isCompleted ? 0.6 : 1);
+  const cardOpacity = useSharedValue(goal.isCompleted ? 0.5 : 1);
   const checkboxScale = useSharedValue(1);
 
   useEffect(() => {
-    cardOpacity.value = withTiming(goal.isCompleted ? 0.6 : 1, { duration: 300 });
+    cardOpacity.value = withTiming(goal.isCompleted ? 0.5 : 1, { duration: 400 });
   }, [goal.isCompleted]);
 
   const handleDelete = useCallback(() => {
     runOnJS(onDelete)(goal.id);
   }, [onDelete, goal.id]);
-
-  // Refs
-  const isLongPressing = useRef(false);
 
   // Gesture State Constants
   const STATE_IDLE = 0;
@@ -143,26 +125,17 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   const STATE_LONG_PRESSING = 3;
 
   const gestureState = useSharedValue(STATE_IDLE);
-
-  // Timers
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const startLongPressTimer = () => {
     timerRef.current = setTimeout(() => {
-      // Trigger long press from JS side
-      // checking value on JS side is tricky if shared value is UI-only?
-      // No, we can assume if timer fires, we haven't cancelled it.
-      // We must check if we are still in TOUCH_DOWN state? 
-      // Ideally we trigger a worklet to update state, but we can't easily.
-      // Instead, we just call the prop callback, and let the UI thread update state via runOnUI?
-      // Better: Use runOnUI to update shared value.
       runOnUI(() => {
         if (gestureState.value === STATE_TOUCH_DOWN) {
           gestureState.value = STATE_LONG_PRESSING;
           runOnJS(triggerLongPressHaptic)();
         }
       })();
-    }, 500); // 500ms for long press
+    }, 400);
   };
 
   const cancelLongPressTimer = () => {
@@ -173,16 +146,14 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   };
 
   const triggerLongPressHaptic = () => {
-    // Optional: Add haptic feedback here
     onLongPress?.(goal.id);
   };
 
-  // Unified Manual Gesture
   const gesture = Gesture.Pan()
-    .minDistance(1) // Start immediately-ish
+    .minDistance(1)
     .onTouchesDown(() => {
       gestureState.value = STATE_TOUCH_DOWN;
-      scale.value = withSpring(0.97);
+      scale.value = withSpring(0.98, { damping: 20, stiffness: 300 });
       runOnJS(startLongPressTimer)();
     })
     .onTouchesUp(() => {
@@ -191,33 +162,21 @@ export const GoalCard: React.FC<GoalCardProps> = ({
        } else if (gestureState.value === STATE_TOUCH_DOWN) {
          runOnJS(onPress)(goal.id);
        }
-       // Reset
        runOnJS(cancelLongPressTimer)();
        scale.value = withSpring(1);
        gestureState.value = STATE_IDLE;
     })
     .onUpdate((e) => {
-      if (gestureState.value === STATE_LONG_PRESSING) {
-        // Ignore movement, just keep tracking
-        return;
-      }
+      if (gestureState.value === STATE_LONG_PRESSING) return;
 
       if (gestureState.value === STATE_TOUCH_DOWN) {
-        // Check for swipe start
         if (Math.abs(e.translationX) > 10 && Math.abs(e.translationY) < 20) {
           gestureState.value = STATE_SWIPING;
           runOnJS(cancelLongPressTimer)();
         } else if (Math.abs(e.translationY) > 20) {
-           // Vertical scroll started, cancel everything
            runOnJS(cancelLongPressTimer)();
            scale.value = withSpring(1);
            gestureState.value = STATE_IDLE;
-           // We can't really "cancel" a Pan gesture to let ScrollView take over easily 
-           // without failOffsetY, but failOffsetY prevents onTouchesDown from tracking long press initially?
-           // Actually, standard Pan handles this if we use activeOffsetX/failOffsetY.
-           // But here we are manually tracking.
-           // To allow scroll, we should probably fail? 
-           // If we manually activate/fail, we can do it. 
         }
       }
 
@@ -226,7 +185,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
         deleteOpacity.value = Math.min(Math.abs(e.translationX) / SWIPE_THRESHOLD, 1);
       }
     })
-    .onEnd((e) => {
+    .onEnd(() => {
       runOnJS(cancelLongPressTimer)();
       scale.value = withSpring(1);
 
@@ -246,7 +205,6 @@ export const GoalCard: React.FC<GoalCardProps> = ({
       gestureState.value = STATE_IDLE;
     });
 
-  // Animated Styles
   const cardStyle = useAnimatedStyle(() => ({
     transform: [
       { translateX: translateX.value },
@@ -273,7 +231,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Delete Background Layer */}
+      {/* Delete Action Layer */}
       <Animated.View
         style={[
           styles.deleteLayer,
@@ -284,131 +242,93 @@ export const GoalCard: React.FC<GoalCardProps> = ({
         <IconButton
           icon="delete-outline"
           iconColor={theme.colors.error}
-          size={28}
-          style={styles.deleteIcon}
+          size={24}
         />
       </Animated.View>
 
-      {/* Main Card */}
+      {/* Main Card Surface */}
       <GestureDetector gesture={gesture}>
         <Animated.View style={[styles.cardWrapper, cardStyle]}>
           <Surface
             style={[
               styles.surface,
-              { backgroundColor: isToday ? theme.colors.surface : theme.colors.surfaceVariant },
+              { backgroundColor: theme.colors.surface },
             ]}
-            elevation={0}
+            elevation={isToday ? 2 : 0}
           >
-            {/* Provide visual feedback wrapper since we removed TouchableRipple's ripple for the main card to solve gesture conflicts 
-                Or keep TouchableRipple inside but disable its events? 
-                Better: Use the GestureDetector for logical events and just View for layout.
-            */}
             <View style={styles.contentRow}>
-              {/* Left: Check Button */}
-              <View style={styles.checkboxWrapper}>
+              {/* Left: Minimal Checkbox */}
+              <View style={styles.actionContainer}>
                 <TouchableRipple
                   onPress={handleCheckboxPress}
                   borderless
-                  style={{ borderRadius: 14 }}
+                  style={styles.checkTouch}
                 >
                   <Animated.View style={checkboxStyle}>
                     <CheckButton 
                       isCompleted={goal.isCompleted} 
                       color={theme.colors.primary}
-                      outlineColor={theme.colors.outline}
+                      outlineColor={theme.colors.outlineVariant}
                       checkColor={theme.colors.onPrimary}
-                      onPress={handleCheckboxPress} 
                     />
                   </Animated.View>
                 </TouchableRipple>
               </View>
 
-              {/* Main Content */}
-              <View style={styles.innerContentRow}>
-                {/* Text Content */}
-                <View style={styles.textContainer}>
-                  <View style={styles.headerRow}>
-                    <Text
-                      variant="titleMedium"
-                      style={[
-                        styles.title,
-                        {
-                          color: goal.isCompleted ? theme.colors.outline : theme.colors.onSurface,
-                          textDecorationLine: goal.isCompleted ? 'line-through' : 'none',
-                        },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {goal.title}
-                    </Text>
-                    {goal.recurrence.type !== 'none' && (
-                      <ThemedIcon
-                        name="repeat"
-                        size={14}
-                        themeColor="tertiary"
-                        style={styles.recurringIcon}
-                      />
-                    )}
-                  </View>
+              {/* Center: Content */}
+              <View style={styles.textContainer}>
+                <View style={styles.titleRow}>
+                  <Text
+                    variant="titleMedium"
+                    style={[
+                      styles.title,
+                      {
+                        color: goal.isCompleted ? theme.colors.onSurfaceDisabled : theme.colors.onSurface,
+                        textDecorationLine: goal.isCompleted ? 'line-through' : 'none',
+                      },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {goal.title}
+                  </Text>
+                  <PriorityIndicator priority={goal.priority} colors={theme.colors} />
+                </View>
 
-                  {goal.description ? (
-                    <Text
-                      variant="bodySmall"
-                      style={[
-                        styles.description,
-                        { color: theme.colors.onSurfaceVariant },
-                      ]}
-                      numberOfLines={2}
-                    >
-                      {goal.description}
-                    </Text>
-                  ) : null}
-                  
-                  {/* Time/Date metadata */}
-                  <View style={styles.footerRow}>
+                {(goal.description || goal.reminderTime || goal.recurrence.type !== 'none' || category) && (
+                  <View style={styles.metaRow}>
                     {category && (
                       <CategoryBadge category={category} size="small" />
                     )}
-                    {/* Subgoal Progress Indicator */}
-                    {goal.subgoals && goal.subgoals.length > 0 && (
-                      <CompactProgressIndicator
-                        progress={{
-                          completed: goal.subgoals.filter(s => s.isCompleted).length,
-                          total: goal.subgoals.length,
-                          percentage: Math.round(
-                            (goal.subgoals.filter(s => s.isCompleted).length / goal.subgoals.length) * 100
-                          ),
-                        }}
-                      />
+                    
+                    {goal.recurrence.type !== 'none' && (
+                       <ThemedIcon name="repeat" size={12} color={theme.colors.outline} />
                     )}
-                    {goal.carriedForward && (
-                      <View style={[styles.metadataItem, { backgroundColor: theme.colors.tertiaryContainer, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }]}>
-                        <ThemedIcon name="arrow-right-bold" size={12} themeColor="tertiary" />
-                        <Text style={[styles.metadataText, { color: theme.colors.tertiary, fontWeight: '600' }]}>
-                          Carried{goal.carryForwardCount && goal.carryForwardCount > 1 ? ` (${goal.carryForwardCount}x)` : ''}
-                        </Text>
-                      </View>
-                    )}
-                    {/* Postponed Indicator */}
-                    {goal.postponeCount && goal.postponeCount > 0 && (
-                      <PostponedIndicator postponeCount={goal.postponeCount} size="small" />
-                    )}
+
                     {goal.reminderTime && (
-                      <View style={styles.metadataItem}>
-                        <ThemedIcon name="bell-outline" size={14} themeColor="onSurfaceVariant" />
-                        <Text style={[styles.metadataText, { color: theme.colors.onSurfaceVariant }]}>
-                          {new Date(goal.reminderTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </Text>
-                      </View>
+                       <View style={styles.metaItem}>
+                         <Text style={[styles.metaText, { color: theme.colors.outline }]}>
+                           {new Date(goal.reminderTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                         </Text>
+                       </View>
                     )}
                   </View>
-                </View>
-
-                {/* Right: Priority Indicator */}
-                <View style={styles.metaContainer}>
-                  <PriorityBadge priority={goal.priority} colors={theme.colors} />
-                </View>
+                )}
               </View>
+
+              {/* Right: Subtle Indicators (only if highly relevant) */}
+              {(goal.subgoals && goal.subgoals.length > 0) && (
+                 <View style={styles.progressContainer}>
+                   <CompactProgressIndicator
+                      progress={{
+                        completed: goal.subgoals.filter(s => s.isCompleted).length,
+                        total: goal.subgoals.length,
+                        percentage: Math.round(
+                          (goal.subgoals.filter(s => s.isCompleted).length / goal.subgoals.length) * 100
+                        ),
+                      }}
+                   />
+                 </View>
+              )}
             </View>
           </Surface>
         </Animated.View>
@@ -419,108 +339,90 @@ export const GoalCard: React.FC<GoalCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginHorizontal: 16,
-    marginVertical: 8,
+    marginHorizontal: 20,
+    marginVertical: 6,
     position: 'relative',
   },
   deleteLayer: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: 24,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'flex-end',
-    paddingRight: 24,
-  },
-  deleteIcon: {
-    margin: 0,
+    paddingRight: 20,
   },
   cardWrapper: {
-    borderRadius: 24, // High fidelity rounded corners
+    borderRadius: 20,
   },
   surface: {
-    borderRadius: 24,
+    borderRadius: 20,
     overflow: 'hidden',
-    elevation: 2,
+    backgroundColor: '#fff', 
+    // Soft shadow for "floating" feel
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 }, // Slightly deeper
-    shadowOpacity: 0.08, // Slightly more visible but still soft
-    shadowRadius: 12, // Softer spread
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
   },
   contentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16, // Unified padding
+    padding: 16,
+    minHeight: 72,
   },
-  checkboxWrapper: {
+  actionContainer: {
     marginRight: 16,
     justifyContent: 'center',
-  },
-  touchableFull: {
-    flex: 1,
-  },
-  innerContentRow: {
-    flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
   },
+  checkTouch: {
+    borderRadius: 50,
+    padding: 2,
+  },
   checkButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
   textContainer: {
     flex: 1,
-    paddingVertical: 4,
+    justifyContent: 'center',
+    gap: 4,
   },
-  headerRow: {
+  titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    gap: 8,
   },
-  footerRow: {
+  title: {
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: -0.3,
+  },
+  metaRow: {
     flexDirection: 'row',
-    marginTop: 6,
-    gap: 12,
+    alignItems: 'center',
+    gap: 8,
+    opacity: 0.8,
   },
-  metadataItem: {
+  metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  metadataText: {
-    fontSize: 10,
+  metaText: {
+    fontSize: 12,
     fontWeight: '500',
   },
-  title: {
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-    flex: 1,
-  },
-  description: {
-    fontSize: 13,
-    lineHeight: 18,
-    opacity: 0.7,
-  },
-  recurringIcon: {
-    marginLeft: 6,
-  },
-  metaContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
+  progressContainer: {
     marginLeft: 12,
   },
-  priorityPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  priorityText: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+  priorityDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
 });
 

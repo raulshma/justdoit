@@ -3,7 +3,6 @@ import { View, StyleSheet, SectionList, SectionListData } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import type { Goal } from '../types/goal';
 import { GoalCard } from './GoalCard';
-import { ThemedIcon } from './ThemedIcon';
 
 interface GoalListProps {
   goals: Goal[];
@@ -36,10 +35,10 @@ const formatDateHeader = (dateString: string): string => {
   date.setHours(0, 0, 0, 0);
 
   if (date.getTime() === today.getTime()) {
-    return "Today's Goals";
+    return "Today";
   }
   if (date.getTime() === tomorrow.getTime()) {
-    return "Tomorrow's Goals";
+    return "Tomorrow";
   }
 
   // Format as readable date
@@ -93,29 +92,22 @@ const EmptyState: React.FC = () => {
 
   return (
     <View style={styles.emptyContainer}>
-      <View style={{ marginBottom: 16 }}>
-        <ThemedIcon name="star-face" size={64} color={theme.colors.primary} />
-      </View>
       <Text
         variant="headlineSmall"
-        style={[styles.emptyTitle, { color: theme.colors.primary }]}
+        style={[styles.emptyTitle, { color: theme.colors.outline }]}
       >
-        No goals yet!
+        No tasks.
       </Text>
       <Text
-        variant="bodyLarge"
-        style={[styles.emptyMessage, { color: theme.colors.onSurfaceVariant }]}
+        variant="bodyMedium"
+        style={[styles.emptyMessage, { color: theme.colors.outline, opacity: 0.7 }]}
       >
-        Start your journey by adding your first goal.{'\n'}
-        Every big achievement starts with a single step!
+        Enjoy your day or add a new goal to get started.
       </Text>
     </View>
   );
 };
 
-/**
- * Section header component
- */
 /**
  * Modern Section Header - Minimalist & Bold
  */
@@ -132,25 +124,18 @@ const SectionHeader: React.FC<{ title: string; isToday: boolean }> = ({
         { backgroundColor: theme.colors.background },
       ]}
     >
-      <View style={styles.sectionHeaderContent}>
-        {isToday && (
-          <View style={[styles.indicatorDot, { backgroundColor: theme.colors.primary }]} />
-        )}
-        <Text
-          variant={isToday ? "titleLarge" : "titleMedium"}
-          style={[
-            styles.sectionTitle,
-            {
-              color: isToday ? theme.colors.onSurface : theme.colors.onSurfaceVariant,
-              opacity: isToday ? 1 : 0.7,
-              fontWeight: isToday ? '800' : '600',
-              letterSpacing: isToday ? -0.5 : 0,
-            },
-          ]}
-        >
-          {title.toUpperCase()}
-        </Text>
-      </View>
+      <Text
+        variant="labelLarge"
+        style={[
+          styles.sectionTitle,
+          {
+            color: isToday ? theme.colors.primary : theme.colors.outline,
+            fontWeight: isToday ? '700' : '600',
+          },
+        ]}
+      >
+        {title.toUpperCase()}
+      </Text>
     </View>
   );
 };
@@ -158,8 +143,6 @@ const SectionHeader: React.FC<{ title: string; isToday: boolean }> = ({
 /**
  * GoalList component displays goals grouped by date with section headers.
  * Shows an encouraging empty state when no goals exist.
- * 
- * Requirements: 2.1, 9.1, 9.4
  */
 export const GoalList: React.FC<GoalListProps & { 
   ListHeaderComponent?: React.ReactElement | null;
@@ -224,7 +207,7 @@ export const GoalList: React.FC<GoalListProps & {
       keyExtractor={keyExtractor}
       style={[styles.list, { backgroundColor: theme.colors.background }]}
       contentContainerStyle={styles.listContent}
-      stickySectionHeadersEnabled={true}
+      stickySectionHeadersEnabled={false} // Cleaner scroll without sticky headers blocking content
       showsVerticalScrollIndicator={false}
       ItemSeparatorComponent={() => <View style={styles.separator} />}
       ListHeaderComponent={ListHeaderComponent}
@@ -244,42 +227,34 @@ const styles = StyleSheet.create({
     paddingBottom: 100, // Space for FAB
   },
   sectionHeader: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    paddingTop: 24, // More breathing room
-  },
-  sectionHeaderContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  indicatorDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 8,
+    paddingHorizontal: 20,
+    marginTop: 24,
+    marginBottom: 8,
   },
   sectionTitle: {
-    // Font weight handled in component
+    letterSpacing: 1.5,
+    fontSize: 11,
   },
   separator: {
-    height: 8, // More space instead of line
-    backgroundColor: 'transparent',
+    height: 4,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 32,
+    paddingTop: 64,
     paddingBottom: 100,
   },
   emptyTitle: {
-    fontWeight: '600',
-    marginBottom: 12,
+    fontWeight: '700',
+    marginBottom: 8,
     textAlign: 'center',
   },
   emptyMessage: {
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 20,
+    maxWidth: 240,
   },
 });
 
