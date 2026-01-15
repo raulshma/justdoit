@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Dimensions } from 'react-native';
 import { Text, useTheme, FAB, Snackbar, Surface, Icon, IconButton } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import type { Goal, FocusSession } from '../types';
 import { goalManager, focusTimerService } from '../services';
 import {
@@ -22,6 +23,7 @@ const getTodayDate = (): string => {
 /**
  * FocusModeScreen - Focus timer with goal integration
  * Enhanced Pomodoro-style focus sessions linked to daily goals
+ * High Fidelity "Avant-Garde" Design
  */
 export const FocusModeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const theme = useTheme();
@@ -31,7 +33,7 @@ export const FocusModeScreen: React.FC<{ navigation: any }> = ({ navigation }) =
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [goalSelectorVisible, setGoalSelectorVisible] = useState(false);
   const [linkedGoal, setLinkedGoal] = useState<{ id: string; title: string } | null>(null);
-  const [showGoals, setShowGoals] = useState(false);
+  const [showGoals, setShowGoals] = useState(true);
 
   /**
    * Load and filter top 3 priority goals for today
@@ -172,77 +174,78 @@ export const FocusModeScreen: React.FC<{ navigation: any }> = ({ navigation }) =
           />
         }
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerRow}>
-            <Text variant="labelMedium" style={[styles.badge, { color: theme.colors.primary }]}>
-              FOCUS MODE
-            </Text>
+        {/* Header - Minimal and Clean */}
+        <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.header}>
+            <View>
+              <Text variant="headlineSmall" style={[styles.headerTitle, { color: theme.colors.onSurface }]}>
+                Focus
+              </Text>
+              <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, letterSpacing: 0.5 }}>
+                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+              </Text>
+            </View>
             <IconButton
-              icon={linkedGoal ? 'link' : 'link-off'}
+              icon={linkedGoal ? 'link-variant' : 'link-variant-off'}
+              mode="contained-tonal"
               iconColor={linkedGoal ? theme.colors.primary : theme.colors.onSurfaceVariant}
-              size={20}
+              containerColor={linkedGoal ? theme.colors.primaryContainer : theme.colors.surfaceVariant}
+              size={24}
               onPress={() => setGoalSelectorVisible(true)}
             />
-          </View>
-          <Text variant="displaySmall" style={[styles.title, { color: theme.colors.onSurface }]}>
-            Deep Work
-          </Text>
-          {linkedGoal && (
-            <Text 
-              variant="bodyLarge" 
-              style={[styles.subtitle, { color: theme.colors.primary }]}
-              numberOfLines={1}
-            >
-              Working on: {linkedGoal.title}
-            </Text>
-          )}
-        </View>
+        </Animated.View>
 
-        {/* Focus Timer */}
-        <FocusTimer
-          linkedGoalId={linkedGoal?.id}
-          linkedGoalTitle={linkedGoal?.title}
-          onSessionComplete={handleSessionComplete}
-        />
+        {/* Focus Timer - Centerpiece */}
+        <Animated.View entering={FadeInDown.delay(200).duration(500)}>
+          <FocusTimer
+            linkedGoalId={linkedGoal?.id}
+            linkedGoalTitle={linkedGoal?.title}
+            onSessionComplete={handleSessionComplete}
+          />
+        </Animated.View>
 
-        {/* Stats Section */}
-        <View style={styles.statsSection}>
+        {/* Stats Section - Quick Dashboard */}
+        <Animated.View entering={FadeInDown.delay(300).duration(500)} style={styles.statsSection}>
           <FocusSessionStats goalId={linkedGoal?.id} />
-        </View>
+        </Animated.View>
 
-        {/* Toggle Goals Section */}
+        {/* Today's Priorities Section */}
         <View style={styles.goalsSection}>
           <View style={styles.sectionHeader}>
-            <Text variant="titleMedium" style={{ color: theme.colors.onSurface, fontWeight: '600' }}>
-              Today's Priorities
+            <Text variant="titleMedium" style={{ color: theme.colors.onSurface, fontWeight: '700', letterSpacing: 0.5 }}>
+              PRIORITIES
             </Text>
             <IconButton
               icon={showGoals ? 'chevron-up' : 'chevron-down'}
               size={20}
               onPress={() => setShowGoals(!showGoals)}
+              style={{ margin: 0 }}
             />
           </View>
 
           {showGoals && (
-            <>
+            <Animated.View layout={Layout.springify()}>
               {allDone ? (
-                <Surface style={[styles.emptyCard, { backgroundColor: theme.colors.primaryContainer }]} elevation={0}>
+                <Surface style={[styles.emptyCard, { backgroundColor: theme.colors.surface }]} elevation={0}>
                   <Icon source="check-decagram" size={48} color={theme.colors.primary} />
-                  <Text variant="titleMedium" style={[styles.emptyTitle, { color: theme.colors.onPrimaryContainer }]}>
-                    All Done!
+                  <Text variant="titleMedium" style={[styles.emptyTitle, { color: theme.colors.onSurface }]}>
+                    All Clear!
                   </Text>
-                  <Text variant="bodyMedium" style={[styles.emptySubtitle, { color: theme.colors.onPrimaryContainer }]}>
-                    You've completed all priority goals for today.
+                  <Text variant="bodyMedium" style={[styles.emptySubtitle, { color: theme.colors.onSurfaceVariant }]}>
+                    You've crushed your top priorities for today.
                   </Text>
                 </Surface>
               ) : (
                 <View style={styles.goalsList}>
                   {goals.map((goal, index) => (
-                    <View key={goal.id} style={styles.goalWrapper}>
-                      <View style={[styles.priorityBadge, { backgroundColor: theme.colors.primaryContainer }]}>
-                        <Text variant="labelSmall" style={{ color: theme.colors.primary, fontWeight: '700' }}>
-                          #{index + 1}
+                    <Animated.View 
+                      key={goal.id} 
+                      entering={FadeInDown.delay(400 + index * 100).duration(500)}
+                      layout={Layout.springify()}
+                      style={styles.goalWrapper}
+                    >
+                      <View style={[styles.rankBadge, { backgroundColor: theme.colors.secondaryContainer }]}>
+                        <Text variant="labelSmall" style={{ color: theme.colors.onSecondaryContainer, fontWeight: 'bold' }}>
+                          {index + 1}
                         </Text>
                       </View>
                       <GoalCard
@@ -254,21 +257,21 @@ export const FocusModeScreen: React.FC<{ navigation: any }> = ({ navigation }) =
                       <IconButton
                         icon="play-circle"
                         iconColor={theme.colors.primary}
-                        size={24}
+                        size={28}
                         style={styles.playButton}
                         onPress={() => handleStartFocusOnGoal(goal)}
                       />
-                    </View>
+                    </Animated.View>
                   ))}
                 </View>
               )}
-            </>
+            </Animated.View>
           )}
         </View>
 
-        {/* Motivational footer */}
+        {/* Quote Footer - Subtle */}
         <View style={styles.footer}>
-          <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, textAlign: 'center', opacity: 0.7 }}>
+          <Text variant="bodySmall" style={{ color: theme.colors.outline, textAlign: 'center', fontStyle: 'italic' }}>
             "Focus is the art of knowing what to ignore."
           </Text>
         </View>
@@ -282,18 +285,11 @@ export const FocusModeScreen: React.FC<{ navigation: any }> = ({ navigation }) =
         onSelectNone={handleFocusWithoutGoal}
       />
 
-      {/* Add Goal FAB */}
-      <FAB
-        icon="plus"
-        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-        color={theme.colors.onPrimary}
-        onPress={() => navigation.navigate('GoalForm', { mode: 'add' })}
-      />
-
       <Snackbar
         visible={snackbarVisible}
         onDismiss={() => setSnackbarVisible(false)}
         duration={2000}
+        style={{ marginBottom: 80 }} // Above FAB
       >
         {snackbarMessage}
       </Snackbar>
@@ -306,68 +302,67 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingBottom: 100,
+    paddingTop: 12,
   },
   header: {
-    marginTop: 24,
-    marginBottom: 24,
-  },
-  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 32,
   },
-  badge: {
-    letterSpacing: 2,
-    fontWeight: '700',
-    opacity: 0.9,
-  },
-  title: {
+  headerTitle: {
     fontWeight: '800',
-    letterSpacing: -1,
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontWeight: '500',
+    letterSpacing: -0.5,
   },
   statsSection: {
-    marginTop: 20,
+    marginBottom: 32,
   },
   goalsSection: {
-    marginTop: 24,
+    marginBottom: 24,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   goalsList: {
-    gap: 20,
+    gap: 16,
   },
   goalWrapper: {
     position: 'relative',
   },
-  priorityBadge: {
+  rankBadge: {
     position: 'absolute',
     top: -8,
-    left: 12,
+    left: -8,
     zIndex: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    width: 24,
+    height: 24,
     borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,
+    borderWidth: 2,
+    borderColor: 'white', // Should ideally match background
   },
   playButton: {
     position: 'absolute',
     top: 8,
     right: 8,
     zIndex: 10,
+    backgroundColor: 'rgba(255,255,255,0.8)', // slight backdrop for contrast
+    borderRadius: 20,
   },
   emptyCard: {
-    padding: 32,
+    padding: 40,
     borderRadius: 24,
     alignItems: 'center',
+    borderStyle: 'dashed',
+    borderWidth: 2,
+    borderColor: 'rgba(120,120,120,0.2)',
   },
   emptyTitle: {
     fontWeight: '700',
@@ -380,13 +375,14 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   footer: {
-    marginTop: 40,
+    marginTop: 24,
     paddingHorizontal: 20,
+    opacity: 0.6,
   },
   fab: {
     position: 'absolute',
-    right: 16,
-    bottom: 16,
+    right: 20,
+    bottom: 20,
     borderRadius: 28,
   },
 });

@@ -1,9 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, Animated, Easing, TouchableOpacity } from 'react-native';
-import { Text, useTheme, IconButton, Surface, ProgressBar } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { Text, useTheme, IconButton, Surface } from 'react-native-paper';
 import { useKeepAwake } from 'expo-keep-awake';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withRepeat, 
+  withTiming, 
+  withSequence,
+  Easing,
+  withSpring
+} from 'react-native-reanimated';
 import { focusTimerService } from '../services/focusTimerService';
 import type { FocusTimerState, FocusSession } from '../types';
+
+const { width } = Dimensions.get('window');
+const TIMER_SIZE = width * 0.75;
 
 interface FocusTimerProps {
   linkedGoalId?: string;
@@ -23,7 +35,7 @@ const formatTime = (seconds: number): string => {
 
 /**
  * FocusTimer Component
- * Displays a Pomodoro-style timer with controls
+ * High-fidelity Pomodoro-style timer with pulsing animations
  */
 export const FocusTimer: React.FC<FocusTimerProps> = ({
   linkedGoalId,
@@ -37,17 +49,63 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
   const [totalDuration, setTotalDuration] = useState(0);
   const [sessionType, setSessionType] = useState<'work' | 'shortBreak' | 'longBreak' | null>(null);
   
+  // Animation values
+  const pulseScale = useSharedValue(1);
+  const glowOpacity = useSharedValue(0);
+  const progressValue = useSharedValue(0);
+
   // Keep screen awake during active timer
   useKeepAwake();
 
-  // Calculate progress percentage
-  const progress = totalDuration > 0 ? 1 - (timeRemaining / totalDuration) : 0;
+  // Animation styles
+  const pulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulseScale.value }],
+    opacity: glowOpacity.value,
+  }));
+
+  const startPulse = useCallback(() => {
+    pulseScale.value = withRepeat(
+      withSequence(
+        withTiming(1.05, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    );
+    glowOpacity.value = withRepeat(
+      withSequence(
+        withTiming(0.15, { duration: 2000 }),
+        withTiming(0.05, { duration: 2000 })
+      ),
+      -1,
+      true
+    );
+  }, []);
+
+  const stopPulse = useCallback(() => {
+    pulseScale.value = withTiming(1);
+    glowOpacity.value = withTiming(0);
+  }, []);
+
+  // Update animations based on state
+  useEffect(() => {
+    if (timerState === 'running' || timerState === 'break') {
+      startPulse();
+    } else {
+      stopPulse();
+    }
+  }, [timerState]);
 
   // Set up timer callbacks
   useEffect(() => {
     focusTimerService.onTick((remaining, state) => {
       setTimeRemaining(remaining);
       setTimerState(state);
+      
+      // Update progress animation
+      if (totalDuration > 0) {
+        progressValue.value = withTiming(1 - remaining / totalDuration, { duration: 1000 });
+      }
     });
 
     focusTimerService.onStateChange((state) => {
@@ -56,6 +114,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
         setTimeRemaining(0);
         setTotalDuration(0);
         setSessionType(null);
+        progressValue.value = 0;
       }
     });
 
@@ -65,15 +124,13 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
       }
     });
 
-    // Cleanup on unmount
+    // Cleanup
     return () => {
-      // Don't stop timer on unmount - let it run in background
     };
-  }, [onSessionComplete]);
+  }, [onSessionComplete, totalDuration]);
 
   // Handle start session
   const handleStart = useCallback(() => {
-    // Get duration from settings
     const settings = require('../constants').DEFAULT_SETTINGS;
     const duration = settings.focusWorkDuration * 60;
     setTotalDuration(duration);
@@ -121,30 +178,21 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
     focusTimerService.skipBreak();
   }, []);
 
-  // Colors based on session type
   const getSessionColor = () => {
     switch (sessionType) {
-      case 'work':
-        return theme.colors.primary;
-      case 'shortBreak':
-        return theme.colors.secondary;
-      case 'longBreak':
-        return theme.colors.tertiary;
-      default:
-        return theme.colors.primary;
+      case 'work': return theme.colors.primary;
+      case 'shortBreak': return theme.colors.tertiary; // More distinct for breaks
+      case 'longBreak': return theme.colors.secondary;
+      default: return theme.colors.primary;
     }
   };
 
   const getSessionLabel = () => {
     switch (sessionType) {
-      case 'work':
-        return 'Focus Time';
-      case 'shortBreak':
-        return 'Short Break';
-      case 'longBreak':
-        return 'Long Break';
-      default:
-        return 'Ready to Focus';
+      case 'work': return 'DEEP WORK';
+      case 'shortBreak': return 'SHORT BREAK';
+      case 'longBreak': return 'LONG BREAK';
+      default: return 'READY TO FOCUS';
     }
   };
 
@@ -153,269 +201,254 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
       <Surface style={[styles.compactContainer, { backgroundColor: theme.colors.surfaceVariant }]} elevation={0}>
         <View style={styles.compactContent}>
           <View style={styles.compactLeft}>
-            <Text variant="labelMedium" style={{ color: getSessionColor() }}>
+            <Text variant="labelSmall" style={{ color: getSessionColor(), fontWeight: '700', letterSpacing: 1 }}>
               {getSessionLabel()}
             </Text>
-            <Text variant="headlineSmall" style={{ color: theme.colors.onSurface, fontWeight: '700' }}>
+            <Text variant="headlineMedium" style={{ color: theme.colors.onSurface, fontWeight: '800', fontVariant: ['tabular-nums'] }}>
               {formatTime(timeRemaining)}
             </Text>
           </View>
           <View style={styles.compactControls}>
             {timerState === 'idle' ? (
-              <IconButton
-                icon="play-circle"
-                iconColor={theme.colors.primary}
-                size={40}
-                onPress={handleStart}
-              />
+              <IconButton icon="play" iconColor={theme.colors.primary} size={32} onPress={handleStart} />
             ) : timerState === 'running' || timerState === 'break' ? (
-              <>
-                <IconButton
-                  icon="pause"
-                  iconColor={theme.colors.onSurfaceVariant}
-                  size={28}
-                  onPress={handlePause}
-                />
-                <IconButton
-                  icon="stop"
-                  iconColor={theme.colors.error}
-                  size={28}
-                  onPress={handleStop}
-                />
-              </>
+              <IconButton icon="pause" iconColor={theme.colors.onSurface} size={28} onPress={handlePause} />
             ) : (
-              <IconButton
-                icon="play"
-                iconColor={theme.colors.primary}
-                size={28}
-                onPress={handleResume}
-              />
+              <IconButton icon="play" iconColor={theme.colors.primary} size={28} onPress={handleResume} />
             )}
           </View>
         </View>
-        {timerState !== 'idle' && (
-          <ProgressBar
-            progress={progress}
-            color={getSessionColor()}
-            style={styles.compactProgress}
-          />
-        )}
       </Surface>
     );
   }
 
   return (
-    <Surface style={[styles.container, { backgroundColor: theme.colors.surface }]} elevation={1}>
-      {/* Session Type Label */}
-      <View style={[styles.labelContainer, { backgroundColor: getSessionColor() + '20' }]}>
-        <Text variant="labelMedium" style={{ color: getSessionColor(), fontWeight: '700' }}>
-          {getSessionLabel()}
-        </Text>
+    <View style={styles.container}>
+      {/* Timer Circle Container */}
+      <View style={[styles.timerCircleContainer, { height: TIMER_SIZE, width: TIMER_SIZE }]}>
+        {/* Pulsing Background */}
+        <Animated.View 
+          style={[
+            StyleSheet.absoluteFill, 
+            { 
+              backgroundColor: getSessionColor(),
+              borderRadius: TIMER_SIZE / 2,
+            },
+            pulseStyle
+          ]} 
+        />
+        
+        {/* Timer Content */}
+        <View style={[styles.timerContent, { backgroundColor: theme.colors.background }]}>
+          <Text variant="labelMedium" style={[styles.sessionLabel, { color: getSessionColor() }]}>
+            {getSessionLabel()}
+          </Text>
+          
+          <Text 
+            variant="displayLarge" 
+            style={[
+              styles.timerText, 
+              { color: theme.colors.onBackground }
+            ]}
+          >
+            {formatTime(timeRemaining)}
+          </Text>
+
+          {linkedGoalTitle && (
+            <View style={styles.linkedGoalBadge}>
+              <Text 
+                variant="labelSmall" 
+                style={{ color: theme.colors.onSurfaceVariant }} 
+                numberOfLines={1}
+              >
+                {linkedGoalTitle}
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
 
-      {/* Linked Goal Display */}
-      {linkedGoalTitle && (
-        <View style={styles.goalContainer}>
-          <Text 
-            variant="bodyMedium" 
-            style={{ color: theme.colors.onSurfaceVariant }}
-            numberOfLines={1}
-          >
-            Working on: {linkedGoalTitle}
-          </Text>
-        </View>
-      )}
+      {/* Controls */}
+      <View style={styles.controlsContainer}>
+        {timerState === 'idle' && (
+          <View style={styles.idleControls}>
+            <TouchableOpacity 
+              style={[styles.mainButton, { backgroundColor: theme.colors.primary }]}
+              onPress={handleStart}
+              activeOpacity={0.8}
+            >
+              <Text variant="titleMedium" style={{ color: theme.colors.onPrimary, fontWeight: '700' }}>
+                START FOCUS
+              </Text>
+            </TouchableOpacity>
 
-      {/* Timer Display */}
-      <View style={styles.timerDisplay}>
-        <Text 
-          variant="displayLarge" 
-          style={[styles.timerText, { color: theme.colors.onSurface }]}
-        >
-          {formatTime(timeRemaining)}
-        </Text>
-        
-        {/* Progress Ring (simplified as bar for now) */}
-        {timerState !== 'idle' && (
-          <View style={styles.progressContainer}>
-            <ProgressBar
-              progress={progress}
-              color={getSessionColor()}
-              style={styles.progressBar}
+            <View style={styles.breakOptions}>
+               <TouchableOpacity 
+                 onPress={() => handleStartBreak(false)}
+                 style={[styles.breakChip, { borderColor: theme.colors.outline }]}
+               >
+                 <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant }}>Short Break</Text>
+               </TouchableOpacity>
+               <TouchableOpacity 
+                 onPress={() => handleStartBreak(true)}
+                 style={[styles.breakChip, { borderColor: theme.colors.outline }]}
+               >
+                 <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant }}>Long Break</Text>
+               </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {(timerState === 'running' || timerState === 'break') && (
+          <View style={styles.activeControls}>
+            <IconButton
+              icon="pause"
+              mode="contained-tonal"
+              size={44}
+              iconColor={theme.colors.onPrimaryContainer}
+              containerColor={theme.colors.primaryContainer}
+              onPress={handlePause}
+              style={styles.controlBtn}
+            />
+            {timerState === 'break' && (
+              <IconButton
+                icon="skip-forward"
+                mode="outlined"
+                size={32}
+                iconColor={theme.colors.onSurface}
+                onPress={handleSkipBreak}
+                style={styles.controlBtn}
+              />
+            )}
+            <IconButton
+              icon="stop"
+              mode="outlined"
+              size={32}
+              iconColor={theme.colors.error}
+              onPress={handleStop}
+              style={[styles.controlBtn, { borderColor: theme.colors.error }]}
+            />
+          </View>
+        )}
+
+        {timerState === 'paused' && (
+          <View style={styles.activeControls}>
+            <IconButton
+              icon="play"
+              mode="contained"
+              size={44}
+              iconColor={theme.colors.onPrimary}
+              containerColor={theme.colors.primary}
+              onPress={handleResume}
+              style={styles.controlBtn}
+            />
+            <IconButton
+              icon="stop"
+              mode="outlined"
+              size={32}
+              iconColor={theme.colors.error}
+              onPress={handleStop}
+              style={styles.controlBtn}
             />
           </View>
         )}
       </View>
-
-      {/* Controls */}
-      <View style={styles.controls}>
-        {timerState === 'idle' && (
-          <>
-            <IconButton
-              icon="play-circle"
-              iconColor={theme.colors.onPrimary}
-              containerColor={theme.colors.primary}
-              size={48}
-              onPress={handleStart}
-              mode="contained"
-            />
-            {sessionType === null && (
-              <View style={styles.breakButtons}>
-                <TouchableOpacity
-                  style={[styles.breakButton, { borderColor: theme.colors.secondary }]}
-                  onPress={() => handleStartBreak(false)}
-                >
-                  <Text variant="labelSmall" style={{ color: theme.colors.secondary }}>
-                    Short Break
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.breakButton, { borderColor: theme.colors.tertiary }]}
-                  onPress={() => handleStartBreak(true)}
-                >
-                  <Text variant="labelSmall" style={{ color: theme.colors.tertiary }}>
-                    Long Break
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </>
-        )}
-
-        {timerState === 'running' && (
-          <>
-            <IconButton
-              icon="pause"
-              iconColor={theme.colors.onSecondaryContainer}
-              containerColor={theme.colors.secondaryContainer}
-              size={40}
-              onPress={handlePause}
-              mode="contained"
-            />
-            <IconButton
-              icon="stop"
-              iconColor={theme.colors.onErrorContainer}
-              containerColor={theme.colors.errorContainer}
-              size={40}
-              onPress={handleStop}
-              mode="contained"
-            />
-          </>
-        )}
-
-        {timerState === 'paused' && (
-          <>
-            <IconButton
-              icon="play"
-              iconColor={theme.colors.onPrimary}
-              containerColor={theme.colors.primary}
-              size={48}
-              onPress={handleResume}
-              mode="contained"
-            />
-            <IconButton
-              icon="stop"
-              iconColor={theme.colors.onErrorContainer}
-              containerColor={theme.colors.errorContainer}
-              size={40}
-              onPress={handleStop}
-              mode="contained"
-            />
-          </>
-        )}
-
-        {timerState === 'break' && (
-          <>
-            <IconButton
-              icon="pause"
-              iconColor={theme.colors.onSecondaryContainer}
-              containerColor={theme.colors.secondaryContainer}
-              size={40}
-              onPress={handlePause}
-              mode="contained"
-            />
-            <IconButton
-              icon="skip-forward"
-              iconColor={theme.colors.onSurfaceVariant}
-              size={40}
-              onPress={handleSkipBreak}
-            />
-          </>
-        )}
-      </View>
-    </Surface>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 24,
-    padding: 24,
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
   },
-  labelContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginBottom: 16,
-  },
-  goalContainer: {
-    marginBottom: 12,
-  },
-  timerDisplay: {
+  timerCircleContainer: {
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 40,
+  },
+  timerContent: {
+    width: '92%',
+    height: '92%',
+    borderRadius: 999, // circle
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    zIndex: 2,
+  },
+  sessionLabel: {
+    fontWeight: '800',
+    letterSpacing: 2,
+    marginBottom: 8,
+    opacity: 0.8,
   },
   timerText: {
-    fontWeight: '200',
+    fontWeight: '800',
     letterSpacing: -2,
-    fontSize: 72,
+    fontVariant: ['tabular-nums'],
+    fontSize: 64, // smaller than 72 to fit nicely
   },
-  progressContainer: {
-    width: '80%',
-    marginTop: 16,
+  linkedGoalBadge: {
+    marginTop: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    borderRadius: 12,
+    maxWidth: '80%',
   },
-  progressBar: {
-    height: 8,
-    borderRadius: 4,
-  },
-  controls: {
-    flexDirection: 'row',
+  controlsContainer: {
+    width: '100%',
     alignItems: 'center',
-    gap: 16,
   },
-  breakButtons: {
+  idleControls: {
+    width: '100%',
+    alignItems: 'center',
+    gap: 20,
+  },
+  mainButton: {
+    paddingVertical: 16,
+    paddingHorizontal: 48,
+    borderRadius: 32,
+    elevation: 2,
+  },
+  breakOptions: {
     flexDirection: 'row',
     gap: 12,
-    marginTop: 16,
   },
-  breakButton: {
-    paddingHorizontal: 16,
+  breakChip: {
     paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: 20,
     borderWidth: 1,
   },
+  activeControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 24,
+  },
+  controlBtn: {
+    margin: 0,
+  },
   compactContainer: {
     borderRadius: 16,
-    padding: 12,
-    overflow: 'hidden',
+    padding: 16,
+    marginBottom: 16,
   },
   compactContent: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
   compactLeft: {
-    flex: 1,
+    gap: 4,
   },
   compactControls: {
     flexDirection: 'row',
-    alignItems: 'center',
-  },
-  compactProgress: {
-    height: 4,
-    marginTop: 8,
-    borderRadius: 2,
   },
 });
 
