@@ -7,6 +7,9 @@ export { PriorityPicker } from './PriorityPicker';
 export { RecurrencePicker } from './RecurrencePicker';
 export { ReminderTimePicker } from './ReminderTimePicker';
 export { VoiceInputButton } from './VoiceInputButton';
+export { VoiceNotePlayer } from './VoiceNotePlayer';
+export { VoiceNoteRecorder } from './VoiceNoteRecorder';
+export { VoiceGoalCreator } from './VoiceGoalCreator';
 export { ThemedIcon } from './ThemedIcon';
 export { ImageAttachmentPicker } from './ImageAttachmentPicker';
 

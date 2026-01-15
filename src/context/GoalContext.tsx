@@ -45,7 +45,7 @@ type GoalAction =
 interface GoalContextValue extends GoalState {
   // Goal CRUD operations
   createGoal: (input: CreateGoalInput) => Promise<Goal>;
-  updateGoal: (id: string, updates: UpdateGoalInput) => Goal;
+  updateGoal: (id: string, updates: UpdateGoalInput) => Promise<Goal>;
   deleteGoal: (id: string) => Promise<void>;
   toggleComplete: (id: string) => Promise<Goal>;
   // Goal retrieval
@@ -205,8 +205,8 @@ export function GoalProvider({
   /**
    * Update an existing goal
    */
-  const updateGoal = useCallback((id: string, updates: UpdateGoalInput): Goal => {
-    const goal = goalMgr.updateGoal(id, updates);
+  const updateGoal = useCallback(async (id: string, updates: UpdateGoalInput): Promise<Goal> => {
+    const goal = await goalMgr.updateGoal(id, updates);
     dispatch({ type: 'UPDATE_GOAL', payload: goal });
     return goal;
   }, [goalMgr]);

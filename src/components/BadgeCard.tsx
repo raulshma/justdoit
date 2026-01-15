@@ -116,7 +116,7 @@ export const BadgeCard: React.FC<BadgeCardProps> = ({
             />
             {!isUnlocked && (
               <View style={[styles.lockOverlay, { backgroundColor: theme.colors.surfaceVariant }]}>
-                <Text style={styles.lockIcon}>🔒</Text>
+                <ThemedIcon name="lock" size={10} color={theme.colors.onSurfaceVariant} />
               </View>
             )}
           </View>
@@ -148,7 +148,7 @@ export const BadgeCard: React.FC<BadgeCardProps> = ({
                   variant="labelSmall"
                   style={[styles.unlockDate, { color: theme.colors.primary }]}
                 >
-                  ✓ Unlocked {formatUnlockDate(unlockedInfo.unlockedAt)}
+                  <ThemedIcon name="check" size={12} color={theme.colors.primary} style={{ marginRight: 4 }} /> Unlocked {formatUnlockDate(unlockedInfo.unlockedAt)}
                 </Text>
               </View>
             ) : (

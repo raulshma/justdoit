@@ -2,6 +2,7 @@ import { randomUUID } from 'expo-crypto';
 import { Goal, Priority, RecurrencePattern } from '../types';
 import { StorageService, storageService as defaultStorageService } from './storageService';
 import { NotificationService, notificationService as defaultNotificationService } from './notificationService';
+import { voiceNoteService } from './voiceNoteService';
 
 /**
  * Input for creating a new goal
@@ -14,6 +15,8 @@ export interface CreateGoalInput {
   recurrence?: RecurrencePattern;
   reminderTime?: string;
   imageUri?: string;
+  voiceNoteUri?: string;
+  voiceNoteDuration?: number;
 }
 
 /**
@@ -28,6 +31,8 @@ export interface UpdateGoalInput {
   reminderTime?: string;
   isCompleted?: boolean;
   imageUri?: string;
+  voiceNoteUri?: string | null;
+  voiceNoteDuration?: number | null;
 }
 
 /**
@@ -42,7 +47,7 @@ export interface GroupedGoals {
  */
 export interface IGoalManager {
   createGoal(input: CreateGoalInput): Promise<Goal>;
-  updateGoal(id: string, updates: UpdateGoalInput): Goal;
+  updateGoal(id: string, updates: UpdateGoalInput): Promise<Goal>;
   deleteGoal(id: string): Promise<void>;
   getGoal(id: string): Goal | null;
   getGoalsByDate(date: string): Goal[];
@@ -114,7 +119,22 @@ export class GoalManager implements IGoalManager {
       recurrence: input.recurrence ?? { type: 'none' },
       reminderTime: input.reminderTime,
       imageUri: input.imageUri,
+      voiceNoteUri: input.voiceNoteUri,
+      voiceNoteDuration: input.voiceNoteDuration,
     };
+
+    // Save voice note to permanent storage if present
+    if (goal.voiceNoteUri) {
+      try {
+        const permanentUri = await voiceNoteService.saveVoiceNote(goal.voiceNoteUri, goal.id);
+        goal.voiceNoteUri = permanentUri;
+      } catch (error) {
+        console.warn('Failed to save voice note:', error);
+        // Continue even if voice note save fails, but maybe clear the URI
+        goal.voiceNoteUri = undefined;
+        goal.voiceNoteDuration = undefined;
+      }
+    }
 
     // Schedule reminder if reminderTime is provided (Requirement 4.1)
     if (goal.reminderTime) {
@@ -138,7 +158,7 @@ export class GoalManager implements IGoalManager {
    * @throws Error if goal not found or title validation fails
    * Requirements: 2.2, 2.3
    */
-  updateGoal(id: string, updates: UpdateGoalInput): Goal {
+  async updateGoal(id: string, updates: UpdateGoalInput): Promise<Goal> {
     const existingGoal = this.storageService.getGoal(id);
     
     if (!existingGoal) {
@@ -160,7 +180,32 @@ export class GoalManager implements IGoalManager {
       ...(updates.reminderTime !== undefined && { reminderTime: updates.reminderTime }),
       ...(updates.isCompleted !== undefined && { isCompleted: updates.isCompleted }),
       ...(updates.imageUri !== undefined && { imageUri: updates.imageUri }),
+      ...(updates.voiceNoteUri !== undefined && { voiceNoteUri: updates.voiceNoteUri ?? undefined }),
+      ...(updates.voiceNoteDuration !== undefined && { voiceNoteDuration: updates.voiceNoteDuration ?? undefined }),
     };
+
+    // Handle voice note update
+    if (updates.voiceNoteUri) {
+      // If new voice note is different from old one (and not null), save it
+      if (updates.voiceNoteUri !== existingGoal.voiceNoteUri) {
+        try {
+          const permanentUri = await voiceNoteService.saveVoiceNote(updates.voiceNoteUri, existingGoal.id);
+          updatedGoal.voiceNoteUri = permanentUri;
+          
+          // Delete old voice note if it existed
+          if (existingGoal.voiceNoteUri) {
+            await voiceNoteService.deleteVoiceNote(existingGoal.voiceNoteUri);
+          }
+        } catch (error) {
+          console.warn('Failed to save new voice note:', error);
+        }
+      }
+    } else if (updates.voiceNoteUri === null && existingGoal.voiceNoteUri) {
+      // Explicitly removed voice note
+      await voiceNoteService.deleteVoiceNote(existingGoal.voiceNoteUri);
+      updatedGoal.voiceNoteUri = undefined;
+      updatedGoal.voiceNoteDuration = undefined;
+    }
 
     this.storageService.saveGoal(updatedGoal);
 
@@ -180,6 +225,11 @@ export class GoalManager implements IGoalManager {
       await this.notificationService.cancelReminder(goal.reminderId);
     }
     
+    // Delete voice note if exists
+    if (goal?.voiceNoteUri) {
+      await voiceNoteService.deleteVoiceNote(goal.voiceNoteUri);
+    }
+
     this.storageService.deleteGoal(id);
   }
 
@@ -485,6 +535,12 @@ export class GoalManager implements IGoalManager {
       if (goalToDelete.reminderId) {
         await this.notificationService.cancelReminder(goalToDelete.reminderId);
       }
+      
+      // Delete voice note if exists
+      if (goalToDelete.voiceNoteUri) {
+        await voiceNoteService.deleteVoiceNote(goalToDelete.voiceNoteUri);
+      }
+      
       this.storageService.deleteGoal(goalToDelete.id);
     }
   }

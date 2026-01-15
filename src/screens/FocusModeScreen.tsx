@@ -73,7 +73,7 @@ export const FocusModeScreen: React.FC<{ navigation: any }> = ({ navigation }) =
       const updatedGoal = await goalManager.toggleComplete(goalId);
       loadGoals();
       setSnackbarMessage(
-        updatedGoal.isCompleted ? 'Goal completed! 🎉' : 'Goal marked incomplete'
+        updatedGoal.isCompleted ? 'Goal completed!' : 'Goal marked incomplete'
       );
       setSnackbarVisible(true);
     } catch (error) {
@@ -141,7 +141,7 @@ export const FocusModeScreen: React.FC<{ navigation: any }> = ({ navigation }) =
           <Surface style={[styles.emptyCard, { backgroundColor: theme.colors.primaryContainer }]} elevation={0}>
             <Icon source="check-decagram" size={64} color={theme.colors.primary} />
             <Text variant="headlineSmall" style={[styles.emptyTitle, { color: theme.colors.onPrimaryContainer }]}>
-              Fantastic Work! 🎉
+              Fantastic Work!
             </Text>
             <Text variant="bodyLarge" style={[styles.emptySubtitle, { color: theme.colors.onPrimaryContainer }]}>
               You've completed all your priority goals for today. 

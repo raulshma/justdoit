@@ -21,6 +21,7 @@
     "ai": "^6.0.34",
     "convex": "^1.31.4",
     "expo": "~54.0.31",
+    "expo-audio": "^1.1.1",
     "expo-blur": "^15.0.8",
     "expo-calendar": "~15.0.8",
     "expo-crypto": "^15.0.8",

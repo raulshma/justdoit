@@ -29,12 +29,12 @@ const CHALLENGE_ICONS: Record<ChallengeType, string> = {
  * Celebration messages for completing challenges
  */
 const CELEBRATION_MESSAGES = [
-  'Challenge conquered! 💪',
-  'You did it! 🎉',
-  'Mission accomplished! 🚀',
-  'Incredible work! ⭐',
-  'Challenge master! 🏆',
-  'Unstoppable! 🔥',
+  'Challenge conquered!',
+  'You did it!',
+  'Mission accomplished!',
+  'Incredible work!',
+  'Challenge master!',
+  'Unstoppable!',
 ];
 
 /**
@@ -159,7 +159,7 @@ export const ChallengeCompleteModal: React.FC<ChallengeCompleteModalProps> = ({
     return null;
   }
 
-  const icon = CHALLENGE_ICONS[challenge.type] || '🎯';
+  const icon = CHALLENGE_ICONS[challenge.type] || 'target';
 
   return (
     <Portal>
@@ -251,7 +251,7 @@ export const ChallengeCompleteModal: React.FC<ChallengeCompleteModalProps> = ({
             style={[styles.encouragement, { color: theme.colors.onSurfaceVariant }]}
           >
             Great job completing this weekly challenge!{'\n'}
-            Keep up the momentum! 🌟
+            Keep up the momentum!
           </Text>
 
           <Button

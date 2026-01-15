@@ -3,6 +3,7 @@ import { generateText } from 'ai';
 import { storageService } from './storageService';
 import { aiLogService } from './aiLogService';
 import type { AIGoalAnalysis, AIProviderMetadata, Category, Goal } from '../types';
+import type { ParsedVoiceGoal } from '../types/voiceGoal';
 
 /**
  * OpenRouter model architecture information
@@ -75,6 +76,10 @@ export interface IAIService {
     categories: Category[],
     existingGoals: Goal[]
   ): Promise<AIGoalAnalysis | null>;
+  parseGoalFromVoice(
+    transcript: string,
+    categories: Category[]
+  ): Promise<ParsedVoiceGoal | null>;
 }
 
 /**
@@ -223,6 +228,102 @@ export class AIService implements IAIService {
     } catch (error) {
       console.error('Failed to fetch OpenRouter models:', error);
       return { free: [], paid: [] };
+    }
+  }
+
+  /**
+   * Parse a natural language voice command into a structured goal
+   */
+  async parseGoalFromVoice(
+    transcript: string,
+    categories: Category[]
+  ): Promise<ParsedVoiceGoal | null> {
+    const apiKey = this.getApiKey();
+    if (!apiKey) return null;
+
+    const startTime = Date.now();
+    const modelId = this.getSelectedModel();
+    const now = new Date();
+    const currentDate = now.toISOString().split('T')[0];
+    const currentDay = now.toLocaleDateString('en-US', { weekday: 'long' });
+
+    const categoryList = categories.map(c => `- ${c.name} (id: ${c.id})`).join('\n');
+
+    const prompt = `You are a smart personal assistant parsing voice commands into goals.
+Current Date: ${currentDate} (${currentDay})
+
+Voice Command: "${transcript}"
+
+Available Categories:
+${categoryList}
+
+Extract the intent and structured goal data.
+If the user specifies a duration (e.g. "for 30 minutes"), extract 'duration' in minutes.
+If the user specifies a time (e.g. "at 5pm"), extract 'reminderTime' if possible, or put it in description.
+If the user says "tomorrow", calculate the date based on current date.
+
+Respond ONLY with this JSON structure:
+{
+  "title": "Clear actionable title",
+  "description": "Any additional details or original context",
+  "dueDate": "YYYY-MM-DD" (or null if not specified),
+  "duration": number (minutes, or null),
+  "priority": "low" | "medium" | "high" (default medium),
+  "categoryId": "best matching category id" (or null),
+  "recurrence": "daily" | "weekly" | "none" (default none),
+  "confidence": number (0-1, how confident you are)
+}`;
+
+    const requestBody = { model: modelId, prompt };
+
+    try {
+      const openrouter = createOpenRouter({ apiKey });
+      const aiModel = openrouter(modelId);
+
+      const generateResult = await generateText({
+        model: aiModel,
+        prompt,
+      });
+
+      const durationMs = Date.now() - startTime;
+      const providerMetadata = this.extractProviderMetadata(generateResult, durationMs, modelId);
+      
+      const jsonMatch = generateResult.text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+         throw new Error('Failed to parse JSON response');
+      }
+
+      const result = JSON.parse(jsonMatch[0]) as ParsedVoiceGoal;
+      result.originalTranscript = transcript;
+
+      aiLogService.log({
+        type: 'voice_parsing',
+        request: { prompt, model: modelId, body: requestBody },
+        response: {
+          success: true,
+          data: result,
+          rawText: generateResult.text,
+        },
+        providerMetadata,
+        durationMs,
+      });
+
+      return result;
+    } catch (error) {
+      const durationMs = Date.now() - startTime;
+      console.error('Failed to parse voice command:', error);
+      
+      aiLogService.log({
+        type: 'voice_parsing',
+        request: { prompt, model: modelId, body: requestBody },
+        response: {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        durationMs,
+      });
+
+      return null;
     }
   }
 

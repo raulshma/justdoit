@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
+import { ThemedIcon } from './ThemedIcon';
 import type { Badge } from '../types/badge';
 import type { BadgeProgress as BadgeProgressType } from '../services/achievementService';
 
@@ -118,12 +119,12 @@ export const BadgeProgress: React.FC<BadgeProgressProps> = ({
           </Text>
         )}
         {isComplete && (
-          <Text
-            variant="bodySmall"
-            style={[styles.completeText, { color: theme.colors.primary }]}
-          >
-            ✓ Complete!
-          </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <ThemedIcon name="check" size={14} color={theme.colors.primary} style={{ marginRight: 4 }} />
+              <Text variant="bodySmall" style={{ color: theme.colors.primary, fontWeight: '600' }}>
+                Complete!
+              </Text>
+            </View>
         )}
       </View>
     </View>

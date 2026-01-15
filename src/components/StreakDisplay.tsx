@@ -19,11 +19,11 @@ const getStreakMessage = (streak: number): string => {
   if (streak === 0) return "Start your streak today!";
   if (streak === 1) return "Great start! Keep it going!";
   if (streak < 7) return "Building momentum!";
-  if (streak < 14) return "One week strong! 💪";
+  if (streak < 14) return "One week strong!";
   if (streak < 30) return "You're on fire!";
   if (streak < 60) return "Incredible dedication!";
   if (streak < 100) return "Unstoppable force!";
-  return "Legendary streak! 🏆";
+  return "Legendary streak!";
 };
 
 /**

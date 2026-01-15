@@ -30,6 +30,8 @@ import {
   SubgoalList,
   AIAssistantPanel,
   ImageAttachmentPicker,
+  VoiceNotePlayer,
+  VoiceNoteRecorder,
 } from '../components';
 import { ThemedIcon } from '../components/ThemedIcon';
 
@@ -117,6 +119,8 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
   const [recurrence, setRecurrence] = useState<RecurrencePattern>({ type: 'none' });
   const [reminderTime, setReminderTime] = useState<string | undefined>(undefined);
   const [imageUri, setImageUri] = useState<string | undefined>(undefined);
+  const [voiceNoteUri, setVoiceNoteUri] = useState<string | undefined>(undefined);
+  const [voiceNoteDuration, setVoiceNoteDuration] = useState<number | undefined>(undefined);
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -164,6 +168,8 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
         setRecurrence(loadedGoal.recurrence);
         setReminderTime(loadedGoal.reminderTime);
         setImageUri(loadedGoal.imageUri);
+        setVoiceNoteUri(loadedGoal.voiceNoteUri);
+        setVoiceNoteDuration(loadedGoal.voiceNoteDuration);
         
         // Load subgoals
         const loadedSubgoals = loadedGoal.subgoals || [];
@@ -198,7 +204,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
     } else if (isAdding) {
       setHasChanges(title.trim().length > 0);
     }
-  }, [goal, title, description, dueDate, priority, recurrence, reminderTime, imageUri, isEditing, isAdding]);
+  }, [goal, title, description, dueDate, priority, recurrence, reminderTime, imageUri, voiceNoteUri, isEditing, isAdding]);
 
   const handleDateSelect = (date: Date) => {
     setDueDate(date);
@@ -256,7 +262,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
         const currentSubgoals = subgoalManager.getSubgoals(goalId);
         if (currentSubgoals.length > 0) {
           Alert.alert(
-            'All Steps Complete! 🎉',
+            'All Steps Complete!',
             'Would you like to mark the goal as complete?',
             [
               { text: 'Not Yet', style: 'cancel' },
@@ -315,9 +321,11 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
           recurrence,
           reminderTime,
           imageUri,
+          voiceNoteUri,
+          voiceNoteDuration,
         });
       } else if (isEditing && goalId) {
-        goalManager.updateGoal(goalId, {
+        await goalManager.updateGoal(goalId, {
           title: title.trim(),
           description: description.trim() || undefined,
           dueDate: dueDate.toISOString().split('T')[0],
@@ -325,6 +333,8 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
           recurrence,
           reminderTime,
           imageUri,
+          voiceNoteUri,
+          voiceNoteDuration,
         });
       }
       navigation.goBack();
@@ -333,7 +343,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
     } finally {
       setIsSubmitting(false);
     }
-  }, [title, description, dueDate, priority, recurrence, reminderTime, imageUri, navigation, isAdding, isEditing, goalId]);
+  }, [title, description, dueDate, priority, recurrence, reminderTime, imageUri, voiceNoteUri, voiceNoteDuration, navigation, isAdding, isEditing, goalId]);
 
   /**
    * Handle delete
@@ -843,6 +853,43 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
             disabled={isReadOnly}
           />
 
+          {/* Voice Note Section */}
+          <View style={{ marginTop: 24, paddingHorizontal: 4 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <ThemedIcon name="microphone" size={20} themeColor="primary" />
+              <Text variant="labelLarge" style={{ marginLeft: 8, color: theme.colors.onSurfaceVariant, fontWeight: '600' }}>
+                VOICE NOTE
+              </Text>
+            </View>
+
+            {voiceNoteUri ? (
+              <VoiceNotePlayer
+                uri={voiceNoteUri}
+                duration={voiceNoteDuration || 0}
+                onDelete={isReadOnly ? undefined : () => {
+                  setVoiceNoteUri(undefined);
+                  setVoiceNoteDuration(undefined);
+                }}
+              />
+            ) : (
+              !isReadOnly && (
+                <VoiceNoteRecorder
+                  onRecordingComplete={(uri, duration) => {
+                    setVoiceNoteUri(uri);
+                    setVoiceNoteDuration(duration);
+                  }}
+                  onCancel={() => {}}
+                />
+              )
+            )}
+            
+            {isReadOnly && !voiceNoteUri && (
+              <Text style={{ color: theme.colors.outline, fontStyle: 'italic', marginLeft: 8 }}>
+                No voice note attached
+              </Text>
+            )}
+          </View>
+
           {/* Subgoals Section - Only show for existing goals */}
           {goalId && (
             <>
@@ -995,7 +1042,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
           ]}
         >
           <View style={styles.milestoneContent}>
-            <Text style={styles.milestoneEmoji}>🏆</Text>
+            <ThemedIcon name="trophy" size={48} color={theme.colors.onTertiaryContainer} />
             <Text
               variant="headlineSmall"
               style={[styles.milestoneTitle, { color: theme.colors.primary }]}

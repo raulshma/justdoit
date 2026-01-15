@@ -37,10 +37,10 @@ const getLevelMessage = (level: number): string => {
  */
 const getRewardDisplayName = (rewardId: string): string => {
   const rewardNames: Record<string, string> = {
-    'theme-sunset': '🌅 Sunset Theme',
-    'theme-ocean': '🌊 Ocean Theme',
-    'theme-forest': '🌲 Forest Theme',
-    'theme-galaxy': '🌌 Galaxy Theme',
+    'theme-sunset': 'Sunset Theme',
+    'theme-ocean': 'Ocean Theme',
+    'theme-forest': 'Forest Theme',
+    'theme-galaxy': 'Galaxy Theme',
   };
   return rewardNames[rewardId] || rewardId;
 };
@@ -286,7 +286,7 @@ export const LevelUpModal: React.FC<LevelUpModalProps> = ({
                 variant="titleMedium"
                 style={[styles.rewardsTitle, { color: theme.colors.onSurface }]}
               >
-                🎁 Rewards Unlocked!
+                Rewards Unlocked!
               </Text>
               {rewards.map((reward, index) => (
                 <View

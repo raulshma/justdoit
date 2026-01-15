@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, Surface, useTheme } from 'react-native-paper';
+import { ThemedIcon } from './ThemedIcon';
 import type { PersonalBest, PersonalBestType } from '../types/personalBest';
 import { PERSONAL_BEST_DISPLAY_NAMES, personalBestService } from '../services/personalBestService';
 
@@ -17,17 +18,17 @@ interface PersonalBestCardProps {
 const getPersonalBestIcon = (type: PersonalBestType): string => {
   switch (type) {
     case 'most_goals_day':
-      return '🎯';
+      return 'target';
     case 'longest_streak':
-      return '🔥';
+      return 'fire';
     case 'most_xp_week':
-      return '⚡';
+      return 'lightning-bolt';
     case 'fastest_completion':
-      return '⏱️';
+      return 'timer-outline';
     case 'most_subgoals_day':
-      return '✅';
+      return 'checkbox-marked-circle-outline';
     default:
-      return '🏆';
+      return 'trophy';
   }
 };
 
@@ -64,7 +65,7 @@ export const PersonalBestCard: React.FC<PersonalBestCardProps> = ({
           { backgroundColor: theme.colors.primaryContainer },
         ]}
       >
-        <Text style={styles.compactIcon}>{icon}</Text>
+        <ThemedIcon name={icon as any} size={20} style={{ marginBottom: 4 }} />
         <View style={styles.compactInfo}>
           <Text
             variant="labelSmall"
@@ -97,7 +98,7 @@ export const PersonalBestCard: React.FC<PersonalBestCardProps> = ({
             { backgroundColor: theme.colors.primaryContainer },
           ]}
         >
-          <Text style={styles.icon}>{icon}</Text>
+          <ThemedIcon name={icon as any} size={24} />
         </View>
 
         {/* Info */}
@@ -129,7 +130,7 @@ export const PersonalBestCard: React.FC<PersonalBestCardProps> = ({
             { backgroundColor: theme.colors.tertiaryContainer },
           ]}
         >
-          <Text style={styles.trophyIcon}>🏆</Text>
+          <ThemedIcon name="trophy" size={18} color={theme.colors.onTertiaryContainer} />
         </View>
       </View>
     </Surface>

@@ -102,7 +102,7 @@ export interface AILogEntry {
   /** ISO timestamp when request was made */
   timestamp: string;
   /** Type of AI operation */
-  type: 'goal_analysis' | 'reminder_suggestion';
+  type: 'goal_analysis' | 'reminder_suggestion' | 'voice_parsing';
   /** Request details */
   request: {
     /** The prompt sent to AI */

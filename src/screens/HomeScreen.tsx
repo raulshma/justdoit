@@ -23,6 +23,7 @@ import {
   WeeklyChallengesWidget,
   ChallengeQuickView,
   ActionToast,
+  VoiceGoalCreator,
 } from '../components';
 
 /**
@@ -80,6 +81,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   
   // FAB state
   const [fabOpen, setFabOpen] = useState(false);
+  const [showVoiceCreator, setShowVoiceCreator] = useState(false);
   
   // Gamification state
   const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([]);
@@ -199,7 +201,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
       // Show feedback
       setSnackbarMessage(
-        updatedGoal.isCompleted ? 'Goal completed! 🎉' : 'Goal marked incomplete'
+        updatedGoal.isCompleted ? 'Goal completed!' : 'Goal marked incomplete'
       );
       setSnackbarVisible(true);
     } catch (error) {
@@ -327,6 +329,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     setFabOpen(false);
     navigation.navigate('Challenges');
   }, [navigation]);
+  
+  /**
+   * Handle voice goal creation
+   */
+  const handleVoiceCreate = useCallback(async (goalData: any) => {
+    try {
+      await goalManager.createGoal(goalData);
+      loadGoals();
+      setSnackbarMessage('Goal created!');
+      setSnackbarVisible(true);
+    } catch (error) {
+      console.error('Failed to create voice goal:', error);
+      setSnackbarMessage('Failed to create goal');
+      setSnackbarVisible(true);
+    }
+  }, [loadGoals]);
   
   /**
    * Handle achievements press - navigate to achievements screen
@@ -544,6 +562,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             label: 'New Goal',
             onPress: handleAddGoal,
           },
+          {
+            icon: 'microphone-outline',
+            label: 'Voice Goal',
+            onPress: () => {
+              setFabOpen(false);
+              setShowVoiceCreator(true);
+            },
+          },
         ]}
         onStateChange={({ open }) => setFabOpen(open)}
         fabStyle={[styles.fab, { backgroundColor: theme.colors.primary }]}
@@ -587,6 +613,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         goalTitle={pendingDeleteGoal?.title || ''}
         onUndo={handleUndoDelete}
         onDismiss={handleDeleteToastDismiss}
+      />
+
+      <VoiceGoalCreator
+        visible={showVoiceCreator}
+        onDismiss={() => setShowVoiceCreator(false)}
+        onGoalCreated={handleVoiceCreate}
       />
     </SafeAreaView>
   );

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, Surface, useTheme } from 'react-native-paper';
+import { ThemedIcon } from './ThemedIcon';
 import type { Challenge, ChallengeType } from '../types/challenge';
 
 interface ChallengeCardProps {
@@ -16,12 +17,12 @@ interface ChallengeCardProps {
  * Icons for each challenge type
  */
 const CHALLENGE_ICONS: Record<ChallengeType, string> = {
-  completion_count: '🎯',
-  category_focus: '📁',
-  streak_maintenance: '🔥',
-  priority_completion: '⭐',
-  early_completion: '🌅',
-  subgoal_completion: '✅',
+  completion_count: 'target',
+  category_focus: 'folder-outline',
+  streak_maintenance: 'fire',
+  priority_completion: 'star-outline',
+  early_completion: 'weather-sunset-up',
+  subgoal_completion: 'checkbox-marked-circle-outline',
 };
 
 /**
@@ -55,7 +56,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
   const isCompleted = challenge.status === 'completed';
   const isExpired = challenge.status === 'expired';
   const progress = Math.min((challenge.current / challenge.target) * 100, 100);
-  const icon = CHALLENGE_ICONS[challenge.type] || '🎯';
+  const icon = CHALLENGE_ICONS[challenge.type] || 'target';
 
   const handlePress = () => {
     if (onPress) {
@@ -81,7 +82,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
             },
           ]}
         >
-          <Text style={styles.compactIcon}>{icon}</Text>
+          <ThemedIcon name={icon as any} size={24} style={{ marginBottom: 4 }} />
           <View style={styles.compactProgress}>
             <View
               style={[
@@ -130,7 +131,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
               },
             ]}
           >
-            <Text style={styles.icon}>{icon}</Text>
+            <ThemedIcon name={icon as any} size={28} />
             {isCompleted && (
               <View
                 style={[
@@ -138,7 +139,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
                   { backgroundColor: theme.colors.primary },
                 ]}
               >
-                <Text style={styles.completedIcon}>✓</Text>
+                <ThemedIcon name="check" size={12} color={theme.colors.onPrimary} />
               </View>
             )}
           </View>
@@ -204,7 +205,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
                   variant="labelSmall"
                   style={[styles.statusText, { color: theme.colors.primary }]}
                 >
-                  ✓ Completed
+                  <ThemedIcon name="check" size={14} color={theme.colors.primary} style={{ marginRight: 4 }} /> Completed
                 </Text>
               ) : isExpired ? (
                 <Text
@@ -218,7 +219,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
                   variant="labelSmall"
                   style={[styles.statusText, { color: theme.colors.onSurfaceVariant }]}
                 >
-                  ⏱ {formatEndDate(challenge.endDate)}
+                  <ThemedIcon name="clock-outline" size={12} style={{ marginRight: 4 }} /> {formatEndDate(challenge.endDate)}
                 </Text>
               )}
             </View>

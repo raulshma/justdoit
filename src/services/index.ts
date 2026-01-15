@@ -18,4 +18,6 @@ export * from './calendarService';
 export * from './aiStatsService';
 export * from './backupService';
 export * from './convexSyncService';
+export * from './voiceParserService';
+export * from './voiceNoteService';
 

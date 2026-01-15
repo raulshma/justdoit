@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated, Easing } from 'react-native';
 import { Portal, Modal, Text, Button, useTheme } from 'react-native-paper';
+import { ThemedIcon } from './ThemedIcon';
 import type { PersonalBestType } from '../types/personalBest';
 import { PERSONAL_BEST_DISPLAY_NAMES, personalBestService } from '../services/personalBestService';
 
@@ -23,17 +24,17 @@ interface NewPersonalBestModalProps {
 const getPersonalBestIcon = (type: PersonalBestType): string => {
   switch (type) {
     case 'most_goals_day':
-      return '🎯';
+      return 'target';
     case 'longest_streak':
-      return '🔥';
+      return 'fire';
     case 'most_xp_week':
-      return '⚡';
+      return 'lightning-bolt';
     case 'fastest_completion':
-      return '⏱️';
+      return 'timer-outline';
     case 'most_subgoals_day':
-      return '✅';
+      return 'checkbox-marked-circle-outline';
     default:
-      return '🏆';
+      return 'trophy';
   }
 };
 
@@ -118,18 +119,17 @@ const StarParticle: React.FC<{
   }, [delay, startX, translateY, translateX, scale, opacity]);
 
   return (
-    <Animated.Text
+    <Animated.View
       style={[
         styles.star,
         {
-          color,
           transform: [{ translateX }, { translateY }, { scale }],
           opacity,
         },
       ]}
     >
-      ⭐
-    </Animated.Text>
+      <ThemedIcon name="star" size={16} color={color} />
+    </Animated.View>
   );
 };
 
@@ -275,7 +275,7 @@ export const NewPersonalBestModal: React.FC<NewPersonalBestModalProps> = ({
                 },
               ]}
             >
-              <Text style={styles.trophyIcon}>🏆</Text>
+              <ThemedIcon name="trophy" size={48} color={theme.colors.onTertiaryContainer} />
             </Animated.View>
           </View>
 
@@ -294,7 +294,7 @@ export const NewPersonalBestModal: React.FC<NewPersonalBestModalProps> = ({
               { backgroundColor: theme.colors.primaryContainer },
             ]}
           >
-            <Text style={styles.typeIcon}>{icon}</Text>
+            <ThemedIcon name={icon as any} size={20} style={{ marginRight: 8 }} />
             <Text
               variant="titleMedium"
               style={[styles.typeName, { color: theme.colors.onPrimaryContainer }]}
@@ -319,7 +319,7 @@ export const NewPersonalBestModal: React.FC<NewPersonalBestModalProps> = ({
                 {oldValue > 0 ? formattedOldValue : '—'}
               </Text>
             </View>
-            <Text style={styles.arrow}>→</Text>
+            <ThemedIcon name="arrow-right" size={24} color={theme.colors.onSurfaceVariant} style={{ opacity: 0.5 }} />
             <View style={styles.valueBox}>
               <Text
                 variant="labelSmall"

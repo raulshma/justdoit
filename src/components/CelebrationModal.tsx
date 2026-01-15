@@ -19,12 +19,12 @@ interface CelebrationModalProps {
  * Celebration messages for completing all goals
  */
 const CELEBRATION_MESSAGES = [
-  "You're on fire! 🔥",
-  "Amazing work today! ⭐",
-  "You crushed it! 💪",
-  "Goal getter! 🎯",
-  "Unstoppable! 🚀",
-  "Champion! 🏆",
+  "You're on fire!",
+  "Amazing work today!",
+  "You crushed it!",
+  "Goal getter!",
+  "Unstoppable!",
+  "Champion!",
 ];
 
 /**
@@ -212,7 +212,7 @@ export const CelebrationModal: React.FC<CelebrationModalProps> = ({
             style={[styles.encouragement, { color: theme.colors.onSurfaceVariant }]}
           >
             Take a moment to celebrate your accomplishment.{'\n'}
-            You've earned it! 🌟
+            You've earned it!
           </Text>
 
           <Button

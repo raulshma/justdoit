@@ -67,4 +67,8 @@ export interface Goal {
   lastPostponedAt?: string;
   /** Optional attached image URI (local file path) */
   imageUri?: string;
+  /** Optional voice note audio file URI (local file path) */
+  voiceNoteUri?: string;
+  /** Duration of voice note in seconds */
+  voiceNoteDuration?: number;
 }

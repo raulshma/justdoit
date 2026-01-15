@@ -181,7 +181,7 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = () => {
               variant="titleMedium"
               style={[styles.sectionTitle, { color: theme.colors.onSurface }]}
             >
-              ⭐ Recent XP
+              Recent XP
             </Text>
           </View>
           <Surface style={[styles.xpHistoryCard, { backgroundColor: theme.colors.surface }]} elevation={1}>
@@ -248,7 +248,7 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = () => {
               variant="titleMedium"
               style={[styles.sectionTitle, { color: theme.colors.onSurface }]}
             >
-              🏅 Badges
+              Badges
             </Text>
             <Text
               variant="labelMedium"
@@ -376,7 +376,7 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = () => {
               variant="titleMedium"
               style={[styles.sectionTitle, { color: theme.colors.onSurface }]}
             >
-              🏆 Personal Bests
+              Personal Bests
             </Text>
           </View>
           {personalBests.map((pb) => (

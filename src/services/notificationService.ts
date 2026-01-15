@@ -101,7 +101,7 @@ export class NotificationService implements INotificationService {
 
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
-          title: '🎯 Goal Reminder',
+          title: 'Goal Reminder',
           body: goal.title,
           data: { goalId: goal.id },
           sound: true,
@@ -150,7 +150,7 @@ export class NotificationService implements INotificationService {
       const notificationId = await Notifications.scheduleNotificationAsync({
         identifier: DAILY_PLANNING_REMINDER_ID,
         content: {
-          title: '📝 Plan Your Day',
+          title: 'Plan Your Day',
           body: "It's time to set your goals for tomorrow!",
           data: { type: 'daily-planning' },
           sound: true,
