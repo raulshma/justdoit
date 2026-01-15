@@ -12,7 +12,9 @@ import {
   ThemedIcon,
   GoalQuickView,
   ActionToast,
+  VoiceGoalCreator,
 } from '../components';
+import { useSettings } from '../context/SettingsContext';
 
 type MinimalGoalsScreenProps = NativeStackScreenProps<HomeStackParamList, 'MinimalGoals'>;
 
@@ -39,11 +41,16 @@ const getTomorrowDate = (): string => {
 export const MinimalGoalsScreen: React.FC<MinimalGoalsScreenProps> = ({ navigation: stackNavigation }) => {
   const theme = useTheme();
   const rootNavigation = useNavigation();
+  const { settings } = useSettings();
   
   const [goals, setGoals] = useState<Goal[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+
+  // FAB state
+  const [fabOpen, setFabOpen] = useState(false);
+  const [showVoiceCreator, setShowVoiceCreator] = useState(false);
   
   // Quick View state
   const [quickViewGoal, setQuickViewGoal] = useState<Goal | null>(null);
@@ -187,6 +194,7 @@ export const MinimalGoalsScreen: React.FC<MinimalGoalsScreenProps> = ({ navigati
    * Handle FAB press - navigate to add goal screen
    */
   const handleAddGoal = useCallback(() => {
+    setFabOpen(false);
     rootNavigation.navigate('GoalForm', { mode: 'add' });
   }, [rootNavigation]);
 
@@ -222,6 +230,38 @@ export const MinimalGoalsScreen: React.FC<MinimalGoalsScreenProps> = ({ navigati
   const handleSwitchToFullView = useCallback(() => {
     stackNavigation.replace('Home', { ignoreMinimalRedirect: true });
   }, [stackNavigation]);
+
+  /**
+   * Handle template press
+   */
+  const handleOpenTemplates = useCallback(() => {
+    setFabOpen(false);
+    rootNavigation.navigate('Templates');
+  }, [rootNavigation]);
+
+  /**
+   * Handle challenges press
+   */
+  const handleOpenChallenges = useCallback(() => {
+    setFabOpen(false);
+    rootNavigation.navigate('Challenges');
+  }, [rootNavigation]);
+  
+  /**
+   * Handle voice goal creation
+   */
+  const handleVoiceCreate = useCallback(async (goalData: any) => {
+    try {
+      await goalManager.createGoal(goalData);
+      loadGoals();
+      setSnackbarMessage('Goal created!');
+      setSnackbarVisible(true);
+    } catch (error) {
+      console.error('Failed to create voice goal:', error);
+      setSnackbarMessage('Failed to create goal');
+      setSnackbarVisible(true);
+    }
+  }, [loadGoals]);
 
   // Count remaining goals
   const today = getTodayDate();
@@ -273,11 +313,38 @@ export const MinimalGoalsScreen: React.FC<MinimalGoalsScreenProps> = ({ navigati
         scrollEnabled={!quickViewVisible}
       />
 
-      {/* Simple FAB */}
-      <FAB
-        icon="plus"
-        onPress={handleAddGoal}
-        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+      {/* FAB Group for adding goals */}
+      <FAB.Group
+        open={fabOpen}
+        visible
+        icon={fabOpen ? 'close' : 'plus'}
+        actions={[
+          ...(settings.gamificationEnabled ? [{
+            icon: 'trophy-outline',
+            label: 'Challenges',
+            onPress: handleOpenChallenges,
+          }] : []),
+          {
+            icon: 'file-document-outline',
+            label: 'From Template',
+            onPress: handleOpenTemplates,
+          },
+          {
+            icon: 'pencil-outline',
+            label: 'New Goal',
+            onPress: handleAddGoal,
+          },
+          {
+            icon: 'microphone-outline',
+            label: 'Voice Goal',
+            onPress: () => {
+              setFabOpen(false);
+              setShowVoiceCreator(true);
+            },
+          },
+        ]}
+        onStateChange={({ open }) => setFabOpen(open)}
+        fabStyle={[styles.fab, { backgroundColor: theme.colors.primary }]}
         color={theme.colors.onPrimary}
       />
 
@@ -298,13 +365,18 @@ export const MinimalGoalsScreen: React.FC<MinimalGoalsScreenProps> = ({ navigati
         onDismiss={handleLongPressEnd}
       />
       
-      {/* Delete Undo Toast */}
       <ActionToast
         visible={deleteToastVisible}
         actionType="delete"
         goalTitle={pendingDeleteGoal?.title || ''}
         onUndo={handleUndoDelete}
         onDismiss={handleDeleteToastDismiss}
+      />
+
+      <VoiceGoalCreator
+        visible={showVoiceCreator}
+        onDismiss={() => setShowVoiceCreator(false)}
+        onGoalCreated={handleVoiceCreate}
       />
     </SafeAreaView>
   );
@@ -346,9 +418,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   fab: {
-    position: 'absolute',
-    right: 24,
-    bottom: 24,
+    position: 'relative',
+    right: 8,
+    bottom: 8,
     borderRadius: 20,
   },
   snackbar: {
