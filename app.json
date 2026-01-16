@@ -8,7 +8,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "Allow $(PRODUCT_NAME) to use speech recognition for voice input.",
+        "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to use the microphone for voice input."
+      }
     },
     "experiments": {
       "reactCompiler": true,
@@ -22,7 +26,13 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.justdoit.app",
-      "useNextNotificationsApi": true
+      "useNextNotificationsApi": true,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.READ_CALENDAR",
+        "android.permission.WRITE_CALENDAR"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -67,6 +77,12 @@
           "calendarPermission": "Allow $(PRODUCT_NAME) to access your calendar to show events on your goals page."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "1eb97fcd-261e-413b-9cb8-1d91fbf46a1e"
+      }
+    },
+    "owner": "keepaside"
   }
 }
