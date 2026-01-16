@@ -89,18 +89,21 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
   }));
 
   const startPulse = useCallback(() => {
+    // Calculate scale needed to reach screen edges
+    const maxScale = width / TIMER_SIZE;
+    
     pulseScale.value = withRepeat(
       withSequence(
-        withTiming(1.05, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
-        withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.ease) })
+        withTiming(maxScale, { duration: 3000, easing: Easing.inOut(Easing.ease) }), // Slower, deeper breath
+        withTiming(1, { duration: 3000, easing: Easing.inOut(Easing.ease) })
       ),
       -1,
       true
     );
     glowOpacity.value = withRepeat(
       withSequence(
-        withTiming(0.15, { duration: 2000 }),
-        withTiming(0.05, { duration: 2000 })
+        withTiming(0.2, { duration: 3000 }), // Slightly more visible at peak
+        withTiming(0.05, { duration: 3000 })
       ),
       -1,
       true
