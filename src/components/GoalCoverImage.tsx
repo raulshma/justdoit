@@ -4,13 +4,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  Alert,
   Dimensions,
 } from 'react-native';
 import { Text, useTheme, ActivityIndicator } from 'react-native-paper';
 import * as ImagePicker from 'expo-image-picker';
 import { ThemedIcon } from './ThemedIcon';
 import { goalImageService } from '../services/goalImageService';
+import { useAlert } from '../context/AlertContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -34,6 +34,7 @@ export const GoalCoverImage = memo<GoalCoverImageProps>(({
   compact = false,
 }) => {
   const theme = useTheme();
+  const alert = useAlert();
   const [isLoading, setIsLoading] = useState(false);
 
   /**
@@ -44,10 +45,9 @@ export const GoalCoverImage = memo<GoalCoverImageProps>(({
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       
       if (!permission.granted) {
-        Alert.alert(
+        alert.warning(
           'Permission Needed',
-          'Please grant camera access to take cover photos.',
-          [{ text: 'OK' }]
+          'Please grant camera access to take cover photos.'
         );
         return;
       }
@@ -70,11 +70,11 @@ export const GoalCoverImage = memo<GoalCoverImageProps>(({
       }
     } catch (error) {
       console.error('Failed to take cover photo:', error);
-      Alert.alert('Error', 'Failed to take photo. Please try again.');
+      alert.error('Error', 'Failed to take photo. Please try again.');
     } finally {
       setIsLoading(false);
     }
-  }, [goalId, onChange]);
+  }, [goalId, onChange, alert]);
 
   /**
    * Pick cover image from library
@@ -84,10 +84,9 @@ export const GoalCoverImage = memo<GoalCoverImageProps>(({
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (!permission.granted) {
-        Alert.alert(
+        alert.warning(
           'Permission Needed',
-          'Please grant photo library access to select a cover image.',
-          [{ text: 'OK' }]
+          'Please grant photo library access to select a cover image.'
         );
         return;
       }
@@ -115,49 +114,47 @@ export const GoalCoverImage = memo<GoalCoverImageProps>(({
       }
     } catch (error) {
       console.error('Failed to pick cover image:', error);
-      Alert.alert('Error', 'Failed to select image. Please try again.');
+      alert.error('Error', 'Failed to select image. Please try again.');
     } finally {
       setIsLoading(false);
     }
-  }, [goalId, onChange, value]);
+  }, [goalId, onChange, value, alert]);
 
   /**
    * Remove cover image
    */
   const handleRemove = useCallback(() => {
-    Alert.alert(
+    alert.confirm(
       'Remove Cover Image',
       'Are you sure you want to remove the cover image?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: async () => {
-            if (value) {
-              await goalImageService.deleteCoverImage(value);
-            }
-            onChange(undefined);
-          },
-        },
-      ]
+      async () => {
+        if (value) {
+          await goalImageService.deleteCoverImage(value);
+        }
+        onChange(undefined);
+      },
+      undefined,
+      'Remove',
+      'Cancel',
+      true
     );
-  }, [value, onChange]);
+  }, [value, onChange, alert]);
 
   /**
    * Show action menu
    */
   const handleAddImage = useCallback(() => {
-    Alert.alert(
-      'Cover Image',
-      'Choose how to add a cover image',
-      [
+    alert.showAlert({
+      title: 'Cover Image',
+      message: 'Choose how to add a cover image',
+      type: 'info',
+      buttons: [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Take Photo', onPress: handleTakePhoto },
         { text: 'From Library', onPress: handlePickFromLibrary },
-      ]
-    );
-  }, [handleTakePhoto, handlePickFromLibrary]);
+      ],
+    });
+  }, [handleTakePhoto, handlePickFromLibrary, alert]);
 
   // Compact mode for card thumbnails
   if (compact) {

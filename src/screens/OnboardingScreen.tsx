@@ -21,7 +21,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface SlideData {
   id: string;
-  type: 'welcome' | 'features' | 'theme' | 'notifications' | 'smartfeatures' | 'ai' | 'complete';
+  type: 'welcome' | 'features' | 'theme' | 'notifications' | 'smartfeatures' | 'focustimer' | 'productivity' | 'ai' | 'complete';
 }
 
 const SLIDES: SlideData[] = [
@@ -30,6 +30,8 @@ const SLIDES: SlideData[] = [
   { id: 'theme', type: 'theme' },
   { id: 'notifications', type: 'notifications' },
   { id: 'smartfeatures', type: 'smartfeatures' },
+  { id: 'productivity', type: 'productivity' },
+  { id: 'focustimer', type: 'focustimer' },
   { id: 'ai', type: 'ai' },
   { id: 'complete', type: 'complete' },
 ];
@@ -43,13 +45,14 @@ const TIME_PRESETS = [
   { value: '21:00', label: '9:00 PM' },
 ];
 
-const MOODS: ThemeMood[] = ['calm', 'energetic', 'elegant', 'bold'];
+const MOODS: ThemeMood[] = ['calm', 'energetic', 'elegant', 'bold', 'inspired'];
 
 const MOOD_LABELS: Record<ThemeMood, string> = {
   calm: 'Calm',
   energetic: 'Energetic',
   elegant: 'Elegant',
   bold: 'Bold',
+  inspired: 'Inspired',
 };
 
 const MOOD_ICONS: Record<ThemeMood, React.ComponentProps<typeof Icon>['name']> = {
@@ -57,6 +60,7 @@ const MOOD_ICONS: Record<ThemeMood, React.ComponentProps<typeof Icon>['name']> =
   energetic: 'lightning-bolt',
   elegant: 'diamond-stone',
   bold: 'cube-outline',
+  inspired: 'lightbulb-on-outline',
 };
 
 export function OnboardingScreen() {
@@ -74,6 +78,11 @@ export function OnboardingScreen() {
   const [gamificationEnabled, setGamificationEnabled] = useState(true);
   const [focusModeEnabled, setFocusModeEnabled] = useState(false);
   const [carryForwardEnabled, setCarryForwardEnabled] = useState(true);
+  const [calendarEnabled, setCalendarEnabled] = useState(false);
+  const [minimalGoalsView, setMinimalGoalsView] = useState(false);
+  const [focusWorkDuration, setFocusWorkDuration] = useState(25);
+  const [focusAmbientEnabled, setFocusAmbientEnabled] = useState(false);
+  const [selectedAmbientSound, setSelectedAmbientSound] = useState<'rain' | 'forest' | 'cafe' | 'waves' | 'none'>('rain');
 
   const palettesForMood = useMemo(() => 
     colorPaletteInfoList.filter((p: ColorPaletteInfo) => p.mood === selectedMood), 
@@ -109,9 +118,14 @@ export function OnboardingScreen() {
       gamificationEnabled,
       focusModeEnabled,
       carryForwardEnabled,
+      calendarIntegrationEnabled: calendarEnabled,
+      minimalGoalsView,
+      focusWorkDuration,
+      focusAmbientSoundEnabled: focusAmbientEnabled,
+      focusAmbientSound: selectedAmbientSound,
     });
     await completeOnboarding();
-  }, [notificationsEnabled, selectedTime, gamificationEnabled, focusModeEnabled, carryForwardEnabled, updateSettings, completeOnboarding]);
+  }, [notificationsEnabled, selectedTime, gamificationEnabled, focusModeEnabled, carryForwardEnabled, calendarEnabled, minimalGoalsView, focusWorkDuration, focusAmbientEnabled, selectedAmbientSound, updateSettings, completeOnboarding]);
 
   const handleSelectPalette = useCallback(async (paletteId: ColorPalette) => {
     await updateSettings({ colorPalette: paletteId });
@@ -137,15 +151,20 @@ export function OnboardingScreen() {
 
   const renderFeaturesSlide = () => {
     const features = [
-      { icon: 'target', label: 'Smart Goal Tracking', desc: 'Set, manage, and complete daily goals' },
-      { icon: 'chart-line', label: 'Progress Insights', desc: 'Visualize your productivity trends' },
-      { icon: 'trophy', label: 'Gamification', desc: 'Earn XP, badges, and complete challenges' },
-      { icon: 'brain', label: 'AI Assistant', desc: 'Get smart suggestions and insights' },
+      { icon: 'target', label: 'Smart Goals', desc: 'Daily goals with due dates & priorities' },
+      { icon: 'microphone', label: 'Voice Input', desc: 'Create goals hands-free' },
+      { icon: 'image-multiple', label: 'Vision Boards', desc: 'Attach images & mood boards' },
+      { icon: 'timer-sand', label: 'Focus Timer', desc: 'Pomodoro with ambient sounds' },
+      { icon: 'trophy', label: 'Gamification', desc: 'XP, badges & challenges' },
+      { icon: 'brain', label: 'AI Assistant', desc: 'Smart suggestions & insights' },
     ];
     return (
       <View style={styles.slideContent}>
         <Text variant="headlineSmall" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
           Powerful Features
+        </Text>
+        <Text variant="bodyMedium" style={[styles.subtitle, { color: theme.colors.onSurfaceVariant, marginBottom: 16 }]}>
+          Everything you need to achieve your goals
         </Text>
         <View style={styles.featuresGrid}>
           {features.map((f, idx) => (
@@ -153,11 +172,11 @@ export function OnboardingScreen() {
               key={idx} 
               style={[styles.featureCard, { backgroundColor: theme.colors.surfaceVariant }]}
             >
-              <Icon name={f.icon as any} size={32} color={theme.colors.primary} />
-              <Text variant="titleSmall" style={{ color: theme.colors.onSurface, marginTop: 8 }}>
+              <Icon name={f.icon as any} size={28} color={theme.colors.primary} />
+              <Text variant="labelLarge" style={{ color: theme.colors.onSurface, marginTop: 6, fontWeight: '600' }}>
                 {f.label}
               </Text>
-              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, textAlign: 'center' }}>
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, textAlign: 'center', marginTop: 2 }} numberOfLines={2}>
                 {f.desc}
               </Text>
             </View>
@@ -367,6 +386,142 @@ export function OnboardingScreen() {
     </View>
   );
 
+  const renderProductivitySlide = () => (
+    <View style={styles.slideContent}>
+      <View style={[styles.iconCircle, { backgroundColor: theme.colors.tertiaryContainer }]}>
+        <Icon name="calendar-sync" size={56} color={theme.colors.tertiary} />
+      </View>
+      <Text variant="headlineSmall" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
+        Productivity Tools
+      </Text>
+      <Text variant="bodyMedium" style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
+        Customize your workflow and display preferences.
+      </Text>
+
+      <View style={[styles.toggleRow, { backgroundColor: theme.colors.surfaceVariant, marginTop: 24 }]}>
+        <View style={styles.toggleLabel}>
+          <Icon name="calendar-check" size={24} color={theme.colors.onSurface} />
+          <View style={{ marginLeft: 12, flex: 1 }}>
+            <Text variant="bodyLarge" style={{ color: theme.colors.onSurface }}>
+              Calendar Integration
+            </Text>
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+              Show calendar events on goals page
+            </Text>
+          </View>
+        </View>
+        <Switch value={calendarEnabled} onValueChange={setCalendarEnabled} />
+      </View>
+
+      <View style={[styles.toggleRow, { backgroundColor: theme.colors.surfaceVariant, marginTop: 12 }]}>
+        <View style={styles.toggleLabel}>
+          <Icon name="view-agenda-outline" size={24} color={theme.colors.onSurface} />
+          <View style={{ marginLeft: 12, flex: 1 }}>
+            <Text variant="bodyLarge" style={{ color: theme.colors.onSurface }}>
+              Minimal Goals View
+            </Text>
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+              Simplified, distraction-free layout
+            </Text>
+          </View>
+        </View>
+        <Switch value={minimalGoalsView} onValueChange={setMinimalGoalsView} />
+      </View>
+    </View>
+  );
+
+  const renderFocusTimerSlide = () => {
+    const DURATION_OPTIONS = [15, 20, 25, 30, 45, 60];
+    const AMBIENT_SOUNDS = [
+      { id: 'rain' as const, label: 'Rain', icon: 'weather-rainy' },
+      { id: 'forest' as const, label: 'Forest', icon: 'tree' },
+      { id: 'cafe' as const, label: 'Cafe', icon: 'coffee' },
+      { id: 'waves' as const, label: 'Waves', icon: 'wave' },
+    ];
+
+    return (
+      <View style={styles.slideContent}>
+        <View style={[styles.iconCircle, { backgroundColor: theme.colors.primaryContainer }]}>
+          <Icon name="timer-sand" size={56} color={theme.colors.primary} />
+        </View>
+        <Text variant="headlineSmall" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
+          Focus Timer
+        </Text>
+        <Text variant="bodyMedium" style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
+          Pomodoro-style focus sessions to boost productivity.
+        </Text>
+
+        <Text variant="labelLarge" style={[styles.subLabel, { color: theme.colors.onSurfaceVariant }]}>
+          Work Duration (minutes)
+        </Text>
+        <View style={styles.durationRow}>
+          {DURATION_OPTIONS.map(duration => (
+            <TouchableOpacity
+              key={duration}
+              onPress={() => setFocusWorkDuration(duration)}
+              style={[
+                styles.durationChip,
+                { 
+                  backgroundColor: focusWorkDuration === duration ? theme.colors.primary : theme.colors.surfaceVariant,
+                  borderColor: focusWorkDuration === duration ? theme.colors.primary : theme.colors.outline,
+                }
+              ]}
+            >
+              <Text 
+                variant="labelMedium" 
+                style={{ color: focusWorkDuration === duration ? theme.colors.onPrimary : theme.colors.onSurfaceVariant, fontWeight: focusWorkDuration === duration ? '600' : '400' }}
+              >
+                {duration}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={[styles.toggleRow, { backgroundColor: theme.colors.surfaceVariant, marginTop: 20 }]}>
+          <View style={styles.toggleLabel}>
+            <Icon name="music-note" size={24} color={theme.colors.onSurface} />
+            <View style={{ marginLeft: 12, flex: 1 }}>
+              <Text variant="bodyLarge" style={{ color: theme.colors.onSurface }}>
+                Ambient Sounds
+              </Text>
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                Background audio during focus
+              </Text>
+            </View>
+          </View>
+          <Switch value={focusAmbientEnabled} onValueChange={setFocusAmbientEnabled} />
+        </View>
+
+        {focusAmbientEnabled && (
+          <View style={styles.ambientSoundsRow}>
+            {AMBIENT_SOUNDS.map(sound => (
+              <TouchableOpacity
+                key={sound.id}
+                onPress={() => setSelectedAmbientSound(sound.id)}
+                style={[
+                  styles.ambientChip,
+                  { 
+                    backgroundColor: selectedAmbientSound === sound.id ? theme.colors.primaryContainer : theme.colors.surfaceVariant,
+                    borderColor: selectedAmbientSound === sound.id ? theme.colors.primary : 'transparent',
+                    borderWidth: selectedAmbientSound === sound.id ? 2 : 0,
+                  }
+                ]}
+              >
+                <Icon name={sound.icon as any} size={20} color={selectedAmbientSound === sound.id ? theme.colors.primary : theme.colors.onSurfaceVariant} />
+                <Text 
+                  variant="labelSmall" 
+                  style={{ color: selectedAmbientSound === sound.id ? theme.colors.primary : theme.colors.onSurfaceVariant, marginTop: 4 }}
+                >
+                  {sound.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  };
+
   const renderAiSlide = () => (
     <View style={styles.slideContent}>
       <View style={[styles.iconCircle, { backgroundColor: theme.colors.secondaryContainer }]}>
@@ -425,11 +580,13 @@ export function OnboardingScreen() {
         {item.type === 'theme' && renderThemeSlide()}
         {item.type === 'notifications' && renderNotificationsSlide()}
         {item.type === 'smartfeatures' && renderSmartFeaturesSlide()}
+        {item.type === 'productivity' && renderProductivitySlide()}
+        {item.type === 'focustimer' && renderFocusTimerSlide()}
         {item.type === 'ai' && renderAiSlide()}
         {item.type === 'complete' && renderCompleteSlide()}
       </View>
     );
-  }, [settings, selectedMood, notificationsEnabled, selectedTime, gamificationEnabled, focusModeEnabled, carryForwardEnabled, aiEnabled, palettesForMood, theme]);
+  }, [settings, selectedMood, notificationsEnabled, selectedTime, gamificationEnabled, focusModeEnabled, carryForwardEnabled, calendarEnabled, minimalGoalsView, focusWorkDuration, focusAmbientEnabled, selectedAmbientSound, aiEnabled, palettesForMood, theme]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
@@ -644,6 +801,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     borderRadius: 28,
     marginTop: 32,
+  },
+  durationRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    width: '100%',
+    gap: 8,
+  },
+  durationChip: {
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 20,
+    borderWidth: 1,
+    minWidth: 48,
+    alignItems: 'center',
+  },
+  ambientSoundsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 12,
+    gap: 8,
+  },
+  ambientChip: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
   },
 });
 

@@ -4,11 +4,11 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  Alert,
 } from 'react-native';
 import { Text, useTheme, ActivityIndicator } from 'react-native-paper';
 import * as ImagePicker from 'expo-image-picker';
 import { ThemedIcon } from './ThemedIcon';
+import { useAlert } from '../context/AlertContext';
 
 interface ImageAttachmentPickerProps {
   /** Current image URI (if any) */
@@ -29,6 +29,7 @@ export const ImageAttachmentPicker = memo<ImageAttachmentPickerProps>(({
   disabled = false,
 }) => {
   const theme = useTheme();
+  const alert = useAlert();
   const [isLoading, setIsLoading] = useState(false);
 
   /**
@@ -39,10 +40,9 @@ export const ImageAttachmentPicker = memo<ImageAttachmentPickerProps>(({
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       
       if (!permission.granted) {
-        Alert.alert(
+        alert.warning(
           'Camera Permission Required',
-          'Please enable camera access in your device settings to take photos.',
-          [{ text: 'OK' }]
+          'Please enable camera access in your device settings to take photos.'
         );
         return;
       }
@@ -61,11 +61,11 @@ export const ImageAttachmentPicker = memo<ImageAttachmentPickerProps>(({
       }
     } catch (error) {
       console.error('Failed to take photo:', error);
-      Alert.alert('Error', 'Failed to take photo. Please try again.');
+      alert.error('Error', 'Failed to take photo. Please try again.');
     } finally {
       setIsLoading(false);
     }
-  }, [onChange]);
+  }, [onChange, alert]);
 
   /**
    * Request media library permissions and pick an image
@@ -75,10 +75,9 @@ export const ImageAttachmentPicker = memo<ImageAttachmentPickerProps>(({
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (!permission.granted) {
-        Alert.alert(
+        alert.warning(
           'Photo Library Permission Required',
-          'Please enable photo library access in your device settings to select images.',
-          [{ text: 'OK' }]
+          'Please enable photo library access in your device settings to select images.'
         );
         return;
       }
@@ -97,44 +96,42 @@ export const ImageAttachmentPicker = memo<ImageAttachmentPickerProps>(({
       }
     } catch (error) {
       console.error('Failed to pick image:', error);
-      Alert.alert('Error', 'Failed to select image. Please try again.');
+      alert.error('Error', 'Failed to select image. Please try again.');
     } finally {
       setIsLoading(false);
     }
-  }, [onChange]);
+  }, [onChange, alert]);
 
   /**
    * Remove the attached image
    */
   const handleRemoveImage = useCallback(() => {
-    Alert.alert(
+    alert.confirm(
       'Remove Image',
       'Are you sure you want to remove this image?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Remove', 
-          style: 'destructive',
-          onPress: () => onChange(undefined)
-        },
-      ]
+      () => onChange(undefined),
+      undefined,
+      'Remove',
+      'Cancel',
+      true
     );
-  }, [onChange]);
+  }, [onChange, alert]);
 
   /**
    * Show action menu for choosing image source
    */
   const handleAddImage = useCallback(() => {
-    Alert.alert(
-      'Add Image',
-      'Choose how you want to add an image',
-      [
+    alert.showAlert({
+      title: 'Add Image',
+      message: 'Choose how you want to add an image',
+      type: 'info',
+      buttons: [
         { text: 'Take Photo', onPress: handleTakePhoto },
         { text: 'Choose from Library', onPress: handlePickFromLibrary },
         { text: 'Cancel', style: 'cancel' },
-      ]
-    );
-  }, [handleTakePhoto, handlePickFromLibrary]);
+      ],
+    });
+  }, [handleTakePhoto, handlePickFromLibrary, alert]);
 
   // Read-only mode: just show the image if present
   if (disabled) {

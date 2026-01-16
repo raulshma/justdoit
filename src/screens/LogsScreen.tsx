@@ -7,7 +7,6 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Alert,
   LayoutAnimation,
   Platform,
   UIManager,
@@ -27,6 +26,7 @@ import Animated, { FadeIn, FadeOut, Layout } from 'react-native-reanimated';
 import { ThemedIcon } from '../components/ThemedIcon';
 import { aiLogService } from '../services';
 import type { AILogEntry } from '../types';
+import { useAlert } from '../context/AlertContext';
 
 type FilterType = 'all' | 'success' | 'error';
 
@@ -193,6 +193,7 @@ const LogEntryCard = memo(({
 export const LogsScreen: React.FC = () => {
   const theme = useTheme();
   const navigation = useNavigation();
+  const alert = useAlert();
   
   const [logs, setLogs] = useState<AILogEntry[]>([]);
   const [filter, setFilter] = useState<FilterType>('all');
@@ -246,23 +247,20 @@ export const LogsScreen: React.FC = () => {
    * Handle clear all logs
    */
   const handleClearLogs = useCallback(() => {
-    Alert.alert(
+    alert.confirm(
       'Clear All Logs',
       'Are you sure you want to delete all AI logs? This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear All',
-          style: 'destructive',
-          onPress: () => {
-            aiLogService.clearLogs();
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-            setLogs([]);
-          },
-        },
-      ]
+      () => {
+        aiLogService.clearLogs();
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setLogs([]);
+      },
+      undefined,
+      'Clear All',
+      'Cancel',
+      true
     );
-  }, []);
+  }, [alert]);
 
   /**
    * Toggle expanded log entry

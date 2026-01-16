@@ -44,6 +44,9 @@ interface GoalCardProps {
   onLongPress?: (goalId: string) => void;
   onLongPressEnd?: (goalId: string) => void;
   isToday?: boolean;
+  isOverdue?: boolean;
+  onMoveToToday?: (goalId: string) => void;
+  onReschedule?: (goalId: string) => void;
   // Dependency props
   isBlocked?: boolean;
   blockingGoal?: Goal | null;
@@ -113,6 +116,9 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   onLongPress,
   onLongPressEnd,
   isToday = true,
+  isOverdue = false,
+  onMoveToToday,
+  onReschedule,
   isBlocked = false,
   blockingGoal,
   onBlockingGoalPress,
@@ -324,10 +330,46 @@ export const GoalCard: React.FC<GoalCardProps> = ({
             style={[
               styles.surface,
               variant === 'default' && { backgroundColor: theme.colors.surfaceVariant },
+              variant === 'default' && isOverdue && { 
+                backgroundColor: theme.colors.errorContainer,
+                borderWidth: 1,
+                borderColor: theme.colors.error,
+              },
               variant === 'minimal' && styles.minimalSurface,
+              variant === 'minimal' && isOverdue && { 
+                borderBottomColor: theme.colors.error,
+                borderBottomWidth: 2,
+              },
             ]}
             elevation={0}
           >
+            {/* Overdue indicator for full view */}
+            {isOverdue && variant === 'default' && !goal.isCompleted && (
+              <View style={[styles.overdueHeader, { backgroundColor: theme.colors.error }]}>
+                <ThemedIcon name="alert-circle" size={12} color={theme.colors.onError} />
+                <Text style={[styles.overdueText, { color: theme.colors.onError }]}>OVERDUE</Text>
+                <View style={styles.overdueActions}>
+                  {onMoveToToday && (
+                    <TouchableRipple
+                      onPress={() => onMoveToToday(goal.id)}
+                      style={[styles.overdueActionButton, { backgroundColor: theme.colors.surface }]}
+                      borderless
+                    >
+                      <Text style={[styles.overdueActionText, { color: theme.colors.error }]}>Today</Text>
+                    </TouchableRipple>
+                  )}
+                  {onReschedule && (
+                    <TouchableRipple
+                      onPress={() => onReschedule(goal.id)}
+                      style={[styles.overdueActionButton, { backgroundColor: theme.colors.surface }]}
+                      borderless
+                    >
+                      <ThemedIcon name="calendar" size={14} color={theme.colors.error} />
+                    </TouchableRipple>
+                  )}
+                </View>
+              </View>
+            )}
             <View style={[styles.contentRow, variant === 'minimal' && styles.minimalContentRow]}>
               {/* Left: Checkbox */}
               <View style={styles.actionContainer}>
@@ -355,7 +397,11 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                     style={[
                       styles.title,
                       {
-                        color: goal.isCompleted ? theme.colors.onSurfaceDisabled : theme.colors.onSurface,
+                        color: goal.isCompleted 
+                          ? theme.colors.onSurfaceDisabled 
+                          : isOverdue && variant === 'minimal' 
+                            ? theme.colors.error 
+                            : theme.colors.onSurface,
                         textDecorationLine: goal.isCompleted ? 'line-through' : 'none',
                         fontSize: variant === 'minimal' ? 16 : 17,
                       },
@@ -365,6 +411,21 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                     {goal.title}
                   </Text>
                   <PriorityIndicator priority={goal.priority} colors={theme.colors} />
+                  {/* Minimal overdue indicator */}
+                  {isOverdue && variant === 'minimal' && !goal.isCompleted && (
+                    <View style={styles.minimalOverdueRow}>
+                      <Text style={[styles.minimalOverdueLabel, { color: theme.colors.error }]}>Overdue</Text>
+                      {onMoveToToday && (
+                        <TouchableRipple
+                          onPress={() => onMoveToToday(goal.id)}
+                          borderless
+                          style={styles.minimalTodayButton}
+                        >
+                          <Text style={[styles.minimalTodayText, { color: theme.colors.primary }]}>→ Today</Text>
+                        </TouchableRipple>
+                      )}
+                    </View>
+                  )}
                 </View>
 
                 {goal.description && (
@@ -571,6 +632,55 @@ const styles = StyleSheet.create({
   },
   minimalActionLayer: {
     borderRadius: 0,
+  },
+  // Overdue styles for full view
+  overdueHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  overdueText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+    marginLeft: 6,
+    flex: 1,
+  },
+  overdueActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  overdueActionButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  overdueActionText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  // Overdue styles for minimal view
+  minimalOverdueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 8,
+    gap: 8,
+  },
+  minimalOverdueLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  minimalTodayButton: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  minimalTodayText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
 

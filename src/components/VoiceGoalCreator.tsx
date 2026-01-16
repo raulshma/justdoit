@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, StyleSheet, Modal, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Animated } from 'react-native';
+import { View, StyleSheet, Modal, TouchableOpacity, ScrollView, ActivityIndicator, Animated } from 'react-native';
 import { Text, useTheme, Button, IconButton, TextInput, Portal } from 'react-native-paper';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import { ThemedIcon } from './ThemedIcon';

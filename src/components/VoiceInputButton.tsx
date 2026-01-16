@@ -3,7 +3,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
-  Alert,
   View,
 } from 'react-native';
 import { useTheme } from 'react-native-paper';
@@ -12,6 +11,7 @@ import {
   ExpoSpeechRecognitionModule,
   useSpeechRecognitionEvent,
 } from 'expo-speech-recognition';
+import { useAlert } from '../context/AlertContext';
 
 interface VoiceInputButtonProps {
   onTranscript: (text: string) => void;
@@ -41,6 +41,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
   disabled = false,
 }) => {
   const theme = useTheme();
+  const alert = useAlert();
   const [isRecognizing, setIsRecognizing] = useState(false);
   const [isThisInstanceActive, setIsThisInstanceActive] = useState(false);
   
@@ -153,10 +154,9 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
       const result = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
       
       if (!result.granted) {
-        Alert.alert(
+        alert.warning(
           'Permission Required',
-          'Please grant microphone and speech recognition permissions to use voice input.',
-          [{ text: 'OK' }]
+          'Please grant microphone and speech recognition permissions to use voice input.'
         );
         return;
       }
@@ -184,9 +184,9 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
       console.error('Failed to start speech recognition:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to start voice input';
       onError?.(errorMessage);
-      Alert.alert('Voice Input Error', errorMessage);
+      alert.error('Voice Input Error', errorMessage);
     }
-  }, [disabled, isThisInstanceActive, instanceId, lang, onError]);
+  }, [disabled, isThisInstanceActive, instanceId, lang, onError, alert]);
 
   const iconColor = disabled
     ? theme.colors.onSurfaceDisabled

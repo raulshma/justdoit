@@ -6,7 +6,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import {
   TextInput,
@@ -18,10 +17,12 @@ import {
   IconButton,
 } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useForm } from '@tanstack/react-form';
 import type { GoalFormScreenProps, GoalFormMode } from '../navigation/types';
 import type { Priority, RecurrencePattern, Goal, Subgoal, SubgoalProgress, AIGoalAnalysis, SuggestedSubgoal, ClarifiedGoal, CategorySuggestion, GoalImage, GoalSuggestion, AIGeneratedSubgoal } from '../types';
 import { goalManager, subgoalManager, templateService, aiService, categoryManager, advancedAIService } from '../services';
 import { useSettings } from '../context/SettingsContext';
+import { useAlert } from '../context/AlertContext';
 import {
   PriorityPicker,
   RecurrencePicker,
@@ -42,6 +43,26 @@ import {
   GoalBreakdownModal,
 } from '../components';
 import { ThemedIcon } from '../components/ThemedIcon';
+
+/**
+ * Form values interface for TanStack Form
+ */
+interface GoalFormValues {
+  title: string;
+  description: string;
+  dueDate: Date;
+  priority: Priority;
+  recurrence: RecurrencePattern;
+  reminderTime: string | undefined;
+  imageUri: string | undefined;
+  voiceNoteUri: string | undefined;
+  voiceNoteDuration: number | undefined;
+  dependsOn: string[];
+  coverImage: string | undefined;
+  progressPhotos: GoalImage[];
+  moodBoardImages: GoalImage[];
+  visionBoardImages: GoalImage[];
+}
 
 const getTomorrowDate = (): Date => {
   const tomorrow = new Date();
@@ -104,13 +125,55 @@ const getRecurrenceLabel = (recurrence: RecurrencePattern): string => {
 };
 
 /**
+ * Format a date as YYYY-MM-DD using local timezone (not UTC)
+ * This prevents timezone issues when comparing/saving dates
+ */
+const formatDateLocal = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+/**
+ * Parse a YYYY-MM-DD date string into a Date object using local timezone
+ * This prevents timezone shifts when loading dates from storage
+ */
+const parseDateLocal = (dateStr: string): Date => {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
+/**
+ * Default form values for new goals
+ */
+const getDefaultFormValues = (): GoalFormValues => ({
+  title: '',
+  description: '',
+  dueDate: getTomorrowDate(),
+  priority: 'medium',
+  recurrence: { type: 'none' },
+  reminderTime: undefined,
+  imageUri: undefined,
+  voiceNoteUri: undefined,
+  voiceNoteDuration: undefined,
+  dependsOn: [],
+  coverImage: undefined,
+  progressPhotos: [],
+  moodBoardImages: [],
+  visionBoardImages: [],
+});
+
+/**
  * GoalFormScreen - Unified screen for add, view, and edit goal modes
  * Editorial-style layout with large typography and minimal inputs.
+ * Refactored to use TanStack Form for form state management.
  */
 export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, route }) => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { settings } = useSettings();
+  const alert = useAlert();
   
   // Determine if we're in add mode or viewing/editing an existing goal
   const goalId = route.params?.goalId;
@@ -118,44 +181,22 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
   
   const [mode, setMode] = useState<GoalFormMode>(initialMode);
   const [goal, setGoal] = useState<Goal | null>(null);
-
-  // Form state
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [dueDate, setDueDate] = useState(getTomorrowDate());
-  const [priority, setPriority] = useState<Priority>('medium');
-  const [recurrence, setRecurrence] = useState<RecurrencePattern>({ type: 'none' });
-  const [reminderTime, setReminderTime] = useState<string | undefined>(undefined);
-  const [imageUri, setImageUri] = useState<string | undefined>(undefined);
-  const [voiceNoteUri, setVoiceNoteUri] = useState<string | undefined>(undefined);
-  const [voiceNoteDuration, setVoiceNoteDuration] = useState<number | undefined>(undefined);
-  
-  // Dependency state
-  const [dependsOn, setDependsOn] = useState<string[]>([]);
-  const [allGoals, setAllGoals] = useState<Goal[]>([]);
-  
-  // Rich media state
-  const [coverImage, setCoverImage] = useState<string | undefined>(undefined);
-  const [progressPhotos, setProgressPhotos] = useState<GoalImage[]>([]);
-  const [moodBoardImages, setMoodBoardImages] = useState<GoalImage[]>([]);
-  const [visionBoardImages, setVisionBoardImages] = useState<GoalImage[]>([]);
-
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
+  const [allGoals, setAllGoals] = useState<Goal[]>([]);
 
-  // Voice input interim states
+  // Voice input interim states (not part of form, just UI state)
   const [titleInterim, setTitleInterim] = useState('');
   const [descInterim, setDescInterim] = useState('');
 
-  // Subgoal state
+  // Subgoal state (managed separately as they're persisted independently)
   const [subgoals, setSubgoals] = useState<Subgoal[]>([]);
   const [subgoalProgress, setSubgoalProgress] = useState<SubgoalProgress>({ completed: 0, total: 0, percentage: 0 });
   const [showMilestoneCelebration, setShowMilestoneCelebration] = useState(false);
   const [completedMilestoneName, setCompletedMilestoneName] = useState('');
 
-  // Save as template state
+  // Modal states
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [templateDescription, setTemplateDescription] = useState('');
@@ -176,6 +217,59 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
   const isAdding = mode === 'add';
 
   /**
+   * TanStack Form instance for managing goal form state
+   */
+  const form = useForm({
+    defaultValues: getDefaultFormValues() as GoalFormValues,
+    onSubmit: async ({ value }) => {
+      if (!value.title.trim()) return;
+      setIsSubmitting(true);
+      try {
+        if (isAdding) {
+          await goalManager.createGoal({
+            title: value.title.trim(),
+            description: value.description.trim() || undefined,
+            dueDate: formatDateLocal(value.dueDate),
+            priority: value.priority,
+            recurrence: value.recurrence,
+            reminderTime: value.reminderTime,
+            imageUri: value.imageUri,
+            voiceNoteUri: value.voiceNoteUri,
+            voiceNoteDuration: value.voiceNoteDuration,
+            dependsOn: value.dependsOn.length > 0 ? value.dependsOn : undefined,
+            coverImage: value.coverImage,
+            progressPhotos: value.progressPhotos.length > 0 ? value.progressPhotos : undefined,
+            moodBoardImages: value.moodBoardImages.length > 0 ? value.moodBoardImages : undefined,
+            visionBoardImages: value.visionBoardImages.length > 0 ? value.visionBoardImages : undefined,
+          });
+        } else if (isEditing && goalId) {
+          await goalManager.updateGoal(goalId, {
+            title: value.title.trim(),
+            description: value.description.trim() || undefined,
+            dueDate: formatDateLocal(value.dueDate),
+            priority: value.priority,
+            recurrence: value.recurrence,
+            reminderTime: value.reminderTime,
+            imageUri: value.imageUri,
+            voiceNoteUri: value.voiceNoteUri,
+            voiceNoteDuration: value.voiceNoteDuration,
+            dependsOn: value.dependsOn,
+            coverImage: value.coverImage,
+            progressPhotos: value.progressPhotos,
+            moodBoardImages: value.moodBoardImages,
+            visionBoardImages: value.visionBoardImages,
+          });
+        }
+        navigation.goBack();
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+  });
+
+  /**
    * Load goal data when viewing/editing
    */
   useEffect(() => {
@@ -187,21 +281,22 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
       const loadedGoal = goalManager.getGoal(goalId);
       if (loadedGoal) {
         setGoal(loadedGoal);
-        setTitle(loadedGoal.title);
-        setDescription(loadedGoal.description || '');
-        setDueDate(new Date(loadedGoal.dueDate));
-        setPriority(loadedGoal.priority);
-        setRecurrence(loadedGoal.recurrence);
-        setReminderTime(loadedGoal.reminderTime);
-        setImageUri(loadedGoal.imageUri);
-        setVoiceNoteUri(loadedGoal.voiceNoteUri);
-        setVoiceNoteDuration(loadedGoal.voiceNoteDuration);
-        setDependsOn(loadedGoal.dependsOn || []);
-        // Load rich media
-        setCoverImage(loadedGoal.coverImage || loadedGoal.imageUri); // Fallback to legacy imageUri
-        setProgressPhotos(loadedGoal.progressPhotos || []);
-        setMoodBoardImages(loadedGoal.moodBoardImages || []);
-        setVisionBoardImages(loadedGoal.visionBoardImages || []);
+        // Reset form with loaded goal values
+        // Use individual setFieldValue calls to ensure values are properly updated
+        form.setFieldValue('title', loadedGoal.title);
+        form.setFieldValue('description', loadedGoal.description || '');
+        form.setFieldValue('dueDate', parseDateLocal(loadedGoal.dueDate));
+        form.setFieldValue('priority', loadedGoal.priority);
+        form.setFieldValue('recurrence', loadedGoal.recurrence);
+        form.setFieldValue('reminderTime', loadedGoal.reminderTime);
+        form.setFieldValue('imageUri', loadedGoal.imageUri);
+        form.setFieldValue('voiceNoteUri', loadedGoal.voiceNoteUri);
+        form.setFieldValue('voiceNoteDuration', loadedGoal.voiceNoteDuration);
+        form.setFieldValue('dependsOn', loadedGoal.dependsOn || []);
+        form.setFieldValue('coverImage', loadedGoal.coverImage || loadedGoal.imageUri);
+        form.setFieldValue('progressPhotos', loadedGoal.progressPhotos || []);
+        form.setFieldValue('moodBoardImages', loadedGoal.moodBoardImages || []);
+        form.setFieldValue('visionBoardImages', loadedGoal.visionBoardImages || []);
         
         // Load subgoals
         const loadedSubgoals = loadedGoal.subgoals || [];
@@ -219,27 +314,8 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
     }
   }, [goalId, navigation]);
 
-  /**
-   * Track changes for edit mode
-   */
-  useEffect(() => {
-    if (goal && isEditing) {
-      const changed =
-        title !== goal.title ||
-        description !== (goal.description || '') ||
-        dueDate.toISOString().split('T')[0] !== goal.dueDate ||
-        priority !== goal.priority ||
-        JSON.stringify(recurrence) !== JSON.stringify(goal.recurrence) ||
-        reminderTime !== goal.reminderTime ||
-        imageUri !== goal.imageUri;
-      setHasChanges(changed);
-    } else if (isAdding) {
-      setHasChanges(title.trim().length > 0);
-    }
-  }, [goal, title, description, dueDate, priority, recurrence, reminderTime, imageUri, voiceNoteUri, isEditing, isAdding]);
-
   const handleDateSelect = (date: Date) => {
-    setDueDate(date);
+    form.setFieldValue('dueDate', date);
     setShowDatePicker(false);
   };
 
@@ -269,7 +345,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
       refreshSubgoals();
     } catch (error) {
       console.error('Failed to add subgoal:', error);
-      Alert.alert('Error', 'Failed to add step. Please try again.');
+      alert.error('Error', 'Failed to add step. Please try again.');
     }
   }, [goalId, refreshSubgoals]);
 
@@ -293,19 +369,16 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
       if (subgoalManager.areAllSubgoalsComplete(goalId)) {
         const currentSubgoals = subgoalManager.getSubgoals(goalId);
         if (currentSubgoals.length > 0) {
-          Alert.alert(
+          alert.confirm(
             'All Steps Complete!',
             'Would you like to mark the goal as complete?',
-            [
-              { text: 'Not Yet', style: 'cancel' },
-              {
-                text: 'Complete Goal',
-                onPress: async () => {
-                  await goalManager.toggleComplete(goalId);
-                  navigation.goBack();
-                },
-              },
-            ]
+            async () => {
+              await goalManager.toggleComplete(goalId);
+              navigation.goBack();
+            },
+            undefined,
+            'Complete Goal',
+            'Not Yet'
           );
         }
       }
@@ -340,53 +413,6 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
     }
   }, [goalId, refreshSubgoals]);
 
-  const handleSubmit = useCallback(async () => {
-    if (!title.trim()) return;
-    setIsSubmitting(true);
-    try {
-      if (isAdding) {
-        await goalManager.createGoal({
-          title: title.trim(),
-          description: description.trim() || undefined,
-          dueDate: dueDate.toISOString().split('T')[0],
-          priority,
-          recurrence,
-          reminderTime,
-          imageUri,
-          voiceNoteUri,
-          voiceNoteDuration,
-          dependsOn: dependsOn.length > 0 ? dependsOn : undefined,
-          coverImage,
-          progressPhotos: progressPhotos.length > 0 ? progressPhotos : undefined,
-          moodBoardImages: moodBoardImages.length > 0 ? moodBoardImages : undefined,
-          visionBoardImages: visionBoardImages.length > 0 ? visionBoardImages : undefined,
-        });
-      } else if (isEditing && goalId) {
-        await goalManager.updateGoal(goalId, {
-          title: title.trim(),
-          description: description.trim() || undefined,
-          dueDate: dueDate.toISOString().split('T')[0],
-          priority,
-          recurrence,
-          reminderTime,
-          imageUri,
-          voiceNoteUri,
-          voiceNoteDuration,
-          dependsOn,
-          coverImage,
-          progressPhotos,
-          moodBoardImages,
-          visionBoardImages,
-        });
-      }
-      navigation.goBack();
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [title, description, dueDate, priority, recurrence, reminderTime, imageUri, voiceNoteUri, voiceNoteDuration, dependsOn, coverImage, progressPhotos, moodBoardImages, visionBoardImages, navigation, isAdding, isEditing, goalId]);
-
   /**
    * Handle delete
    */
@@ -398,20 +424,17 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
     if (isRecurring) {
       setShowDeleteDialog(true);
     } else {
-      Alert.alert(
+      alert.confirm(
         'Delete Goal',
         'Are you sure you want to delete this goal?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: async () => {
-              await goalManager.deleteGoal(goalId!);
-              navigation.goBack();
-            },
-          },
-        ]
+        async () => {
+          await goalManager.deleteGoal(goalId!);
+          navigation.goBack();
+        },
+        undefined,
+        'Delete',
+        'Cancel',
+        true
       );
     }
   }, [goal, goalId, navigation]);
@@ -438,23 +461,21 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
    * Handle cancel with unsaved changes warning
    */
   const handleCancel = useCallback(() => {
+    const hasChanges = form.state.isDirty;
     if (hasChanges && !isReadOnly) {
-      Alert.alert(
+      alert.confirm(
         'Discard Changes',
         'You have unsaved changes. Are you sure you want to discard them?',
-        [
-          { text: 'Keep Editing', style: 'cancel' },
-          {
-            text: 'Discard',
-            style: 'destructive',
-            onPress: () => navigation.goBack(),
-          },
-        ]
+        () => navigation.goBack(),
+        undefined,
+        'Discard',
+        'Keep Editing',
+        true
       );
     } else {
       navigation.goBack();
     }
-  }, [hasChanges, navigation, isReadOnly]);
+  }, [form.state.isDirty, navigation, isReadOnly]);
 
   /**
    * Switch to edit mode
@@ -486,9 +507,9 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
       setShowSaveTemplateModal(false);
       setTemplateName('');
       setTemplateDescription('');
-      Alert.alert('Success', 'Goal saved as template!');
+      alert.success('Success', 'Goal saved as template!');
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to save template');
+      alert.error('Error', error.message || 'Failed to save template');
     }
   }, [goal, templateName, templateDescription]);
 
@@ -496,8 +517,11 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
    * Trigger AI analysis
    */
   const handleAIAnalysis = useCallback(async () => {
+    const title = form.getFieldValue('title');
+    const description = form.getFieldValue('description');
+    
     if (!title.trim()) {
-      Alert.alert('Enter a goal', 'Please enter a goal title first.');
+      alert.warning('Enter a goal', 'Please enter a goal title first.');
       return;
     }
 
@@ -521,7 +545,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
     } finally {
       setAILoading(false);
     }
-  }, [title, description]);
+  }, [form]);
 
   /**
    * Apply suggested subgoal from AI
@@ -529,10 +553,9 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
   const handleApplyAISubgoal = useCallback((subgoal: SuggestedSubgoal) => {
     if (!goalId) {
       // For new goals, we can't add subgoals yet - they need to be saved first
-      Alert.alert(
+      alert.info(
         'Save Goal First',
-        'Save the goal first, then you can add the suggested steps.',
-        [{ text: 'OK' }]
+        'Save the goal first, then you can add the suggested steps.'
       );
       return;
     }
@@ -550,12 +573,12 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
    * Apply clarified goal from AI
    */
   const handleApplyClarifiedGoal = useCallback((clarified: ClarifiedGoal) => {
-    setTitle(clarified.title);
+    form.setFieldValue('title', clarified.title);
     if (clarified.description) {
-      setDescription(clarified.description);
+      form.setFieldValue('description', clarified.description);
     }
     setShowAIPanel(false);
-  }, []);
+  }, [form]);
 
   /**
    * Apply suggested category from AI
@@ -563,12 +586,11 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
   const handleApplyCategory = useCallback((category: CategorySuggestion) => {
     // Category assignment would require adding categoryId to the goal form
     // For now, just show feedback
-    Alert.alert(
+    alert.info(
       'Category Suggestion',
-      `Suggested: ${category.categoryName}\n\nCategory selection coming soon!`,
-      [{ text: 'OK' }]
+      `Suggested: ${category.categoryName}\n\nCategory selection coming soon!`
     );
-  }, []);
+  }, [alert]);
 
   /**
    * View related goal
@@ -582,22 +604,21 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
    * Handle AI Coach suggestion application
    */
   const handleApplyCoachSuggestion = useCallback((suggestion: GoalSuggestion) => {
-    if (suggestion.title) setTitle(suggestion.title);
-    if (suggestion.description) setDescription(suggestion.description);
-    if (suggestion.priority) setPriority(suggestion.priority);
-    if (suggestion.dueDate) setDueDate(new Date(suggestion.dueDate));
+    if (suggestion.title) form.setFieldValue('title', suggestion.title);
+    if (suggestion.description) form.setFieldValue('description', suggestion.description);
+    if (suggestion.priority) form.setFieldValue('priority', suggestion.priority);
+    if (suggestion.dueDate) form.setFieldValue('dueDate', new Date(suggestion.dueDate));
     setShowAICoach(false);
-  }, []);
+  }, [form]);
 
   /**
    * Handle AI Breakdown subgoals application
    */
   const handleApplyBreakdownSubgoals = useCallback((aiSubgoals: AIGeneratedSubgoal[]) => {
     if (!goalId) {
-      Alert.alert(
+      alert.info(
         'Save Goal First',
-        'Save the goal first, then you can add the generated subgoals.',
-        [{ text: 'OK' }]
+        'Save the goal first, then you can add the generated subgoals.'
       );
       return;
     }
@@ -607,12 +628,12 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
         subgoalManager.createSubgoal(goalId, subgoal.title, subgoal.isMilestone);
       }
       refreshSubgoals();
-      Alert.alert('Success', `Added ${aiSubgoals.length} subgoal${aiSubgoals.length > 1 ? 's' : ''}!`);
+      alert.success('Success', `Added ${aiSubgoals.length} subgoal${aiSubgoals.length > 1 ? 's' : ''}!`);
     } catch (error) {
       console.error('Failed to add breakdown subgoals:', error);
-      Alert.alert('Error', 'Failed to add subgoals. Please try again.');
+      alert.error('Error', 'Failed to add subgoals. Please try again.');
     }
-  }, [goalId, refreshSubgoals]);
+  }, [goalId, refreshSubgoals, alert]);
 
   /**
    * Get categories for AI components
@@ -635,6 +656,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
 
   /**
    * Get header action button based on mode
+   * Uses form.Subscribe for reactive updates when form state changes
    */
   const renderHeaderAction = () => {
     if (isReadOnly) {
@@ -647,20 +669,31 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
         />
       );
     }
+    
+    // Use form.Subscribe to reactively track isDirty and values changes
     return (
-      <IconButton
-        icon="check"
-        size={28}
-        iconColor={theme.colors.primary}
-        disabled={!title.trim() || isSubmitting || (isEditing && !hasChanges)}
-        onPress={handleSubmit}
+      <form.Subscribe
+        selector={(state) => ({
+          isDirty: state.isDirty,
+          title: state.values.title,
+        })}
+        children={({ isDirty, title }) => (
+          <IconButton
+            icon="check"
+            size={28}
+            iconColor={theme.colors.primary}
+            disabled={!title?.trim() || isSubmitting || (isEditing && !isDirty)}
+            onPress={() => form.handleSubmit()}
+          />
+        )}
       />
     );
   };
 
-  const displayDate = dueDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-
-  const isRecurring = recurrence.type !== 'none' || recurrence.parentGoalId;
+  // Subscribe to form values for display
+  const formValues = form.state.values;
+  const displayDate = formValues.dueDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const isRecurring = formValues.recurrence.type !== 'none' || formValues.recurrence.parentGoalId;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -733,42 +766,48 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
           {/* Title Input / Display */}
           {isReadOnly ? (
             <Text style={[styles.titleDisplay, { color: theme.colors.onSurface }]}>
-              {title}
+              {formValues.title}
             </Text>
           ) : (
             <View>
-              <View style={styles.inputWithVoice}>
-                <TextInput
-                  value={title}
-                  onChangeText={setTitle}
-                  placeholder="I want to..."
-                  placeholderTextColor={theme.colors.outline}
-                  style={[styles.titleInput, styles.inputFlex, { color: theme.colors.onSurface }]}
-                  multiline
-                  maxLength={200}
-                  underlineColor="transparent"
-                  activeUnderlineColor="transparent"
-                  selectionColor={theme.colors.primary}
-                  theme={{ colors: { background: 'transparent' } }}
-                  editable={!isReadOnly}
-                />
-                <VoiceInputButton
-                  onTranscript={(text) => {
-                    setTitle(prev => prev ? `${prev} ${text}` : text);
-                    setTitleInterim('');
-                  }}
-                  onInterimTranscript={setTitleInterim}
-                  size={22}
-                />
-                <RewriteButton
-                  text={title}
-                  type="title"
-                  context={description}
-                  onRewrite={setTitle}
-                  size={20}
-                  isConfigured={!!settings.openRouterApiKey}
-                />
-              </View>
+              <form.Field
+                name="title"
+                children={(field) => (
+                  <View style={styles.inputWithVoice}>
+                    <TextInput
+                      value={field.state.value}
+                      onChangeText={field.handleChange}
+                      onBlur={field.handleBlur}
+                      placeholder="I want to..."
+                      placeholderTextColor={theme.colors.outline}
+                      style={[styles.titleInput, styles.inputFlex, { color: theme.colors.onSurface }]}
+                      multiline
+                      maxLength={200}
+                      underlineColor="transparent"
+                      activeUnderlineColor="transparent"
+                      selectionColor={theme.colors.primary}
+                      theme={{ colors: { background: 'transparent' } }}
+                      editable={!isReadOnly}
+                    />
+                    <VoiceInputButton
+                      onTranscript={(text) => {
+                        field.handleChange(field.state.value ? `${field.state.value} ${text}` : text);
+                        setTitleInterim('');
+                      }}
+                      onInterimTranscript={setTitleInterim}
+                      size={22}
+                    />
+                    <RewriteButton
+                      text={field.state.value}
+                      type="title"
+                      context={form.getFieldValue('description')}
+                      onRewrite={field.handleChange}
+                      size={20}
+                      isConfigured={!!settings.openRouterApiKey}
+                    />
+                  </View>
+                )}
+              />
               {titleInterim ? (
                 <Text style={[styles.interimText, { color: theme.colors.tertiary }]}>
                   {titleInterim}
@@ -779,45 +818,51 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
 
           {/* Description Input / Display */}
           {isReadOnly ? (
-            description ? (
+            formValues.description ? (
               <Text style={[styles.descDisplay, { color: theme.colors.onSurfaceVariant }]}>
-                {description}
+                {formValues.description}
               </Text>
             ) : null
           ) : (
             <View>
-              <View style={styles.inputWithVoice}>
-                <TextInput
-                  value={description}
-                  onChangeText={setDescription}
-                  placeholder="Add details, motivation, or notes..."
-                  placeholderTextColor={theme.colors.outline}
-                  style={[styles.descInput, styles.inputFlex, { color: theme.colors.onSurfaceVariant }]}
-                  multiline
-                  maxLength={1000}
-                  underlineColor="transparent"
-                  activeUnderlineColor="transparent"
-                  selectionColor={theme.colors.primary}
-                  theme={{ colors: { background: 'transparent' } }}
-                  editable={!isReadOnly}
-                />
-                <VoiceInputButton
-                  onTranscript={(text) => {
-                    setDescription(prev => prev ? `${prev} ${text}` : text);
-                    setDescInterim('');
-                  }}
-                  onInterimTranscript={setDescInterim}
-                  size={22}
-                />
-                <RewriteButton
-                  text={description}
-                  type="description"
-                  context={title}
-                  onRewrite={setDescription}
-                  size={20}
-                  isConfigured={!!settings.openRouterApiKey}
-                />
-              </View>
+              <form.Field
+                name="description"
+                children={(field) => (
+                  <View style={styles.inputWithVoice}>
+                    <TextInput
+                      value={field.state.value}
+                      onChangeText={field.handleChange}
+                      onBlur={field.handleBlur}
+                      placeholder="Add details, motivation, or notes..."
+                      placeholderTextColor={theme.colors.outline}
+                      style={[styles.descInput, styles.inputFlex, { color: theme.colors.onSurfaceVariant }]}
+                      multiline
+                      maxLength={1000}
+                      underlineColor="transparent"
+                      activeUnderlineColor="transparent"
+                      selectionColor={theme.colors.primary}
+                      theme={{ colors: { background: 'transparent' } }}
+                      editable={!isReadOnly}
+                    />
+                    <VoiceInputButton
+                      onTranscript={(text) => {
+                        field.handleChange(field.state.value ? `${field.state.value} ${text}` : text);
+                        setDescInterim('');
+                      }}
+                      onInterimTranscript={setDescInterim}
+                      size={22}
+                    />
+                    <RewriteButton
+                      text={field.state.value}
+                      type="description"
+                      context={form.getFieldValue('title')}
+                      onRewrite={field.handleChange}
+                      size={20}
+                      isConfigured={!!settings.openRouterApiKey}
+                    />
+                  </View>
+                )}
+              />
               {descInterim ? (
                 <Text style={[styles.interimText, { color: theme.colors.tertiary }]}>
                   {descInterim}
@@ -920,12 +965,17 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
                 <ThemedIcon name="flag-outline" size={24} themeColor="primary" />
                 <View>
                   <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 2 }}>PRIORITY</Text>
-                  <Text variant="titleMedium" style={{ fontWeight: '600', color: theme.colors.onSurface }}>{getPriorityLabel(priority)}</Text>
+                  <Text variant="titleMedium" style={{ fontWeight: '600', color: theme.colors.onSurface }}>{getPriorityLabel(formValues.priority)}</Text>
                 </View>
               </View>
             </View>
           ) : (
-            <PriorityPicker value={priority} onChange={setPriority} />
+            <form.Field
+              name="priority"
+              children={(field) => (
+                <PriorityPicker value={field.state.value} onChange={field.handleChange} />
+              )}
+            />
           )}
           
           {/* Recurrence Section */}
@@ -935,24 +985,29 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
                 <ThemedIcon name="repeat" size={24} themeColor="primary" />
                 <View>
                   <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 2 }}>REPEAT</Text>
-                  <Text variant="titleMedium" style={{ fontWeight: '600', color: theme.colors.onSurface }}>{getRecurrenceLabel(recurrence)}</Text>
+                  <Text variant="titleMedium" style={{ fontWeight: '600', color: theme.colors.onSurface }}>{getRecurrenceLabel(formValues.recurrence)}</Text>
                 </View>
               </View>
             </View>
           ) : (
-            <RecurrencePicker value={recurrence} onChange={setRecurrence} />
+            <form.Field
+              name="recurrence"
+              children={(field) => (
+                <RecurrencePicker value={field.state.value} onChange={field.handleChange} />
+              )}
+            />
           )}
           
           {/* Reminder Section */}
           {isReadOnly ? (
-            reminderTime && (
+            formValues.reminderTime && (
               <View style={[styles.infoRow, { backgroundColor: theme.colors.surfaceVariant }]}>
                 <View style={styles.infoLabelRow}>
                   <ThemedIcon name="bell-outline" size={24} themeColor="primary" />
                   <View>
                     <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 2 }}>REMINDER</Text>
                     <Text variant="titleMedium" style={{ fontWeight: '600', color: theme.colors.onSurface }}>
-                      {new Date(reminderTime).toLocaleString('en-US', { 
+                      {new Date(formValues.reminderTime).toLocaleString('en-US', { 
                         weekday: 'short', 
                         month: 'short', 
                         day: 'numeric',
@@ -965,30 +1020,45 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
               </View>
             )
           ) : (
-            <ReminderTimePicker 
-              value={reminderTime} 
-              onChange={setReminderTime} 
-              goalDueDate={dueDate.toISOString().split('T')[0]}
-              goalTitle={title}
-              goalDescription={description}
+            <form.Field
+              name="reminderTime"
+              children={(field) => (
+                <ReminderTimePicker 
+                  value={field.state.value} 
+                  onChange={field.handleChange} 
+                  goalDueDate={formatDateLocal(formValues.dueDate)}
+                  goalTitle={formValues.title}
+                  goalDescription={formValues.description}
+                />
+              )}
             />
           )}
 
           {/* Dependencies Section */}
-          <DependencyPicker
-            selectedIds={dependsOn}
-            onChange={setDependsOn}
-            availableGoals={allGoals}
-            currentGoalId={goalId}
-            disabled={isReadOnly}
-            label="PREREQUISITES"
+          <form.Field
+            name="dependsOn"
+            children={(field) => (
+              <DependencyPicker
+                selectedIds={field.state.value}
+                onChange={field.handleChange}
+                availableGoals={allGoals}
+                currentGoalId={goalId}
+                disabled={isReadOnly}
+                label="PREREQUISITES"
+              />
+            )}
           />
 
           {/* Image Attachment Section */}
-          <ImageAttachmentPicker
-            value={imageUri}
-            onChange={setImageUri}
-            disabled={isReadOnly}
+          <form.Field
+            name="imageUri"
+            children={(field) => (
+              <ImageAttachmentPicker
+                value={field.state.value}
+                onChange={field.handleChange}
+                disabled={isReadOnly}
+              />
+            )}
           />
 
           {/* Voice Note Section */}
@@ -1000,28 +1070,35 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
               </Text>
             </View>
 
-            {voiceNoteUri ? (
-              <VoiceNotePlayer
-                uri={voiceNoteUri}
-                duration={voiceNoteDuration || 0}
-                onDelete={isReadOnly ? undefined : () => {
-                  setVoiceNoteUri(undefined);
-                  setVoiceNoteDuration(undefined);
-                }}
-              />
-            ) : (
-              !isReadOnly && (
-                <VoiceNoteRecorder
-                  onRecordingComplete={(uri, duration) => {
-                    setVoiceNoteUri(uri);
-                    setVoiceNoteDuration(duration);
-                  }}
-                  onCancel={() => {}}
-                />
-              )
-            )}
+            <form.Field
+              name="voiceNoteUri"
+              children={(field) => (
+                <>
+                  {field.state.value ? (
+                    <VoiceNotePlayer
+                      uri={field.state.value}
+                      duration={formValues.voiceNoteDuration || 0}
+                      onDelete={isReadOnly ? undefined : () => {
+                        field.handleChange(undefined);
+                        form.setFieldValue('voiceNoteDuration', undefined);
+                      }}
+                    />
+                  ) : (
+                    !isReadOnly && (
+                      <VoiceNoteRecorder
+                        onRecordingComplete={(uri, duration) => {
+                          field.handleChange(uri);
+                          form.setFieldValue('voiceNoteDuration', duration);
+                        }}
+                        onCancel={() => {}}
+                      />
+                    )
+                  )}
+                </>
+              )}
+            />
             
-            {isReadOnly && !voiceNoteUri && (
+            {isReadOnly && !formValues.voiceNoteUri && (
               <Text style={{ color: theme.colors.outline, fontStyle: 'italic', marginLeft: 8 }}>
                 No voice note attached
               </Text>
@@ -1033,41 +1110,61 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
           
           {/* Cover Image */}
           {goalId && (
-            <GoalCoverImage
-              value={coverImage}
-              onChange={setCoverImage}
-              goalId={goalId}
-              disabled={isReadOnly}
+            <form.Field
+              name="coverImage"
+              children={(field) => (
+                <GoalCoverImage
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  goalId={goalId}
+                  disabled={isReadOnly}
+                />
+              )}
             />
           )}
 
           {/* Vision Board - Only for existing goals */}
           {goalId && (
-            <VisionBoardGrid
-              goalId={goalId}
-              images={visionBoardImages}
-              onImagesChange={setVisionBoardImages}
-              disabled={isReadOnly}
+            <form.Field
+              name="visionBoardImages"
+              children={(field) => (
+                <VisionBoardGrid
+                  goalId={goalId}
+                  images={field.state.value}
+                  onImagesChange={field.handleChange}
+                  disabled={isReadOnly}
+                />
+              )}
             />
           )}
 
           {/* Progress Photos - Only for existing goals */}
           {goalId && (
-            <ProgressPhotoPicker
-              goalId={goalId}
-              photos={progressPhotos}
-              onPhotosChange={setProgressPhotos}
-              disabled={isReadOnly}
+            <form.Field
+              name="progressPhotos"
+              children={(field) => (
+                <ProgressPhotoPicker
+                  goalId={goalId}
+                  photos={field.state.value}
+                  onPhotosChange={field.handleChange}
+                  disabled={isReadOnly}
+                />
+              )}
             />
           )}
 
           {/* Mood Board - Only for existing goals */}
           {goalId && (
-            <MoodBoardSection
-              goalId={goalId}
-              images={moodBoardImages}
-              onImagesChange={setMoodBoardImages}
-              disabled={isReadOnly}
+            <form.Field
+              name="moodBoardImages"
+              children={(field) => (
+                <MoodBoardSection
+                  goalId={goalId}
+                  images={field.state.value}
+                  onImagesChange={field.handleChange}
+                  disabled={isReadOnly}
+                />
+              )}
             />
           )}
 
@@ -1137,7 +1234,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
           <Text variant="headlineSmall" style={[styles.modalTitle, { color: theme.colors.onSurface }]}>When is this due?</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateScroll}>
             {DATE_OPTIONS.map((option, index) => {
-              const isSelected = dueDate.toDateString() === option.date.toDateString();
+              const isSelected = formValues.dueDate.toDateString() === option.date.toDateString();
               return (
                 <TouchableOpacity
                   key={index}

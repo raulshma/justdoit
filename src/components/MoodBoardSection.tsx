@@ -4,7 +4,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  Alert,
   Dimensions,
 } from 'react-native';
 import { Text, useTheme, ActivityIndicator } from 'react-native-paper';
@@ -12,6 +11,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { ThemedIcon } from './ThemedIcon';
 import { GoalImage } from '../types';
 import { goalImageService, IMAGE_LIMITS } from '../services/goalImageService';
+import { useAlert } from '../context/AlertContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const GRID_PADDING = 16;
@@ -37,6 +37,7 @@ export const MoodBoardSection = memo<MoodBoardSectionProps>(({
   disabled = false,
 }) => {
   const theme = useTheme();
+  const alert = useAlert();
   const [isLoading, setIsLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(images.length > 0);
 
@@ -54,7 +55,7 @@ export const MoodBoardSection = memo<MoodBoardSectionProps>(({
    */
   const handleAddImages = useCallback(async () => {
     if (!canAddMore) {
-      Alert.alert('Limit Reached', `Mood board is limited to ${IMAGE_LIMITS.mood} images.`);
+      alert.warning('Limit Reached', `Mood board is limited to ${IMAGE_LIMITS.mood} images.`);
       return;
     }
 
@@ -62,10 +63,9 @@ export const MoodBoardSection = memo<MoodBoardSectionProps>(({
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (!permission.granted) {
-        Alert.alert(
+        alert.warning(
           'Permission Needed',
-          'Please grant photo library access to add inspirational images.',
-          [{ text: 'OK' }]
+          'Please grant photo library access to add inspirational images.'
         );
         return;
       }
@@ -98,32 +98,29 @@ export const MoodBoardSection = memo<MoodBoardSectionProps>(({
       }
     } catch (error) {
       console.error('Failed to add mood board images:', error);
-      Alert.alert('Error', 'Failed to add images. Please try again.');
+      alert.error('Error', 'Failed to add images. Please try again.');
       setIsLoading(false);
     }
-  }, [goalId, images, onImagesChange, canAddMore]);
+  }, [goalId, images, onImagesChange, canAddMore, alert]);
 
   /**
    * Remove an image
    */
   const handleRemoveImage = useCallback((image: GoalImage) => {
-    Alert.alert(
+    alert.confirm(
       'Remove Image',
       'Remove this image from your mood board?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: async () => {
-            await goalImageService.deleteGoalImage(image);
-            const updatedImages = images.filter(img => img.id !== image.id);
-            onImagesChange(updatedImages);
-          },
-        },
-      ]
+      async () => {
+        await goalImageService.deleteGoalImage(image);
+        const updatedImages = images.filter(img => img.id !== image.id);
+        onImagesChange(updatedImages);
+      },
+      undefined,
+      'Remove',
+      'Cancel',
+      true
     );
-  }, [images, onImagesChange]);
+  }, [images, onImagesChange, alert]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.surfaceVariant }]}>

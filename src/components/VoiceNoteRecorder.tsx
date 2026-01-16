@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, TouchableOpacity, Alert, Animated, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Animated, Platform } from 'react-native';
 import { Text, useTheme, Button } from 'react-native-paper';
 import {
   useAudioRecorder,
@@ -9,6 +9,7 @@ import {
   useAudioRecorderState,
 } from 'expo-audio';
 import { ThemedIcon } from './ThemedIcon';
+import { useAlert } from '../context/AlertContext';
 
 interface VoiceNoteRecorderProps {
   onRecordingComplete: (uri: string, duration: number) => void;
@@ -22,6 +23,7 @@ export const VoiceNoteRecorder: React.FC<VoiceNoteRecorderProps> = ({
   maxDuration = 60,
 }) => {
   const theme = useTheme();
+  const alert = useAlert();
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder);
   const [durationMillis, setDurationMillis] = useState(0);
@@ -38,10 +40,10 @@ export const VoiceNoteRecorder: React.FC<VoiceNoteRecorderProps> = ({
       setHasPermission(status.granted);
       
       if (!status.granted) {
-        Alert.alert('Permission needed', 'Please grant microphone permission to record voice notes.');
+        alert.warning('Permission needed', 'Please grant microphone permission to record voice notes.');
       }
     })();
-  }, []);
+  }, [alert]);
 
   // Update audio mode based on recording state
   useEffect(() => {
@@ -123,7 +125,7 @@ export const VoiceNoteRecorder: React.FC<VoiceNoteRecorderProps> = ({
     if (!hasPermission) {
       const status = await AudioModule.requestRecordingPermissionsAsync();
       if (!status.granted) {
-        Alert.alert('Permission needed', 'Please grant microphone permission to record voice notes.');
+        alert.warning('Permission needed', 'Please grant microphone permission to record voice notes.');
         return;
       }
       setHasPermission(true);
@@ -140,7 +142,7 @@ export const VoiceNoteRecorder: React.FC<VoiceNoteRecorderProps> = ({
       setDurationMillis(0);
     } catch (err) {
       console.error('Failed to start recording', err);
-      Alert.alert('Error', 'Failed to start recording');
+      alert.error('Error', 'Failed to start recording');
     }
   }
 
@@ -160,7 +162,7 @@ export const VoiceNoteRecorder: React.FC<VoiceNoteRecorderProps> = ({
       }
     } catch (error) {
       console.error('Failed to stop recording', error);
-      Alert.alert('Error', 'Failed to save recording');
+      alert.error('Error', 'Failed to save recording');
     }
   }
 

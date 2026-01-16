@@ -108,15 +108,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => 
   const loadGoals = useCallback(() => {
     const allGoals = goalManager.getAllGoals();
     const today = getTodayDate();
-    const tomorrow = getTomorrowDate();
 
-    // Filter to show only today's and tomorrow's goals
-    const relevantGoals = allGoals.filter(
-      (goal) => goal.dueDate === today || goal.dueDate === tomorrow
-    );
-
-    // Sort goals by priority within each date group
-    const sortedGoals = goalManager.sortGoalsByPriority(relevantGoals);
+    // Show all incomplete goals, sorted by date then priority
+    const incompleteGoals = allGoals.filter((goal) => !goal.isCompleted);
+    
+    // Sort by date first (oldest first = overdue at top), then by priority
+    const sortedGoals = [...incompleteGoals].sort((a, b) => {
+      const dateCompare = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      if (dateCompare !== 0) return dateCompare;
+      // Same date, sort by priority
+      const priorityOrder = { high: 0, medium: 1, low: 2 };
+      return priorityOrder[a.priority] - priorityOrder[b.priority];
+    });
+    
     setGoals(sortedGoals);
 
     // Check for all-complete celebration
@@ -396,6 +400,30 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => 
   }, [loadGoals]);
 
   /**
+   * Handle move overdue goal to today
+   */
+  const handleMoveToToday = useCallback(async (goalId: string) => {
+    try {
+      const today = getTodayDate();
+      await goalManager.updateGoal(goalId, { dueDate: today });
+      loadGoals();
+      setSnackbarMessage('Goal moved to today');
+      setSnackbarVisible(true);
+    } catch (error) {
+      console.error('Failed to move goal:', error);
+      setSnackbarMessage('Failed to move goal');
+      setSnackbarVisible(true);
+    }
+  }, [loadGoals]);
+
+  /**
+   * Handle reschedule - navigate to goal form for date change
+   */
+  const handleReschedule = useCallback((goalId: string) => {
+    navigation.navigate('GoalForm', { goalId, mode: 'edit' });
+  }, [navigation]);
+
+  /**
    * Handle FAB press - navigate to add goal screen
    */
   const handleAddGoal = useCallback(() => {
@@ -528,6 +556,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => 
         onSwipeComplete={handleSwipeComplete}
         onLongPress={handleLongPress}
         onLongPressEnd={handleLongPressEnd}
+        onMoveToToday={handleMoveToToday}
+        onReschedule={handleReschedule}
         refreshing={refreshing}
         onRefresh={handleRefresh}
         ListHeaderComponent={

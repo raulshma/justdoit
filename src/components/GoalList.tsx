@@ -3,6 +3,7 @@ import { View, StyleSheet, SectionList, SectionListData } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import type { Goal } from '../types/goal';
 import { GoalCard } from './GoalCard';
+import { ThemedIcon } from './ThemedIcon';
 
 interface GoalListProps {
   goals: Goal[];
@@ -13,20 +14,26 @@ interface GoalListProps {
   onSwipeComplete?: (goalId: string) => void; // Swipe right-to-left to complete
   onLongPress?: (goalId: string) => void;
   onLongPressEnd?: (goalId: string) => void;
+  onMoveToToday?: (goalId: string) => void;
+  onReschedule?: (goalId: string) => void;
   scrollEnabled?: boolean;
   itemVariant?: 'default' | 'minimal';
 }
+
+type DateStatus = 'overdue' | 'today' | 'tomorrow' | 'upcoming';
 
 interface GoalSection {
   title: string;
   data: Goal[];
   isToday: boolean;
+  dateStatus: DateStatus;
+  rawDate: string;
 }
 
 /**
- * Format date for section header display
+ * Get date status for a given date string
  */
-const formatDateHeader = (dateString: string): string => {
+const getDateStatus = (dateString: string): DateStatus => {
   const date = new Date(dateString);
   const today = new Date();
   const tomorrow = new Date(today);
@@ -37,14 +44,36 @@ const formatDateHeader = (dateString: string): string => {
   tomorrow.setHours(0, 0, 0, 0);
   date.setHours(0, 0, 0, 0);
 
+  if (date.getTime() < today.getTime()) {
+    return 'overdue';
+  }
   if (date.getTime() === today.getTime()) {
-    return "Today";
+    return 'today';
   }
   if (date.getTime() === tomorrow.getTime()) {
-    return "Tomorrow";
+    return 'tomorrow';
   }
+  return 'upcoming';
+};
 
-  // Format as readable date
+/**
+ * Format date for section header display
+ */
+const formatDateHeader = (dateString: string, dateStatus: DateStatus): string => {
+  if (dateStatus === 'overdue') {
+    const date = new Date(dateString);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    date.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays <= 7) return `${diffDays} days overdue`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+  if (dateStatus === 'today') return 'Today';
+  if (dateStatus === 'tomorrow') return 'Tomorrow';
+  
+  const date = new Date(dateString);
   return date.toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'short',
@@ -53,18 +82,7 @@ const formatDateHeader = (dateString: string): string => {
 };
 
 /**
- * Check if a date is today
- */
-const isDateToday = (dateString: string): boolean => {
-  const date = new Date(dateString);
-  const today = new Date();
-  date.setHours(0, 0, 0, 0);
-  today.setHours(0, 0, 0, 0);
-  return date.getTime() === today.getTime();
-};
-
-/**
- * Group goals by their due date
+ * Group goals by their due date with status
  */
 const groupGoalsByDate = (goals: Goal[]): GoalSection[] => {
   const grouped = new Map<string, Goal[]>();
@@ -78,11 +96,16 @@ const groupGoalsByDate = (goals: Goal[]): GoalSection[] => {
   // Convert to sections and sort by date
   const sections: GoalSection[] = Array.from(grouped.entries())
     .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
-    .map(([date, dateGoals]) => ({
-      title: formatDateHeader(date),
-      data: dateGoals,
-      isToday: isDateToday(date),
-    }));
+    .map(([date, dateGoals]) => {
+      const dateStatus = getDateStatus(date);
+      return {
+        title: formatDateHeader(date, dateStatus),
+        data: dateGoals,
+        isToday: dateStatus === 'today',
+        dateStatus,
+        rawDate: date,
+      };
+    });
 
   return sections;
 };
@@ -112,13 +135,29 @@ const EmptyState: React.FC = () => {
 };
 
 /**
- * Modern Section Header - Minimalist & Bold
+ * Modern Section Header with date status styling
  */
-const SectionHeader: React.FC<{ title: string; isToday: boolean }> = ({
+const SectionHeader: React.FC<{ title: string; isToday: boolean; dateStatus: DateStatus }> = ({
   title,
   isToday,
+  dateStatus,
 }) => {
   const theme = useTheme();
+
+  const getStatusColor = () => {
+    switch (dateStatus) {
+      case 'overdue':
+        return theme.colors.error;
+      case 'today':
+        return theme.colors.primary;
+      case 'tomorrow':
+        return theme.colors.secondary;
+      default:
+        return theme.colors.outline;
+    }
+  };
+
+  const statusColor = getStatusColor();
 
   return (
     <View
@@ -127,18 +166,24 @@ const SectionHeader: React.FC<{ title: string; isToday: boolean }> = ({
         { backgroundColor: theme.colors.background },
       ]}
     >
-      <Text
-        variant="labelLarge"
-        style={[
-          styles.sectionTitle,
-          {
-            color: isToday ? theme.colors.primary : theme.colors.outline,
-            fontWeight: isToday ? '700' : '600',
-          },
-        ]}
-      >
-        {title.toUpperCase()}
-      </Text>
+      <View style={styles.sectionHeaderRow}>
+        {dateStatus === 'overdue' && (
+          <ThemedIcon name="alert-circle" size={14} color={statusColor} />
+        )}
+        <Text
+          variant="labelLarge"
+          style={[
+            styles.sectionTitle,
+            {
+              color: statusColor,
+              fontWeight: isToday || dateStatus === 'overdue' ? '700' : '600',
+              marginLeft: dateStatus === 'overdue' ? 6 : 0,
+            },
+          ]}
+        >
+          {title.toUpperCase()}
+        </Text>
+      </View>
     </View>
   );
 };
@@ -161,6 +206,8 @@ export const GoalList: React.FC<GoalListProps & {
   onSwipeComplete,
   onLongPress,
   onLongPressEnd,
+  onMoveToToday,
+  onReschedule,
   ListHeaderComponent,
   ListFooterComponent,
   refreshing,
@@ -195,6 +242,9 @@ export const GoalList: React.FC<GoalListProps & {
       onLongPress={onLongPress}
       onLongPressEnd={onLongPressEnd}
       isToday={(section as GoalSection).isToday}
+      isOverdue={(section as GoalSection).dateStatus === 'overdue'}
+      onMoveToToday={onMoveToToday}
+      onReschedule={onReschedule}
       variant={itemVariant}
     />
   );
@@ -203,6 +253,7 @@ export const GoalList: React.FC<GoalListProps & {
     <SectionHeader
       title={(section as GoalSection).title}
       isToday={(section as GoalSection).isToday}
+      dateStatus={(section as GoalSection).dateStatus}
     />
   );
 
@@ -243,6 +294,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     letterSpacing: 1.5,
     fontSize: 11,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   separator: {
     height: 4,

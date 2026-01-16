@@ -7,7 +7,7 @@ import * as Notifications from 'expo-notifications';
 import BootSplash from 'react-native-bootsplash';
 import SplashScreen from './src/screens/SplashScreen';
 
-import { GoalProvider, SettingsProvider, StatisticsProvider, CategoryProvider, GamificationProvider, useSettings } from './src/context';
+import { GoalProvider, SettingsProvider, StatisticsProvider, CategoryProvider, GamificationProvider, AlertProvider, useSettings } from './src/context';
 import { AppNavigator } from './src/navigation';
 import { getTheme } from './src/theme';
 import { notificationService, carryForwardService } from './src/services';
@@ -118,16 +118,18 @@ function AppContent() {
 
   return (
     <PaperProvider theme={theme}>
-      <NavigationContainer ref={navigationRef}>
-        <AppNavigator />
-      </NavigationContainer>
-      <StatusBar style={settings.darkModeEnabled ? 'light' : 'dark'} />
-      {!isSplashAnimationComplete && (
-        <SplashScreen 
-          isAppReady={isAppReady}
-          onAnimationComplete={() => setIsSplashAnimationComplete(true)}
-        />
-      )}
+      <AlertProvider>
+        <NavigationContainer ref={navigationRef}>
+          <AppNavigator />
+        </NavigationContainer>
+        <StatusBar style={settings.darkModeEnabled ? 'light' : 'dark'} />
+        {!isSplashAnimationComplete && (
+          <SplashScreen 
+            isAppReady={isAppReady}
+            onAnimationComplete={() => setIsSplashAnimationComplete(true)}
+          />
+        )}
+      </AlertProvider>
     </PaperProvider>
   );
 }

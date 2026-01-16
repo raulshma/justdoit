@@ -93,3 +93,6 @@ export { VisionBoardGrid } from './VisionBoardGrid';
 export { GoalCoverImage } from './GoalCoverImage';
 export { ProgressPhotoPicker } from './ProgressPhotoPicker';
 export { MoodBoardSection } from './MoodBoardSection';
+
+// Alert components
+export { CustomAlert } from './CustomAlert';

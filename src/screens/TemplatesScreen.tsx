@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, StyleSheet, SectionList, Alert } from 'react-native';
+import { View, StyleSheet, SectionList } from 'react-native';
 import {
   Text,
   useTheme,
@@ -15,6 +15,7 @@ import type { GoalTemplate, Category } from '../types';
 import { templateService, categoryManager, storageService } from '../services';
 import { TemplateCard, TemplatePreview } from '../components';
 import { ThemedIcon } from '../components/ThemedIcon';
+import { useAlert } from '../context/AlertContext';
 
 type TemplatesScreenProps = NativeStackScreenProps<any, 'Templates'>;
 
@@ -31,6 +32,7 @@ interface TemplateSection {
 export const TemplatesScreen: React.FC<TemplatesScreenProps> = ({ navigation }) => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const alert = useAlert();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<GoalTemplate | null>(null);
@@ -137,9 +139,9 @@ export const TemplatesScreen: React.FC<TemplatesScreenProps> = ({ navigation }) 
       navigation.navigate('GoalForm', { goalId: goal.id, mode: 'edit' });
     } catch (error) {
       console.error('Failed to create goal from template:', error);
-      Alert.alert('Error', 'Failed to create goal from template. Please try again.');
+      alert.error('Error', 'Failed to create goal from template. Please try again.');
     }
-  }, [selectedTemplate, navigation]);
+  }, [selectedTemplate, navigation, alert]);
 
   /**
    * Handle deleting a custom template
@@ -156,9 +158,9 @@ export const TemplatesScreen: React.FC<TemplatesScreenProps> = ({ navigation }) 
       navigation.setParams({});
     } catch (error) {
       console.error('Failed to delete template:', error);
-      Alert.alert('Error', 'Failed to delete template. Please try again.');
+      alert.error('Error', 'Failed to delete template. Please try again.');
     }
-  }, [selectedTemplate, navigation]);
+  }, [selectedTemplate, navigation, alert]);
 
   /**
    * Handle closing the screen

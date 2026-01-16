@@ -4,7 +4,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  Alert,
   ScrollView,
 } from 'react-native';
 import { Text, useTheme, ActivityIndicator } from 'react-native-paper';
@@ -12,6 +11,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { ThemedIcon } from './ThemedIcon';
 import { GoalImage } from '../types';
 import { goalImageService, IMAGE_LIMITS } from '../services/goalImageService';
+import { useAlert } from '../context/AlertContext';
 
 const PHOTO_SIZE = 100;
 const PHOTO_GAP = 12;
@@ -34,6 +34,7 @@ export const ProgressPhotoPicker = memo<ProgressPhotoPickerProps>(({
   disabled = false,
 }) => {
   const theme = useTheme();
+  const alert = useAlert();
   const [isLoading, setIsLoading] = useState(false);
 
   const canAddMore = photos.length < IMAGE_LIMITS.progress;
@@ -51,14 +52,15 @@ export const ProgressPhotoPicker = memo<ProgressPhotoPickerProps>(({
    */
   const handleAddPhoto = useCallback(async () => {
     if (!canAddMore) {
-      Alert.alert('Limit Reached', `Progress photos are limited to ${IMAGE_LIMITS.progress}.`);
+      alert.warning('Limit Reached', `Progress photos are limited to ${IMAGE_LIMITS.progress}.`);
       return;
     }
 
-    Alert.alert(
-      'Add Progress Photo',
-      'Choose how to add a photo',
-      [
+    alert.showAlert({
+      title: 'Add Progress Photo',
+      message: 'Choose how to add a photo',
+      type: 'info',
+      buttons: [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Take Photo',
@@ -66,7 +68,7 @@ export const ProgressPhotoPicker = memo<ProgressPhotoPickerProps>(({
             try {
               const permission = await ImagePicker.requestCameraPermissionsAsync();
               if (!permission.granted) {
-                Alert.alert('Permission Needed', 'Camera access is required.');
+                alert.warning('Permission Needed', 'Camera access is required.');
                 return;
               }
               
@@ -99,7 +101,7 @@ export const ProgressPhotoPicker = memo<ProgressPhotoPickerProps>(({
             try {
               const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
               if (!permission.granted) {
-                Alert.alert('Permission Needed', 'Photo library access is required.');
+                alert.warning('Permission Needed', 'Photo library access is required.');
                 return;
               }
               
@@ -126,31 +128,28 @@ export const ProgressPhotoPicker = memo<ProgressPhotoPickerProps>(({
             }
           },
         },
-      ]
-    );
-  }, [goalId, photos, onPhotosChange, canAddMore]);
+      ],
+    });
+  }, [goalId, photos, onPhotosChange, canAddMore, alert]);
 
   /**
    * Remove a progress photo
    */
   const handleRemovePhoto = useCallback((photo: GoalImage) => {
-    Alert.alert(
+    alert.confirm(
       'Remove Photo',
       'Remove this progress photo?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: async () => {
-            await goalImageService.deleteGoalImage(photo);
-            const updatedPhotos = photos.filter(p => p.id !== photo.id);
-            onPhotosChange(updatedPhotos);
-          },
-        },
-      ]
+      async () => {
+        await goalImageService.deleteGoalImage(photo);
+        const updatedPhotos = photos.filter(p => p.id !== photo.id);
+        onPhotosChange(updatedPhotos);
+      },
+      undefined,
+      'Remove',
+      'Cancel',
+      true
     );
-  }, [photos, onPhotosChange]);
+  }, [photos, onPhotosChange, alert]);
 
   // Sort photos by date (oldest first for timeline)
   const sortedPhotos = [...photos].sort((a, b) => 
