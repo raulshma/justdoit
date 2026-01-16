@@ -35,6 +35,7 @@ export type SettingsStackParamList = {
  */
 export type FocusStackParamList = {
   FocusMode: undefined;
+  FocusHistory: undefined;
 };
 
 /**

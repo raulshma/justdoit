@@ -15,14 +15,16 @@ import {
 import { Text, useTheme, IconButton, Searchbar } from 'react-native-paper';
 import { goalManager } from '../services';
 import type { Goal } from '../types';
+import { CustomDurationPicker } from './CustomDurationPicker';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface GoalSelectorForFocusProps {
   visible: boolean;
   onDismiss: () => void;
-  onSelect: (goalId: string, goalTitle: string) => void;
-  onSelectNone: () => void;
+  onSelect: (goalId: string, goalTitle: string, durationMinutes: number) => void;
+  onSelectNone: (durationMinutes: number) => void;
+  defaultDuration?: number;
 }
 
 /**
@@ -42,10 +44,16 @@ export const GoalSelectorForFocus: React.FC<GoalSelectorForFocusProps> = ({
   onDismiss,
   onSelect,
   onSelectNone,
+  defaultDuration = 25,
 }) => {
   const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  
+  // Duration picker state
+  const [showDurationPicker, setShowDurationPicker] = useState(false);
+  const [pendingGoal, setPendingGoal] = useState<{ id: string; title: string } | null>(null);
+  const [isNoGoalMode, setIsNoGoalMode] = useState(false);
   
   // Animation values
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
@@ -147,16 +155,41 @@ export const GoalSelectorForFocus: React.FC<GoalSelectorForFocusProps> = ({
 
   const handleSelectGoal = (goalId: string, goalTitle: string) => {
     Keyboard.dismiss();
-    onSelect(goalId, goalTitle);
+    setPendingGoal({ id: goalId, title: goalTitle });
+    setIsNoGoalMode(false);
+    setShowDurationPicker(true);
   };
 
   const handleSelectNone = () => {
     Keyboard.dismiss();
-    onSelectNone();
+    setPendingGoal(null);
+    setIsNoGoalMode(true);
+    setShowDurationPicker(true);
+  };
+
+  const handleDurationSelect = (durationMinutes: number) => {
+    setShowDurationPicker(false);
+    if (isNoGoalMode) {
+      onSelectNone(durationMinutes);
+    } else if (pendingGoal) {
+      onSelect(pendingGoal.id, pendingGoal.title, durationMinutes);
+    }
+    // Reset state
+    setPendingGoal(null);
+    setIsNoGoalMode(false);
+  };
+
+  const handleDurationPickerDismiss = () => {
+    setShowDurationPicker(false);
+    setPendingGoal(null);
+    setIsNoGoalMode(false);
   };
 
   const handleDismiss = () => {
     Keyboard.dismiss();
+    setPendingGoal(null);
+    setIsNoGoalMode(false);
+    setShowDurationPicker(false);
     onDismiss();
   };
 
@@ -296,6 +329,14 @@ export const GoalSelectorForFocus: React.FC<GoalSelectorForFocusProps> = ({
           </ScrollView>
         </Animated.View>
       </View>
+
+      {/* Duration Picker Modal */}
+      <CustomDurationPicker
+        visible={showDurationPicker}
+        onDismiss={handleDurationPickerDismiss}
+        onSelect={handleDurationSelect}
+        defaultDuration={defaultDuration}
+      />
     </RNModal>
   );
 };

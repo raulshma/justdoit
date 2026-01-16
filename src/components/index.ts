@@ -83,6 +83,7 @@ export { FocusTimer } from './FocusTimer';
 export { GoalSelectorForFocus } from './GoalSelectorForFocus';
 export { AmbientSoundPicker } from './AmbientSoundPicker';
 export { FocusSessionStats } from './FocusSessionStats';
+export { CustomDurationPicker } from './CustomDurationPicker';
 
 // Dependency components
 export { DependencyPicker } from './DependencyPicker';

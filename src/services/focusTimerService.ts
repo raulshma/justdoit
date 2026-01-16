@@ -113,15 +113,20 @@ class FocusTimerService {
 
   /**
    * Start a work session
+   * @param goalId - Optional goal ID to link the session to
+   * @param customDurationMinutes - Optional custom duration in minutes (overrides settings)
    */
-  startSession(goalId?: string): void {
+  startSession(goalId?: string, customDurationMinutes?: number): void {
     if (this.state !== 'idle') {
       console.warn('Cannot start session: timer is not idle');
       return;
     }
 
     const settings = storageService.getSettings();
-    const duration = settings.focusWorkDuration * 60; // convert to seconds
+    // Use custom duration if provided, otherwise use settings
+    const duration = customDurationMinutes 
+      ? customDurationMinutes * 60 
+      : settings.focusWorkDuration * 60; // convert to seconds
 
     // Link goal if provided
     if (goalId) {
@@ -232,7 +237,7 @@ class FocusTimerService {
     // Save partial session if it had meaningful duration (> 1 min)
     if (this.currentSession) {
       const elapsedSeconds = this.currentSession.plannedDuration! - this.timeRemaining;
-      if (elapsedSeconds >= 60) {
+      if (elapsedSeconds >= 15) {
         this.currentSession.duration = elapsedSeconds;
         this.currentSession.endTime = new Date().toISOString();
         this.currentSession.completed = false;

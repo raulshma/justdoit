@@ -34,6 +34,7 @@ export const FocusModeScreen: React.FC<{ navigation: any }> = ({ navigation }) =
   const [goalSelectorVisible, setGoalSelectorVisible] = useState(false);
   const [linkedGoal, setLinkedGoal] = useState<{ id: string; title: string } | null>(null);
   const [showGoals, setShowGoals] = useState(true);
+  const [customDuration, setCustomDuration] = useState<number | undefined>(undefined);
 
   /**
    * Load and filter top 3 priority goals for today
@@ -115,23 +116,29 @@ export const FocusModeScreen: React.FC<{ navigation: any }> = ({ navigation }) =
   }, [loadGoals]);
 
   /**
-   * Handle linking a goal to focus session
+   * Handle linking a goal to focus session with custom duration
    */
-  const handleLinkGoal = useCallback((goalId: string, goalTitle: string) => {
+  const handleLinkGoal = useCallback((goalId: string, goalTitle: string, durationMinutes: number) => {
     setLinkedGoal({ id: goalId, title: goalTitle });
+    setCustomDuration(durationMinutes);
     focusTimerService.linkToGoal(goalId);
+    focusTimerService.startSession(goalId, durationMinutes);
     setGoalSelectorVisible(false);
-    setSnackbarMessage(`Linked: ${goalTitle}`);
+    setSnackbarMessage(`Focus started: ${goalTitle} (${durationMinutes}m)`);
     setSnackbarVisible(true);
   }, []);
 
   /**
-   * Handle starting focus without goal
+   * Handle starting focus without goal with custom duration
    */
-  const handleFocusWithoutGoal = useCallback(() => {
+  const handleFocusWithoutGoal = useCallback((durationMinutes: number) => {
     setLinkedGoal(null);
+    setCustomDuration(durationMinutes);
     focusTimerService.unlinkGoal();
+    focusTimerService.startSession(undefined, durationMinutes);
     setGoalSelectorVisible(false);
+    setSnackbarMessage(`Focus started (${durationMinutes}m)`);
+    setSnackbarVisible(true);
   }, []);
 
   /**
@@ -184,14 +191,24 @@ export const FocusModeScreen: React.FC<{ navigation: any }> = ({ navigation }) =
                 {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
               </Text>
             </View>
-            <IconButton
-              icon={linkedGoal ? 'link-variant' : 'link-variant-off'}
-              mode="contained-tonal"
-              iconColor={linkedGoal ? theme.colors.primary : theme.colors.onSurfaceVariant}
-              containerColor={linkedGoal ? theme.colors.primaryContainer : theme.colors.surfaceVariant}
-              size={24}
-              onPress={() => setGoalSelectorVisible(true)}
-            />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <IconButton
+                icon="history"
+                mode="contained-tonal"
+                iconColor={theme.colors.onSurfaceVariant}
+                containerColor={theme.colors.surfaceVariant}
+                size={22}
+                onPress={() => navigation.navigate('FocusHistory')}
+              />
+              <IconButton
+                icon={linkedGoal ? 'link-variant' : 'link-variant-off'}
+                mode="contained-tonal"
+                iconColor={linkedGoal ? theme.colors.primary : theme.colors.onSurfaceVariant}
+                containerColor={linkedGoal ? theme.colors.primaryContainer : theme.colors.surfaceVariant}
+                size={24}
+                onPress={() => setGoalSelectorVisible(true)}
+              />
+            </View>
         </Animated.View>
 
         {/* Focus Timer - Centerpiece */}

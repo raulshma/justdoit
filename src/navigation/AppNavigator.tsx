@@ -18,6 +18,7 @@ import {
   StatisticsScreen,
   SettingsScreen,
   FocusModeScreen,
+  FocusHistoryScreen,
   ModelSelectionScreen,
   TemplatesScreen,
   AchievementsScreen,
@@ -185,6 +186,11 @@ function FocusStackNavigator() {
         name="FocusMode"
         component={FocusModeScreen}
         options={{ title: 'Focus' }}
+      />
+      <FocusStack.Screen
+        name="FocusHistory"
+        component={FocusHistoryScreen}
+        options={{ title: 'Focus History' }}
       />
     </FocusStack.Navigator>
   );

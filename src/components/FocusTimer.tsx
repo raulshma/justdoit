@@ -13,6 +13,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { focusTimerService } from '../services/focusTimerService';
+import { CustomDurationPicker } from './CustomDurationPicker';
 import type { FocusTimerState, FocusSession } from '../types';
 
 const { width } = Dimensions.get('window');
@@ -49,6 +50,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
   const [sessionType, setSessionType] = useState<'work' | 'shortBreak' | 'longBreak' | null>(null);
+  const [showDurationPicker, setShowDurationPicker] = useState(false);
   
   // Animation values
   const pulseScale = useSharedValue(1);
@@ -152,10 +154,15 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
     };
   }, [onSessionComplete, totalDuration]);
 
-  // Handle start session
-  const handleStart = useCallback(() => {
-    const settings = require('../constants').DEFAULT_SETTINGS;
-    const duration = settings.focusWorkDuration * 60;
+  // Handle start session - show duration picker
+  const handleStartPress = useCallback(() => {
+    setShowDurationPicker(true);
+  }, []);
+
+  // Handle duration select and start session
+  const handleDurationSelect = useCallback((durationMinutes: number) => {
+    setShowDurationPicker(false);
+    const duration = durationMinutes * 60;
     setTotalDuration(duration);
     setTimeRemaining(duration);
     setSessionType('work');
@@ -163,7 +170,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
     if (linkedGoalId) {
       focusTimerService.linkToGoal(linkedGoalId);
     }
-    focusTimerService.startSession(linkedGoalId);
+    focusTimerService.startSession(linkedGoalId, durationMinutes);
   }, [linkedGoalId]);
 
   // Handle pause
@@ -233,7 +240,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
           </View>
           <View style={styles.compactControls}>
             {timerState === 'idle' ? (
-              <IconButton icon="play" iconColor={theme.colors.primary} size={32} onPress={handleStart} />
+              <IconButton icon="play" iconColor={theme.colors.primary} size={32} onPress={handleStartPress} />
             ) : timerState === 'running' || timerState === 'break' ? (
               <IconButton icon="pause" iconColor={theme.colors.onSurface} size={28} onPress={handlePause} />
             ) : (
@@ -306,7 +313,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
           <View style={styles.idleControls}>
             <TouchableOpacity 
               style={[styles.mainButton, { backgroundColor: theme.colors.primary }]}
-              onPress={handleStart}
+              onPress={handleStartPress}
               activeOpacity={0.8}
             >
               <Text variant="titleMedium" style={{ color: theme.colors.onPrimary, fontWeight: '700' }}>
@@ -385,6 +392,14 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
           </View>
         )}
       </View>
+
+      {/* Duration Picker Modal */}
+      <CustomDurationPicker
+        visible={showDurationPicker}
+        onDismiss={() => setShowDurationPicker(false)}
+        onSelect={handleDurationSelect}
+        defaultDuration={25}
+      />
     </View>
   );
 };
