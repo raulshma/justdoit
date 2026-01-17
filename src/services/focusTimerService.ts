@@ -443,7 +443,7 @@ class FocusTimerService {
         },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-          seconds: 1,
+          seconds: Math.max(1, breakDuration * 60),
         },
       });
     } catch (error) {

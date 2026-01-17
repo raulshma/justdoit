@@ -4,7 +4,7 @@ import { FAB, useTheme, Snackbar, Text, Portal } from 'react-native-paper';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Goal } from '../types';
-import { goalManager } from '../services';
+import { goalManager, carryForwardService } from '../services';
 import {
   GoalList,
   ThemedIcon,
@@ -62,6 +62,7 @@ export function MinimalGoalsScreen() {
    */
   const loadGoals = useCallback(() => {
     const allGoals = goalManager.getAllGoals();
+    const today = getTodayDate();
 
     // Show all incomplete goals, sorted by date then priority
     const incompleteGoals = allGoals.filter((goal) => !goal.isCompleted);
@@ -74,16 +75,39 @@ export function MinimalGoalsScreen() {
       const priorityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
       return priorityOrder[a.priority] - priorityOrder[b.priority];
     });
+
+    // Focus mode: show only top 3 priorities for today
+    const focusModeGoals = settings.focusModeEnabled
+      ? sortedGoals
+          .filter((goal) => goal.dueDate === today)
+          .sort((a, b) => {
+            const priorityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
+            return priorityOrder[a.priority] - priorityOrder[b.priority];
+          })
+          .slice(0, 3)
+      : sortedGoals;
     
-    setGoals(sortedGoals);
-  }, []);
+    setGoals(focusModeGoals);
+  }, [settings.focusModeEnabled]);
 
   /**
    * Refresh goals on screen focus
    */
   useFocusEffect(
     useCallback(() => {
-      loadGoals();
+      let isActive = true;
+
+      const refresh = async () => {
+        await carryForwardService.processCarryForward();
+        if (!isActive) return;
+        loadGoals();
+      };
+
+      refresh();
+
+      return () => {
+        isActive = false;
+      };
     }, [loadGoals])
   );
 
@@ -92,6 +116,7 @@ export function MinimalGoalsScreen() {
    */
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
+    await carryForwardService.processCarryForward();
     loadGoals();
     setRefreshing(false);
   }, [loadGoals]);

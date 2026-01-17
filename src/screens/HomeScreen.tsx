@@ -4,7 +4,7 @@ import { FAB, useTheme, Snackbar, Text, Portal } from 'react-native-paper';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Goal, Challenge, CalendarEvent, PatternInsight, MotivationalMessage, RescheduleSuggestion } from '../types';
-import { goalManager, calendarService, advancedAIService } from '../services';
+import { goalManager, calendarService, advancedAIService, carryForwardService } from '../services';
 import { useCategories } from '../context/CategoryContext';
 import { useGamification } from '../context/GamificationContext';
 import { useStatistics } from '../context/StatisticsContext';
@@ -114,7 +114,19 @@ export function HomeScreen() {
       return priorityOrder[a.priority] - priorityOrder[b.priority];
     });
 
-    setGoals(sortedGoals);
+    // Focus mode: show only top 3 priorities for today
+    const focusModeGoals = settings.focusModeEnabled
+      ? sortedGoals
+          .filter((goal) => goal.dueDate === today)
+          .sort((a, b) => {
+            const priorityOrder = { high: 0, medium: 1, low: 2 };
+            // @ts-ignore
+            return priorityOrder[a.priority] - priorityOrder[b.priority];
+          })
+          .slice(0, 3)
+      : sortedGoals;
+
+    setGoals(focusModeGoals);
 
     // Check for all-complete celebration
     const todayGoals = allGoals.filter((goal) => goal.dueDate === today);
@@ -124,7 +136,7 @@ export function HomeScreen() {
     // Load gamification data
     setActiveChallenges(getActiveChallenges());
     setCurrentStreak(calculateStreak());
-  }, [getActiveChallenges, calculateStreak]);
+  }, [getActiveChallenges, calculateStreak, settings.focusModeEnabled]);
 
   /**
    * Load calendar events for today
@@ -207,9 +219,21 @@ export function HomeScreen() {
    */
   useFocusEffect(
     useCallback(() => {
-      loadGoals();
-      loadCalendarEvents();
-      loadAIInsights();
+      let isActive = true;
+
+      const refresh = async () => {
+        await carryForwardService.processCarryForward();
+        if (!isActive) return;
+        loadGoals();
+        loadCalendarEvents();
+        loadAIInsights();
+      };
+
+      refresh();
+
+      return () => {
+        isActive = false;
+      };
     }, [loadGoals, loadCalendarEvents, loadAIInsights])
   );
 
@@ -250,6 +274,7 @@ export function HomeScreen() {
    */
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
+    await carryForwardService.processCarryForward();
     loadGoals();
     await loadCalendarEvents();
     setRefreshing(false);
