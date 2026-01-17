@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { FAB, useTheme, Snackbar, Text } from 'react-native-paper';
+import { FAB, useTheme, Snackbar, Text, Portal } from 'react-native-paper';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Goal } from '../types';
 import { goalManager } from '../services';
 import {
@@ -38,6 +38,7 @@ export function MinimalGoalsScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { settings, updateSettings } = useSettings();
+  const insets = useSafeAreaInsets();
   
   const [goals, setGoals] = useState<Goal[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -285,6 +286,10 @@ export function MinimalGoalsScreen() {
   const today = getTodayDate();
   const todayGoals = goals.filter(g => g.dueDate === today);
   const remaining = todayGoals.filter(g => !g.isCompleted).length;
+  const tabBarHeight = settings.showTabBarLabels ? 80 : 64;
+  const tabBarBottomPadding = insets.bottom + 12;
+  const floatingBottom = tabBarHeight + tabBarBottomPadding + 16;
+  const snackbarBottom = tabBarHeight + tabBarBottomPadding + 8;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -334,49 +339,54 @@ export function MinimalGoalsScreen() {
       />
 
       {/* FAB Group for adding goals */}
-      <FAB.Group
-        open={fabOpen}
-        visible
-        icon={fabOpen ? 'close' : 'plus'}
-        actions={[
-          ...(settings.gamificationEnabled ? [{
-            icon: 'trophy-outline',
-            label: 'Challenges',
-            onPress: handleOpenChallenges,
-          }] : []),
-          {
-            icon: 'file-document-outline',
-            label: 'From Template',
-            onPress: handleOpenTemplates,
-          },
-          {
-            icon: 'pencil-outline',
-            label: 'New Goal',
-            onPress: handleAddGoal,
-          },
-          {
-            icon: 'microphone-outline',
-            label: 'Voice Goal',
-            onPress: () => {
-              setFabOpen(false);
-              setShowVoiceCreator(true);
+      <Portal>
+        <FAB.Group
+          open={fabOpen}
+          visible
+          icon={fabOpen ? 'close' : 'plus'}
+          actions={[
+            ...(settings.gamificationEnabled ? [{
+              icon: 'trophy-outline',
+              label: 'Challenges',
+              onPress: handleOpenChallenges,
+            }] : []),
+            {
+              icon: 'file-document-outline',
+              label: 'From Template',
+              onPress: handleOpenTemplates,
             },
-          },
-        ]}
-        onStateChange={({ open }) => setFabOpen(open)}
-        fabStyle={[styles.fab, { backgroundColor: theme.colors.primary }]}
-        color={theme.colors.onPrimary}
-      />
+            {
+              icon: 'pencil-outline',
+              label: 'New Goal',
+              onPress: handleAddGoal,
+            },
+            {
+              icon: 'microphone-outline',
+              label: 'Voice Goal',
+              onPress: () => {
+                setFabOpen(false);
+                setShowVoiceCreator(true);
+              },
+            },
+          ]}
+          onStateChange={({ open }) => setFabOpen(open)}
+          fabStyle={[styles.fab, { backgroundColor: theme.colors.primary }]}
+          color={theme.colors.onPrimary}
+          style={[styles.fabGroup, { bottom: floatingBottom }]}
+        />
+      </Portal>
 
       {/* Feedback Snackbar */}
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={handleDismissSnackbar}
-        duration={2000}
-        style={styles.snackbar}
-      >
-        {snackbarMessage}
-      </Snackbar>
+      <Portal>
+        <Snackbar
+          visible={snackbarVisible}
+          onDismiss={handleDismissSnackbar}
+          duration={2000}
+          style={[styles.snackbar, { marginBottom: snackbarBottom }]}
+        >
+          {snackbarMessage}
+        </Snackbar>
+      </Portal>
 
       {/* Quick View Overlay */}
       <GoalQuickView
@@ -438,13 +448,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   fab: {
-    position: 'relative',
-    right: 8,
-    bottom: 8,
     borderRadius: 20,
   },
+  fabGroup: {
+    position: 'absolute',
+    right: 16,
+    zIndex: 1100,
+    elevation: 12,
+  },
   snackbar: {
-    marginBottom: 80,
+    zIndex: 1200,
+    elevation: 12,
   },
 });
 

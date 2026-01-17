@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { FAB, useTheme, Snackbar, Text } from 'react-native-paper';
+import { FAB, useTheme, Snackbar, Text, Portal } from 'react-native-paper';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Goal, Challenge, CalendarEvent, PatternInsight, MotivationalMessage, RescheduleSuggestion } from '../types';
 import { goalManager, calendarService, advancedAIService } from '../services';
 import { useCategories } from '../context/CategoryContext';
@@ -45,6 +45,7 @@ const getTodayDate = (): string => {
 export function HomeScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { categories } = useCategories();
   const { settings } = useSettings();
   const {
@@ -536,6 +537,10 @@ export function HomeScreen() {
   const currentLevel = getCurrentLevel();
   const levelProgress = getLevelProgress();
   const streakMultiplierText = getStreakMultiplierText();
+  const tabBarHeight = settings.showTabBarLabels ? 80 : 64;
+  const tabBarBottomPadding = insets.bottom + 12;
+  const floatingBottom = tabBarHeight + tabBarBottomPadding + 16;
+  const snackbarBottom = tabBarHeight + tabBarBottomPadding + 8;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -698,51 +703,61 @@ export function HomeScreen() {
       />
 
       {/* FAB Group for adding goals - Requirements: 3.1, 7.3 */}
-      <FAB.Group
-        open={fabOpen}
-        visible
-        icon={fabOpen ? 'close' : 'plus'}
-        actions={[
-          ...(settings.gamificationEnabled
-            ? [
-                {
-                  icon: 'trophy-outline',
-                  label: 'Challenges',
-                  onPress: handleOpenChallenges,
-                },
-              ]
-            : []),
-          {
-            icon: 'file-document-outline',
-            label: 'From Template',
-            onPress: handleOpenTemplates,
-          },
-          {
-            icon: 'pencil-outline',
-            label: 'New Goal',
-            onPress: handleAddGoal,
-          },
-          {
-            icon: 'microphone-outline',
-            label: 'Voice Goal',
-            onPress: () => {
-              setFabOpen(false);
-              setShowVoiceCreator(true);
+      <Portal>
+        <FAB.Group
+          open={fabOpen}
+          visible
+          icon={fabOpen ? 'close' : 'plus'}
+          actions={[
+            ...(settings.gamificationEnabled
+              ? [
+                  {
+                    icon: 'trophy-outline',
+                    label: 'Challenges',
+                    onPress: handleOpenChallenges,
+                  },
+                ]
+              : []),
+            {
+              icon: 'file-document-outline',
+              label: 'From Template',
+              onPress: handleOpenTemplates,
             },
-          },
-        ]}
-        onStateChange={({ open }) => setFabOpen(open)}
-        fabStyle={[styles.fab, { backgroundColor: theme.colors.primary }]}
-        color={theme.colors.onPrimary}
-      />
+            {
+              icon: 'pencil-outline',
+              label: 'New Goal',
+              onPress: handleAddGoal,
+            },
+            {
+              icon: 'microphone-outline',
+              label: 'Voice Goal',
+              onPress: () => {
+                setFabOpen(false);
+                setShowVoiceCreator(true);
+              },
+            },
+          ]}
+          onStateChange={({ open }) => setFabOpen(open)}
+          fabStyle={[styles.fab, { backgroundColor: theme.colors.primary }]}
+          color={theme.colors.onPrimary}
+          style={[styles.fabGroup, { bottom: floatingBottom }]}
+        />
+      </Portal>
 
       {/* Celebration Modal - Requirements: 3.4, 6.2, 6.3 */}
       <CelebrationModal visible={showCelebration} onDismiss={handleDismissCelebration} completedCount={todayCompletedCount} />
 
       {/* Feedback Snackbar */}
-      <Snackbar visible={snackbarVisible} onDismiss={handleDismissSnackbar} duration={2000} style={styles.snackbar}>
-        {snackbarMessage}
-      </Snackbar>
+      <Portal>
+        <Snackbar
+          visible={snackbarVisible}
+          onDismiss={handleDismissSnackbar}
+          duration={2000}
+          style={[styles.snackbar, { marginBottom: snackbarBottom }]}
+        >
+          {snackbarMessage}
+        </Snackbar>
+      </Portal>
 
       {/* Quick View Overlay */}
       <GoalQuickView goal={quickViewGoal} visible={quickViewVisible} onDismiss={handleLongPressEnd} />
@@ -830,9 +845,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   fab: {
-    marginBottom: 8,
+    borderRadius: 20,
+  },
+  fabGroup: {
+    position: 'absolute',
+    right: 16,
+    zIndex: 1100,
+    elevation: 12,
   },
   snackbar: {
-    marginBottom: 80,
+    zIndex: 1200,
+    elevation: 12,
   },
 });

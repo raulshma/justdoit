@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Dimensions } from 'react-native';
-import { Text, useTheme, FAB, Snackbar, Surface, Icon, IconButton } from 'react-native-paper';
+import { Text, useTheme, FAB, Snackbar, Surface, Icon, IconButton, Portal } from 'react-native-paper';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import type { Goal, FocusSession } from '../types';
 import { goalManager, focusTimerService } from '../services';
@@ -12,6 +12,7 @@ import {
   GoalSelectorForFocus,
   FocusSessionStats,
 } from '../components';
+import { useSettings } from '../context/SettingsContext';
 
 /**
  * Gets today's date in ISO format (YYYY-MM-DD)
@@ -28,6 +29,8 @@ const getTodayDate = (): string => {
 export function FocusModeScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const { settings } = useSettings();
+  const insets = useSafeAreaInsets();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
@@ -167,6 +170,9 @@ export function FocusModeScreen() {
   }, []);
 
   const allDone = goals.length === 0;
+  const tabBarHeight = settings.showTabBarLabels ? 80 : 64;
+  const tabBarBottomPadding = insets.bottom + 12;
+  const snackbarBottom = tabBarHeight + tabBarBottomPadding + 8;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -303,14 +309,16 @@ export function FocusModeScreen() {
         onSelectNone={handleFocusWithoutGoal}
       />
 
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
-        duration={2000}
-        style={{ marginBottom: 80 }} // Above FAB
-      >
-        {snackbarMessage}
-      </Snackbar>
+      <Portal>
+        <Snackbar
+          visible={snackbarVisible}
+          onDismiss={() => setSnackbarVisible(false)}
+          duration={2000}
+          style={[styles.snackbar, { marginBottom: snackbarBottom }]}
+        >
+          {snackbarMessage}
+        </Snackbar>
+      </Portal>
     </SafeAreaView>
   );
 };
@@ -402,6 +410,10 @@ const styles = StyleSheet.create({
     right: 20,
     bottom: 20,
     borderRadius: 28,
+  },
+  snackbar: {
+    zIndex: 1200,
+    elevation: 12,
   },
 });
 

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, memo } from 'react';
 import { View, StyleSheet, ScrollView, TextInput, LayoutAnimation, Platform, UIManager } from 'react-native';
 
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Text,
   useTheme,
@@ -207,6 +207,7 @@ export function SettingsScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { settings, updateSettings } = useSettings();
+  const insets = useSafeAreaInsets();
   
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
@@ -221,6 +222,9 @@ export function SettingsScreen() {
   const [showConvexCredentialsModal, setShowConvexCredentialsModal] = useState(false);
   const [convexUrlInput, setConvexUrlInput] = useState('');  
   const [convexTokenInput, setConvexTokenInput] = useState('');
+  const tabBarHeight = settings.showTabBarLabels ? 80 : 64;
+  const tabBarBottomPadding = insets.bottom + 12;
+  const snackbarBottom = tabBarHeight + tabBarBottomPadding + 8;
 
   // Toggle theme section with smooth animation
   const toggleThemeSection = useCallback(() => {
@@ -1158,13 +1162,16 @@ export function SettingsScreen() {
         </Modal>
       </Portal>
 
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
-        duration={2000}
-      >
-        {snackbarMessage}
-      </Snackbar>
+      <Portal>
+        <Snackbar
+          visible={snackbarVisible}
+          onDismiss={() => setSnackbarVisible(false)}
+          duration={2000}
+          style={[styles.snackbar, { marginBottom: snackbarBottom }]}
+        >
+          {snackbarMessage}
+        </Snackbar>
+      </Portal>
     </SafeAreaView>
   );
 };
@@ -1473,6 +1480,10 @@ const styles = StyleSheet.create({
   soundOptionContent: {
     alignItems: 'center',
     gap: 2,
+  },
+  snackbar: {
+    zIndex: 1200,
+    elevation: 12,
   },
 });
 

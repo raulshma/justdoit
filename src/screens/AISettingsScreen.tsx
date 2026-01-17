@@ -8,7 +8,7 @@ import {
   Platform,
   UIManager,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Text,
   useTheme,
@@ -160,6 +160,7 @@ export function AISettingsScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { settings, updateSettings } = useSettings();
+  const insets = useSafeAreaInsets();
 
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState('');
@@ -167,6 +168,9 @@ export function AISettingsScreen() {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [stats, setStats] = useState<AIUsageStats | null>(null);
   const [traits, setTraits] = useState<AIPersonalityTrait[]>([]);
+  const tabBarHeight = settings.showTabBarLabels ? 80 : 64;
+  const tabBarBottomPadding = insets.bottom + 12;
+  const snackbarBottom = tabBarHeight + tabBarBottomPadding + 8;
 
   // Load stats on mount
   useEffect(() => {
@@ -491,13 +495,16 @@ export function AISettingsScreen() {
         </Modal>
       </Portal>
 
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
-        duration={2000}
-      >
-        {snackbarMessage}
-      </Snackbar>
+      <Portal>
+        <Snackbar
+          visible={snackbarVisible}
+          onDismiss={() => setSnackbarVisible(false)}
+          duration={2000}
+          style={[styles.snackbar, { marginBottom: snackbarBottom }]}
+        >
+          {snackbarMessage}
+        </Snackbar>
+      </Portal>
     </SafeAreaView>
   );
 };
@@ -674,6 +681,10 @@ const styles = StyleSheet.create({
   },
   footerSpacing: {
     height: 40,
+  },
+  snackbar: {
+    zIndex: 1200,
+    elevation: 12,
   },
 });
 

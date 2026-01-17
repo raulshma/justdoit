@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
-import { Text, Button, useTheme, Surface } from 'react-native-paper';
+import { Text, Button, useTheme, Surface, Portal } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedIcon } from './ThemedIcon';
+import { useSettings } from '../context/SettingsContext';
 
 /**
  * Undo window duration in milliseconds (6 seconds for delete actions)
@@ -46,10 +48,15 @@ export const ActionToast: React.FC<ActionToastProps> = ({
   onDismiss,
 }) => {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const { settings } = useSettings();
   const [progress, setProgress] = useState(1);
   const [fadeAnim] = useState(new Animated.Value(0));
 
   const config = ACTION_CONFIG[actionType];
+  const surfaceColor = theme.colors.surface;
+  const textColor = theme.colors.onSurface;
+  const accentColor = actionType === 'delete' ? theme.colors.error : theme.colors.primary;
 
   // Handle visibility animation
   useEffect(() => {
@@ -95,123 +102,159 @@ export const ActionToast: React.FC<ActionToastProps> = ({
 
   if (!visible) return null;
 
+  const tabBarHeight = settings.showTabBarLabels ? 80 : 64;
+  const tabBarBottomPadding = insets.bottom + 12;
+  const bottomOffset = tabBarHeight + tabBarBottomPadding + 16;
+
   return (
-    <Animated.View
-      style={[
-        styles.container,
-        {
-          opacity: fadeAnim,
-          transform: [
-            {
-              translateY: fadeAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [50, 0],
-              }),
-            },
-          ],
-        },
-      ]}
-    >
-      <Surface
+    <Portal>
+      <Animated.View
         style={[
-          styles.toast,
-          { backgroundColor: theme.colors.inverseSurface || theme.colors.surfaceVariant },
+          styles.container,
+          {
+            bottom: bottomOffset,
+            opacity: fadeAnim,
+            transform: [
+              {
+                translateY: fadeAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [50, 0],
+                }),
+              },
+            ],
+          },
         ]}
-        elevation={4}
       >
-        {/* Progress bar */}
-        <View
+        <Surface
           style={[
-            styles.progressBar,
+            styles.toast,
             {
-              backgroundColor: actionType === 'delete' ? theme.colors.error : theme.colors.primary,
-              width: `${progress * 100}%`,
+              backgroundColor: surfaceColor,
+              borderColor: theme.colors.outlineVariant + '80',
             },
           ]}
-        />
+          elevation={5}
+        >
+          {/* Progress bar */}
+          <View
+            style={[
+              styles.progressBar,
+              {
+                backgroundColor: accentColor,
+                width: `${progress * 100}%`,
+              },
+            ]}
+          />
 
-        <View style={styles.content}>
-          <View style={styles.iconContainer}>
-            <ThemedIcon
-              name={config.icon as any}
-              size={24}
-              color={theme.colors.inverseOnSurface || theme.colors.onSurfaceVariant}
-            />
-          </View>
+          {/* Accent bar */}
+          <View style={[styles.accentBar, { backgroundColor: accentColor }]} />
 
-          <View style={styles.textContainer}>
-            <Text
-              variant="bodyMedium"
-              style={[
-                styles.title,
-                { color: theme.colors.inverseOnSurface || theme.colors.onSurfaceVariant },
-              ]}
-              numberOfLines={1}
+          <View style={styles.content}>
+            <View style={styles.leftColumn}>
+              <View
+                style={[
+                  styles.iconContainer,
+                  { backgroundColor: accentColor + '1F' },
+                ]}
+              >
+                <ThemedIcon
+                  name={config.icon as any}
+                  size={22}
+                  color={accentColor}
+                />
+              </View>
+            </View>
+
+            <View style={styles.textContainer}>
+              <Text
+                variant="titleSmall"
+                style={[
+                  styles.title,
+                  { color: textColor },
+                ]}
+                numberOfLines={1}
+              >
+                {config.message}
+              </Text>
+              <Text
+                variant="bodySmall"
+                style={[
+                  styles.subtitle,
+                  { color: textColor },
+                ]}
+                numberOfLines={1}
+              >
+                {goalTitle}
+              </Text>
+            </View>
+
+            <Button
+              mode="text"
+              onPress={handleUndo}
+              textColor={accentColor}
+              compact
+              style={styles.undoButton}
             >
-              {config.message}
-            </Text>
-            <Text
-              variant="bodySmall"
-              style={[
-                styles.subtitle,
-                { color: theme.colors.inverseOnSurface || theme.colors.onSurfaceVariant },
-              ]}
-              numberOfLines={1}
-            >
-              {goalTitle}
-            </Text>
+              UNDO
+            </Button>
           </View>
-
-          <Button
-            mode="text"
-            onPress={handleUndo}
-            textColor={actionType === 'delete' ? theme.colors.error : theme.colors.primary}
-            compact
-            style={styles.undoButton}
-          >
-            UNDO
-          </Button>
-        </View>
-      </Surface>
-    </Animated.View>
+        </Surface>
+      </Animated.View>
+    </Portal>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 100,
     left: 16,
     right: 16,
     zIndex: 1000,
+    elevation: 12,
   },
   toast: {
-    borderRadius: 12,
+    borderRadius: 18,
     overflow: 'hidden',
+    borderWidth: 1,
   },
   progressBar: {
-    height: 3,
+    height: 2,
     position: 'absolute',
     top: 0,
     left: 0,
   },
+  accentBar: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+  },
   content: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    paddingTop: 15,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 12,
+  },
+  leftColumn: {
+    paddingLeft: 4,
   },
   iconContainer: {
-    marginRight: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   textContainer: {
     flex: 1,
   },
   title: {
-    fontWeight: '600',
+    fontWeight: '700',
   },
   subtitle: {
-    opacity: 0.8,
+    opacity: 0.7,
     marginTop: 2,
   },
   undoButton: {
