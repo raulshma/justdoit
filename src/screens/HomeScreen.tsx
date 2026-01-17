@@ -3,7 +3,8 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { FAB, useTheme, Snackbar, Text, Portal } from 'react-native-paper';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { Goal, Challenge, CalendarEvent, PatternInsight, MotivationalMessage, RescheduleSuggestion } from '../types';
+import { getTodayDate } from '../utils/dateUtils';
+import type { Goal, Challenge, CalendarEvent, PatternInsight, MotivationalMessage, RescheduleSuggestion, Priority } from '../types';
 import { goalManager, calendarService, advancedAIService, carryForwardService } from '../services';
 import { useCategories } from '../context/CategoryContext';
 import { useGamification } from '../context/GamificationContext';
@@ -11,29 +12,15 @@ import { useStatistics } from '../context/StatisticsContext';
 import { useSettings } from '../context/SettingsContext';
 import {
   GoalList,
-  MotivationalBanner,
   CelebrationModal,
   GoalQuickView,
-  CategoryFilter,
-  XPDisplay,
-  LevelProgress,
-  ThemedIcon,
-  CalendarEventCard,
   WeeklyChallengesWidget,
   ChallengeQuickView,
   ActionToast,
   VoiceGoalCreator,
-  PatternInsightCard,
-  MotivationalMessageCard,
-  RescheduleSuggestionCard,
+  HomeHeader,
 } from '../components';
 
-/**
- * Gets today's date in ISO format (YYYY-MM-DD)
- */
-const getTodayDate = (): string => {
-  return new Date().toISOString().split('T')[0];
-};
 
 /**
  * HomeScreen - Main screen displaying today's and tomorrow's goals
@@ -109,20 +96,20 @@ export function HomeScreen() {
       const dateCompare = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
       if (dateCompare !== 0) return dateCompare;
       // Same date, sort by priority
-      const priorityOrder = { high: 0, medium: 1, low: 2 };
-      // @ts-ignore
+      const priorityOrder: Record<Priority, number> = { high: 0, medium: 1, low: 2 };
       return priorityOrder[a.priority] - priorityOrder[b.priority];
     });
+
 
     // Focus mode: show only top 3 priorities for today
     const focusModeGoals = settings.focusModeEnabled
       ? sortedGoals
           .filter((goal) => goal.dueDate === today)
           .sort((a, b) => {
-            const priorityOrder = { high: 0, medium: 1, low: 2 };
-            // @ts-ignore
+            const priorityOrder: Record<Priority, number> = { high: 0, medium: 1, low: 2 };
             return priorityOrder[a.priority] - priorityOrder[b.priority];
           })
+
           .slice(0, 3)
       : sortedGoals;
 
@@ -268,6 +255,13 @@ export function HomeScreen() {
   const handleDismissReschedule = useCallback((goalId: string) => {
     setRescheduleSuggestions((prev) => prev.filter((s) => s.goalId !== goalId));
   }, []);
+
+  const handleModifyReschedule = useCallback(
+    (suggestion: RescheduleSuggestion) => {
+      router.push({ pathname: '/goal/[id]', params: { id: suggestion.goalId, mode: 'edit' } });
+    },
+    [router]
+  );
 
   /**
    * Handle pull-to-refresh
@@ -584,130 +578,29 @@ export function HomeScreen() {
         refreshing={refreshing}
         onRefresh={handleRefresh}
         ListHeaderComponent={
-          <View>
-            {/* Header Section - Minimalist & Bold */}
-            <View style={styles.headerContainer}>
-              <View style={styles.topBar}>
-                <Text variant="labelLarge" style={[styles.dateLabel, { color: theme.colors.primary }]}>
-                  {new Date()
-                    .toLocaleDateString('en-US', { weekday: 'long', day: 'numeric' })
-                    .toUpperCase()}
-                </Text>
-
-                {/* XP Display - Compact */}
-                {settings.gamificationEnabled && (
-                  <TouchableOpacity onPress={handleOpenAchievements} activeOpacity={0.7}>
-                    <XPDisplay totalXP={totalXP} currentLevel={currentLevel} compact />
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              <Text variant="displayMedium" style={[styles.headerTitle, { color: theme.colors.onSurface }]}>
-                {(() => {
-                  const hour = new Date().getHours();
-                  if (hour < 12) return 'Good Morning.';
-                  if (hour < 18) return 'Good Afternoon.';
-                  return 'Good Evening.';
-                })()}
-              </Text>
-
-              <Text variant="headlineSmall" style={[styles.headerSubtitle, { color: theme.colors.outline }]}>
-                {(() => {
-                  const today = getTodayDate();
-                  const todayGoals = filteredGoals.filter((g) => g.dueDate === today);
-                  const remaining = todayGoals.filter((g) => !g.isCompleted).length;
-
-                  if (todayGoals.length === 0) return 'No tasks scheduled.';
-                  if (remaining === 0) return 'All clear.';
-                  return `${remaining} remaining.`;
-                })()}
-              </Text>
-
-              {/* Minimal Streak Display */}
-              {settings.gamificationEnabled && currentStreak > 0 && (
-                <View style={styles.streakContainer}>
-                  <ThemedIcon name="fire" size={20} color={theme.colors.error} />
-                  <Text variant="titleMedium" style={[styles.streakText, { color: theme.colors.onSurface }]}>
-                    {currentStreak} day streak
-                  </Text>
-                  {streakMultiplierText && (
-                    <View style={[styles.multiplierBadge, { backgroundColor: theme.colors.primaryContainer }]}>
-                      <Text variant="labelSmall" style={[styles.multiplierText, { color: theme.colors.primary }]}>
-                        {streakMultiplierText}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              )}
-
-              {/* Level Progress */}
-              {settings.gamificationEnabled && (
-                <View style={styles.levelProgressContainer}>
-                  <LevelProgress
-                    currentLevel={currentLevel}
-                    currentXP={levelProgress.current}
-                    requiredXP={levelProgress.required}
-                    percentage={levelProgress.percentage}
-                    compact
-                  />
-                </View>
-              )}
-            </View>
-
-            {/* Calendar Events Section */}
-            {settings.calendarIntegrationEnabled && calendarEvents.length > 0 && (
-              <View style={styles.calendarSection}>
-                <View style={styles.calendarHeader}>
-                  <Text variant="labelLarge" style={[styles.calendarTitle, { color: theme.colors.onSurface }]}>
-                    SCHEDULE
-                  </Text>
-                </View>
-                {calendarEvents.slice(0, 3).map((event) => (
-                  <CalendarEventCard key={event.id} event={event} />
-                ))}
-              </View>
-            )}
-
-            {/* Category Filter Chips */}
-            <CategoryFilter
-              selectedCategoryId={selectedCategoryId}
-              onSelectCategory={handleCategorySelect}
-              showAllOption
-            />
-
-            <MotivationalBanner />
-
-            {/* AI Motivational Message */}
-            {motivationalMessage && (
-              <View style={{ marginHorizontal: 24, marginBottom: 12 }}>
-                <MotivationalMessageCard message={motivationalMessage} onDismiss={handleDismissMotivation} />
-              </View>
-            )}
-
-            {/* AI Reschedule Suggestions */}
-            {rescheduleSuggestions.length > 0 && (
-              <View style={{ marginHorizontal: 24, marginBottom: 12 }}>
-                {rescheduleSuggestions.map((suggestion) => (
-                  <RescheduleSuggestionCard
-                    key={suggestion.goalId}
-                    suggestion={suggestion}
-                    onAccept={handleAcceptReschedule}
-                    onModify={(s) => router.push({ pathname: '/goal/[id]', params: { id: s.goalId, mode: 'edit' } })}
-                    onDismiss={handleDismissReschedule}
-                  />
-                ))}
-              </View>
-            )}
-
-            {/* AI Pattern Insights */}
-            {patternInsights.length > 0 && (
-              <View style={{ marginHorizontal: 24, marginBottom: 12 }}>
-                {patternInsights.map((insight) => (
-                  <PatternInsightCard key={insight.id} insight={insight} onDismiss={handleDismissPatternInsight} />
-                ))}
-              </View>
-            )}
-          </View>
+          <HomeHeader
+            goals={goals}
+            filteredGoals={filteredGoals}
+            calendarEvents={calendarEvents}
+            totalXP={totalXP}
+            currentLevel={currentLevel}
+            levelProgress={levelProgress}
+            currentStreak={currentStreak}
+            streakMultiplierText={streakMultiplierText}
+            selectedCategoryId={selectedCategoryId}
+            rescheduleSuggestions={rescheduleSuggestions}
+            patternInsights={patternInsights}
+            motivationalMessage={motivationalMessage}
+            gamificationEnabled={settings.gamificationEnabled}
+            calendarIntegrationEnabled={settings.calendarIntegrationEnabled}
+            onSelectCategory={handleCategorySelect}
+            onOpenAchievements={handleOpenAchievements}
+            onDismissMotivation={handleDismissMotivation}
+            onAcceptReschedule={handleAcceptReschedule}
+            onModifyReschedule={handleModifyReschedule}
+            onDismissReschedule={handleDismissReschedule}
+            onDismissPatternInsight={handleDismissPatternInsight}
+          />
         }
         ListFooterComponent={
           /* Active Challenges - Moved to Bottom (only when gamification enabled) */
@@ -814,60 +707,6 @@ export function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  headerContainer: {
-    paddingHorizontal: 24,
-    paddingTop: 8,
-    paddingBottom: 24,
-  },
-  topBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  dateLabel: {
-    letterSpacing: 1.5,
-    fontWeight: '600',
-  },
-  headerTitle: {
-    fontWeight: '700',
-    letterSpacing: -0.5,
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontWeight: '400',
-  },
-  streakContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 16,
-    gap: 8,
-  },
-  streakText: {
-    fontWeight: '600',
-  },
-  multiplierBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  multiplierText: {
-    fontWeight: '700',
-  },
-  levelProgressContainer: {
-    marginTop: 16,
-  },
-  calendarSection: {
-    marginHorizontal: 24,
-    marginBottom: 16,
-  },
-  calendarHeader: {
-    marginBottom: 8,
-  },
-  calendarTitle: {
-    letterSpacing: 1.5,
-    fontWeight: '600',
   },
   fab: {
     borderRadius: 20,

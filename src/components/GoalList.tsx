@@ -20,7 +20,8 @@ interface GoalListProps {
   itemVariant?: 'default' | 'minimal';
 }
 
-type DateStatus = 'overdue' | 'today' | 'tomorrow' | 'upcoming';
+import { getDateStatus, formatDateFriendly } from '../utils/dateUtils';
+import type { DateStatus } from '../utils/dateUtils';
 
 interface GoalSection {
   title: string;
@@ -30,56 +31,6 @@ interface GoalSection {
   rawDate: string;
 }
 
-/**
- * Get date status for a given date string
- */
-const getDateStatus = (dateString: string): DateStatus => {
-  const date = new Date(dateString);
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
-  // Reset time for comparison
-  today.setHours(0, 0, 0, 0);
-  tomorrow.setHours(0, 0, 0, 0);
-  date.setHours(0, 0, 0, 0);
-
-  if (date.getTime() < today.getTime()) {
-    return 'overdue';
-  }
-  if (date.getTime() === today.getTime()) {
-    return 'today';
-  }
-  if (date.getTime() === tomorrow.getTime()) {
-    return 'tomorrow';
-  }
-  return 'upcoming';
-};
-
-/**
- * Format date for section header display
- */
-const formatDateHeader = (dateString: string, dateStatus: DateStatus): string => {
-  if (dateStatus === 'overdue') {
-    const date = new Date(dateString);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    date.setHours(0, 0, 0, 0);
-    const diffDays = Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays <= 7) return `${diffDays} days overdue`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  }
-  if (dateStatus === 'today') return 'Today';
-  if (dateStatus === 'tomorrow') return 'Tomorrow';
-  
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'short',
-    day: 'numeric',
-  });
-};
 
 /**
  * Group goals by their due date with status
@@ -99,7 +50,7 @@ const groupGoalsByDate = (goals: Goal[]): GoalSection[] => {
     .map(([date, dateGoals]) => {
       const dateStatus = getDateStatus(date);
       return {
-        title: formatDateHeader(date, dateStatus),
+        title: formatDateFriendly(date),
         data: dateGoals,
         isToday: dateStatus === 'today',
         dateStatus,

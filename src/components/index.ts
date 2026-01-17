@@ -97,3 +97,5 @@ export { MoodBoardSection } from './MoodBoardSection';
 
 // Alert components
 export { CustomAlert } from './CustomAlert';
+
+export { HomeHeader } from './HomeHeader';
