@@ -9,6 +9,7 @@ interface CategoryPickerProps {
   value?: string;
   onChange: (categoryId: string) => void;
   label?: string;
+  disabled?: boolean;
 }
 
 /**
@@ -19,6 +20,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
   value,
   onChange,
   label = 'Category',
+  disabled = false,
 }) => {
   const theme = useTheme();
   const { categories, isLoading } = useCategories();
@@ -59,6 +61,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
               key={category.id}
               onPress={() => onChange(category.id)}
               activeOpacity={0.7}
+              disabled={disabled}
             >
               <Surface
                 style={[

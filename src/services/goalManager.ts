@@ -23,6 +23,7 @@ export interface CreateGoalInput {
   dependsOn?: string[];
   isMilestone?: boolean;
   childGoalIds?: string[];
+  categoryId?: string;
   // Rich media fields
   coverImage?: string;
   progressPhotos?: GoalImage[];
@@ -48,6 +49,7 @@ export interface UpdateGoalInput {
   dependsOn?: string[];
   isMilestone?: boolean;
   childGoalIds?: string[];
+  categoryId?: string;
   // Rich media fields
   coverImage?: string;
   progressPhotos?: GoalImage[];
@@ -171,6 +173,7 @@ export class GoalManager implements IGoalManager {
       blockedBy,
       isMilestone: input.isMilestone,
       childGoalIds: input.childGoalIds,
+      categoryId: input.categoryId,
       // Rich media fields
       coverImage: input.coverImage,
       progressPhotos: input.progressPhotos,
@@ -277,6 +280,7 @@ export class GoalManager implements IGoalManager {
       ...(updates.dependsOn !== undefined && { dependsOn: updates.dependsOn }),
       ...(updates.isMilestone !== undefined && { isMilestone: updates.isMilestone }),
       ...(updates.childGoalIds !== undefined && { childGoalIds: updates.childGoalIds }),
+      ...(updates.categoryId !== undefined && { categoryId: updates.categoryId }),
       blockedBy: newBlockedBy,
     };
 
@@ -645,6 +649,7 @@ export class GoalManager implements IGoalManager {
         parentGoalId: parentGoalId, // Reference to original goal
       },
       reminderTime: newReminderTime,
+      categoryId: goal.categoryId,
     };
 
     // Schedule reminder for new occurrence if it has a reminder time

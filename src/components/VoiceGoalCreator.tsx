@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, StyleSheet, Modal, TouchableOpacity, ScrollView, ActivityIndicator, Animated } from 'react-native';
-import { Text, useTheme, Button, IconButton, TextInput, Portal } from 'react-native-paper';
+import { Text, useTheme, Button, IconButton, TextInput, Portal, Surface, Modal as PaperModal } from 'react-native-paper';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import { ThemedIcon } from './ThemedIcon';
 import { voiceParserService } from '../services/voiceParserService';
 import { ParsedVoiceGoal } from '../types/voiceGoal';
-import { Goal } from '../types';
+import { Goal, Priority, RecurrencePattern } from '../types';
+import { PriorityPicker } from './PriorityPicker';
+import { CategoryPicker } from './CategoryPicker';
+import { RecurrencePicker } from './RecurrencePicker';
 
 interface VoiceGoalCreatorProps {
   visible: boolean;
@@ -19,6 +22,25 @@ const NUM_BARS = 7;
 const MIN_VOLUME = -2;
 const MAX_VOLUME = 10;
 
+const getTomorrowDate = (): Date => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+  return tomorrow;
+};
+
+
+
+type EditableGoalValues = {
+  title: string;
+  description: string;
+  dueDate: Date;
+  priority: Priority;
+  recurrence: RecurrencePattern;
+  categoryId?: string;
+  confidence: number;
+};
+
 export const VoiceGoalCreator: React.FC<VoiceGoalCreatorProps> = ({
   visible,
   onDismiss,
@@ -31,6 +53,8 @@ export const VoiceGoalCreator: React.FC<VoiceGoalCreatorProps> = ({
   const [interimTranscript, setInterimTranscript] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [parsedGoal, setParsedGoal] = useState<ParsedVoiceGoal | null>(null);
+  const [editingValues, setEditingValues] = useState<EditableGoalValues | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   // Animation refs for audio visualization
@@ -41,12 +65,33 @@ export const VoiceGoalCreator: React.FC<VoiceGoalCreatorProps> = ({
   // Pulse animation for the outer ring
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
+  // Refresh date options when visible changes
+  const dateOptions = React.useMemo(() => {
+    const options = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i < 14; i++) {
+        const date = new Date(today);
+        date.setDate(date.getDate() + i);
+        
+        let label;
+        if (i === 0) label = 'Today';
+        else if (i === 1) label = 'Tomorrow';
+        else label = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+        options.push({ date, label, isToday: i === 0 });
+    }
+    return options;
+  }, [visible]);
+
   // Reset state when visible changes
   useEffect(() => {
     if (visible) {
       setTranscript('');
       setInterimTranscript('');
       setParsedGoal(null);
+      setEditingValues(null);
       setError(null);
       startListening();
     } else {
@@ -189,6 +234,26 @@ export const VoiceGoalCreator: React.FC<VoiceGoalCreatorProps> = ({
       const result = await voiceParserService.parseVoiceCommand(text);
       if (result) {
         setParsedGoal(result);
+        
+        // Initialize editing values
+        const initialDate = result.dueDate 
+            ? new Date(result.dueDate) 
+            : new Date(); // Default to today if parsed date is invalid/missing
+            
+        // Validate date
+        if (isNaN(initialDate.getTime())) {
+            initialDate.setTime(Date.now());
+        }
+
+        setEditingValues({
+            title: result.title,
+            description: result.description || '',
+            dueDate: initialDate,
+            priority: result.priority || 'medium',
+            recurrence: { type: result.recurrence || 'none' },
+            categoryId: result.categoryId,
+            confidence: result.confidence
+        });
       } else {
         setError('Could not understand command');
       }
@@ -200,16 +265,18 @@ export const VoiceGoalCreator: React.FC<VoiceGoalCreatorProps> = ({
   };
 
   const handleCreate = () => {
-    if (parsedGoal) {
-      // Convert ParsedVoiceGoal to partial Goal object expected by createGoal
+    if (editingValues) {
+      // Format date manually to avoid UTC conversion issues (off-by-one error)
+      const d = editingValues.dueDate;
+      const formattedDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      
       const goalData = {
-        title: parsedGoal.title,
-        description: parsedGoal.description,
-        dueDate: parsedGoal.dueDate || new Date().toISOString().split('T')[0],
-        priority: parsedGoal.priority || 'medium',
-        recurrence: parsedGoal.recurrence ? { type: parsedGoal.recurrence } : { type: 'none' },
-        categoryId: parsedGoal.categoryId,
-        // Calculate reminder if needed?
+        title: editingValues.title,
+        description: editingValues.description,
+        dueDate: formattedDate,
+        priority: editingValues.priority,
+        recurrence: editingValues.recurrence,
+        categoryId: editingValues.categoryId,
       };
       onGoalCreated(goalData);
       onDismiss();
@@ -218,6 +285,7 @@ export const VoiceGoalCreator: React.FC<VoiceGoalCreatorProps> = ({
 
   const handleRetry = () => {
     setParsedGoal(null);
+    setEditingValues(null);
     setTranscript('');
     setInterimTranscript('');
     startListening();
@@ -327,25 +395,56 @@ export const VoiceGoalCreator: React.FC<VoiceGoalCreatorProps> = ({
                   <Text style={{ color: theme.colors.error, marginTop: 16 }}>{error}</Text>
               )}
             </View>
-          ) : (
+          ) : editingValues ? (
             <ScrollView contentContainerStyle={styles.confirmationState}>
               <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant }}>TITLE</Text>
               <TextInput 
-                  value={parsedGoal.title}
-                  onChangeText={(t) => setParsedGoal({...parsedGoal, title: t})}
+                  value={editingValues.title}
+                  onChangeText={(t) => setEditingValues({...editingValues, title: t})}
                   mode="outlined"
                   style={{ marginBottom: 16, backgroundColor: theme.colors.surface }}
               />
 
-              <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant }}>DUE DATE</Text>
-              <Button mode="outlined" style={{ marginBottom: 16, alignItems: 'flex-start' }} contentStyle={{ justifyContent: 'flex-start' }} textColor={theme.colors.onSurface}>
-                  {parsedGoal.dueDate || 'Today'}
-              </Button>
+              <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant }}>DESCRIPTION</Text>
+              <TextInput 
+                  value={editingValues.description}
+                  onChangeText={(t) => setEditingValues({...editingValues, description: t})}
+                  mode="outlined"
+                  multiline
+                  style={{ marginBottom: 16, backgroundColor: theme.colors.surface, minHeight: 80 }}
+              />
 
-              <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant }}>CONFIDENCE</Text>
+              <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant }}>DUE DATE</Text>
+              <TouchableOpacity 
+                  onPress={() => setShowDatePicker(true)}
+                  activeOpacity={0.7}
+                  style={[styles.dateButton, { borderColor: theme.colors.outline }]}
+              >
+                  <Text style={{ color: theme.colors.onSurface, fontSize: 16 }}>
+                      {editingValues.dueDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                  </Text>
+                  <ThemedIcon name="calendar" size={20} themeColor="primary" />
+              </TouchableOpacity>
+
+              <PriorityPicker 
+                  value={editingValues.priority} 
+                  onChange={(p) => setEditingValues({...editingValues, priority: p})} 
+              />
+
+              <CategoryPicker 
+                  value={editingValues.categoryId}
+                  onChange={(c) => setEditingValues({...editingValues, categoryId: c})}
+              />
+
+              <RecurrencePicker 
+                  value={editingValues.recurrence}
+                  onChange={(r) => setEditingValues({...editingValues, recurrence: r})}
+              />
+
+              <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant, marginTop: 8 }}>CONFIDENCE</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24 }}>
-                  <Text style={{ color: parsedGoal.confidence > 0.8 ? theme.colors.primary : theme.colors.error }}>
-                      {Math.round(parsedGoal.confidence * 100)}%
+                  <Text style={{ color: editingValues.confidence > 0.8 ? theme.colors.primary : theme.colors.error }}>
+                      {Math.round(editingValues.confidence * 100)}%
                   </Text>
               </View>
 
@@ -358,6 +457,50 @@ export const VoiceGoalCreator: React.FC<VoiceGoalCreatorProps> = ({
                   </Button>
               </View>
             </ScrollView>
+          ) : null}
+
+          {/* Date Picker Modal */}
+          {editingValues && (
+            <Portal>
+                <PaperModal
+                visible={showDatePicker}
+                onDismiss={() => setShowDatePicker(false)}
+                contentContainerStyle={[
+                    styles.modalContent,
+                    { backgroundColor: theme.colors.surface },
+                ]}
+                >
+                <Text variant="headlineSmall" style={[styles.modalTitle, { color: theme.colors.onSurface }]}>When is this due?</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateScroll}>
+                    {dateOptions.map((option, index) => {
+                    const isSelected = editingValues.dueDate.toDateString() === option.date.toDateString();
+                    return (
+                        <TouchableOpacity
+                        key={index}
+                        onPress={() => {
+                            setEditingValues({...editingValues, dueDate: option.date});
+                            setShowDatePicker(false);
+                        }}
+                        style={[
+                            styles.dateCard,
+                            {
+                            backgroundColor: isSelected ? theme.colors.primary : theme.colors.surfaceVariant,
+                            }
+                        ]}
+                        >
+                        <Text style={[styles.dateCardTitle, { color: isSelected ? theme.colors.onPrimary : theme.colors.onSurface }]}>
+                            {option.label}
+                        </Text>
+                        <Text style={{ color: isSelected ? theme.colors.onPrimary : theme.colors.onSurfaceVariant, opacity: 0.8 }}>
+                            {option.date.getDate()}
+                        </Text>
+                        </TouchableOpacity>
+                    );
+                    })}
+                </ScrollView>
+                <Button mode="text" onPress={() => setShowDatePicker(false)} style={{ marginTop: 24 }}>Cancel</Button>
+                </PaperModal>
+            </Portal>
           )}
 
         </View>
@@ -423,5 +566,45 @@ const styles = StyleSheet.create({
       flexDirection: 'row',
       justifyContent: 'space-between',
       marginTop: 24,
+      marginBottom: 32,
+  },
+  dateButton: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 16,
+      borderRadius: 4,
+      borderWidth: 1,
+      marginBottom: 16,
+  },
+  modalContent: {
+    margin: 20,
+    padding: 24,
+    borderRadius: 24,
+  },
+  modalTitle: {
+    textAlign: 'center',
+    marginBottom: 24,
+    fontWeight: '700',
+  },
+  dateScroll: {
+    gap: 12,
+    paddingHorizontal: 4,
+    maxHeight: 120,
+    flexGrow: 0,
+  },
+  dateCard: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    alignItems: 'center',
+    minWidth: 80,
+  },
+  dateCardTitle: {
+    fontWeight: '600',
+    marginBottom: 4,
+    fontSize: 12,
+    textTransform: 'uppercase',
   },
 });
+

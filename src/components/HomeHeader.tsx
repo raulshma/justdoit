@@ -2,17 +2,15 @@ import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import type { CalendarEvent, Goal, PatternInsight, MotivationalMessage, RescheduleSuggestion } from '../types';
-import {
-  MotivationalBanner,
-  CategoryFilter,
-  XPDisplay,
-  LevelProgress,
-  ThemedIcon,
-  CalendarEventCard,
-  PatternInsightCard,
-  MotivationalMessageCard,
-  RescheduleSuggestionCard,
-} from '.';
+import { MotivationalBanner } from './MotivationalBanner';
+import { CategoryFilter } from './CategoryFilter';
+import { XPDisplay } from './XPDisplay';
+import { LevelProgress } from './LevelProgress';
+import { ThemedIcon } from './ThemedIcon';
+import { CalendarEventCard } from './CalendarEventCard';
+import { PatternInsightCard } from './PatternInsightCard';
+import { MotivationalMessageCard } from './MotivationalMessageCard';
+import { RescheduleSuggestionCard } from './RescheduleSuggestionCard';
 import { getTodayDate } from '../utils/dateUtils';
 
 interface HomeHeaderProps {

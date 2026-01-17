@@ -17,6 +17,8 @@ import Animated, {
 import { BlurView } from 'expo-blur';
 import { Text, useTheme, Surface } from 'react-native-paper';
 import { ThemedIcon } from './ThemedIcon';
+import { useCategories } from '../context/CategoryContext';
+import { CategoryBadge } from './CategoryBadge';
 import type { Goal, Priority } from '../types/goal';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -94,6 +96,10 @@ export const GoalQuickView: React.FC<GoalQuickViewProps> = ({
   onDismiss,
 }) => {
   const theme = useTheme();
+  const { getCategoryById } = useCategories();
+
+  // Get category info if availables
+  const category = goal?.categoryId ? getCategoryById(goal.categoryId) : undefined;
   
   // Animation values
   const backdropOpacity = useSharedValue(0);
@@ -213,6 +219,18 @@ export const GoalQuickView: React.FC<GoalQuickViewProps> = ({
 
           {/* Metadata Section */}
           <View style={[styles.metadataSection, { backgroundColor: theme.colors.surfaceVariant }]}>
+            
+            {/* Category */}
+            {category && (
+              <View style={styles.metadataRow}>
+                <ThemedIcon name="tag-outline" size={20} themeColor="primary" />
+                <Text style={[styles.metadataLabel, { color: theme.colors.onSurfaceVariant }]}>
+                  Category
+                </Text>
+                <CategoryBadge category={category} />
+              </View>
+            )}
+
             {/* Due Date */}
             <View style={styles.metadataRow}>
               <ThemedIcon name="calendar" size={20} themeColor="primary" />
@@ -233,6 +251,71 @@ export const GoalQuickView: React.FC<GoalQuickViewProps> = ({
                 </Text>
                 <Text style={[styles.metadataValue, { color: theme.colors.onSurface }]}>
                   {new Date(goal.reminderTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              </View>
+            )}
+
+            {/* Subgoals */}
+            {goal.subgoals && goal.subgoals.length > 0 && (
+              <View style={styles.metadataRow}>
+                <ThemedIcon name="format-list-checks" size={20} themeColor="secondary" />
+                <Text style={[styles.metadataLabel, { color: theme.colors.onSurfaceVariant }]}>
+                  Subgoals
+                </Text>
+                <Text style={[styles.metadataValue, { color: theme.colors.onSurface }]}>
+                  {goal.subgoals.filter(s => s.isCompleted).length}/{goal.subgoals.length}
+                </Text>
+              </View>
+            )}
+
+            {/* Focus Stats */}
+            {(goal.focusSessionsCompleted || 0) > 0 && (
+              <View style={styles.metadataRow}>
+                <ThemedIcon name="timer-outline" size={20} themeColor="tertiary" />
+                <Text style={[styles.metadataLabel, { color: theme.colors.onSurfaceVariant }]}>
+                  Focus Time
+                </Text>
+                <Text style={[styles.metadataValue, { color: theme.colors.onSurface }]}>
+                   {goal.focusSessionsCompleted} sessions ({goal.totalFocusMinutes || 0}m)
+                </Text>
+              </View>
+            )}
+
+            {/* Postponed */}
+             {(goal.postponeCount || 0) > 0 && (
+              <View style={styles.metadataRow}>
+                <ThemedIcon name="clock-alert-outline" size={20} themeColor="error" />
+                <Text style={[styles.metadataLabel, { color: theme.colors.onSurfaceVariant }]}>
+                  Postponed
+                </Text>
+                <Text style={[styles.metadataValue, { color: theme.colors.error }]}>
+                  {goal.postponeCount} times
+                </Text>
+              </View>
+            )}
+
+            {/* Voice Note */}
+            {goal.voiceNoteUri && (
+              <View style={styles.metadataRow}>
+                <ThemedIcon name="microphone" size={20} themeColor="primary" />
+                <Text style={[styles.metadataLabel, { color: theme.colors.onSurfaceVariant }]}>
+                  Voice Note
+                </Text>
+                <Text style={[styles.metadataValue, { color: theme.colors.onSurface }]}>
+                  {goal.voiceNoteDuration ? `${Math.round(goal.voiceNoteDuration)}s` : 'Attached'}
+                </Text>
+              </View>
+            )}
+            
+            {/* Image */}
+            {(goal.coverImage || goal.imageUri) && (
+              <View style={styles.metadataRow}>
+                <ThemedIcon name="image-outline" size={20} themeColor="secondary" />
+                <Text style={[styles.metadataLabel, { color: theme.colors.onSurfaceVariant }]}>
+                  Image
+                </Text>
+                <Text style={[styles.metadataValue, { color: theme.colors.onSurface }]}>
+                  Attached
                 </Text>
               </View>
             )}

@@ -42,6 +42,7 @@ import {
   MoodBoardSection,
   AIGoalCoach,
   GoalBreakdownModal,
+  CategoryPicker,
 } from '../components';
 import { ThemedIcon } from '../components/ThemedIcon';
 
@@ -63,6 +64,7 @@ interface GoalFormValues {
   progressPhotos: GoalImage[];
   moodBoardImages: GoalImage[];
   visionBoardImages: GoalImage[];
+  categoryId: string | undefined;
 }
 
 const getTomorrowDate = (): Date => {
@@ -163,6 +165,7 @@ const getDefaultFormValues = (): GoalFormValues => ({
   progressPhotos: [],
   moodBoardImages: [],
   visionBoardImages: [],
+  categoryId: undefined,
 });
 
 /**
@@ -250,6 +253,7 @@ export function GoalFormScreen({ goalId, mode: propsMode }: GoalFormScreenProps)
             progressPhotos: value.progressPhotos.length > 0 ? value.progressPhotos : undefined,
             moodBoardImages: value.moodBoardImages.length > 0 ? value.moodBoardImages : undefined,
             visionBoardImages: value.visionBoardImages.length > 0 ? value.visionBoardImages : undefined,
+            categoryId: value.categoryId,
           });
         } else if (isEditing && goalId) {
           await goalManager.updateGoal(goalId, {
@@ -267,6 +271,7 @@ export function GoalFormScreen({ goalId, mode: propsMode }: GoalFormScreenProps)
             progressPhotos: value.progressPhotos,
             moodBoardImages: value.moodBoardImages,
             visionBoardImages: value.visionBoardImages,
+            categoryId: value.categoryId,
           });
         }
         router.back();
@@ -306,6 +311,7 @@ export function GoalFormScreen({ goalId, mode: propsMode }: GoalFormScreenProps)
         form.setFieldValue('progressPhotos', loadedGoal.progressPhotos || []);
         form.setFieldValue('moodBoardImages', loadedGoal.moodBoardImages || []);
         form.setFieldValue('visionBoardImages', loadedGoal.visionBoardImages || []);
+        form.setFieldValue('categoryId', loadedGoal.categoryId);
         
         // Load subgoals
         const loadedSubgoals = loadedGoal.subgoals || [];
@@ -986,6 +992,20 @@ export function GoalFormScreen({ goalId, mode: propsMode }: GoalFormScreenProps)
               )}
             />
           )}
+          
+
+
+          {/* Category Section */}
+          <form.Field
+            name="categoryId"
+            children={(field) => (
+              <CategoryPicker 
+                value={field.state.value} 
+                onChange={field.handleChange} 
+                disabled={isReadOnly}
+              />
+            )}
+          />
           
           {/* Recurrence Section */}
           {isReadOnly ? (
