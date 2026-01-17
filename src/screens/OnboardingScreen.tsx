@@ -9,13 +9,16 @@ import {
   ListRenderItemInfo,
   ViewToken,
 } from 'react-native';
-import { Text, useTheme, Switch } from 'react-native-paper';
+import { Text, useTheme, Switch, Surface } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useSettings } from '../context/SettingsContext';
 import { ThemeMood, ColorPalette, ColorPaletteInfo } from '../types/settings';
 import { colorPaletteInfoList } from '../theme/colors';
 import { DEFAULT_REMINDER_TIME } from '../constants';
+import { APIKeySettings } from '../components/ai-settings/APIKeySettings';
+import { AIFeaturesSettings } from '../components/ai-settings/AIFeaturesSettings';
+import { AIPrivacySettings } from '../components/ai-settings/AIPrivacySettings';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -75,6 +78,11 @@ export function OnboardingScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [selectedTime, setSelectedTime] = useState(DEFAULT_REMINDER_TIME);
   const [aiEnabled, setAiEnabled] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+  const [smartRemindersEnabled, setSmartRemindersEnabled] = useState(true);
+  const [personalityEnabled, setPersonalityEnabled] = useState(true);
+  const [piiEnabled, setPiiEnabled] = useState(true);
+
   const [gamificationEnabled, setGamificationEnabled] = useState(true);
   const [focusModeEnabled, setFocusModeEnabled] = useState(false);
   const [carryForwardEnabled, setCarryForwardEnabled] = useState(true);
@@ -123,11 +131,17 @@ export function OnboardingScreen() {
       focusWorkDuration,
       focusAmbientSoundEnabled: focusAmbientEnabled,
       focusAmbientSound: selectedAmbientSound,
-      // AI Features - all enabled/disabled based on user choice
-      smartRemindersEnabled: aiEnabled,
+      
+      // AI Features configuration
+      openRouterApiKey: apiKey,
+      smartRemindersEnabled: aiEnabled && smartRemindersEnabled,
+      aiPersonalityEnabled: aiEnabled && personalityEnabled,
+      aiPiiAnonymizationEnabled: piiEnabled,
+      
+      // Default enabled features if AI is on
       aiGoalCoachEnabled: aiEnabled,
       aiSmartReschedulingEnabled: aiEnabled,
-      aiPatternDetectionEnabled: aiEnabled,
+      aiPatternDetectionEnabled: aiEnabled && personalityEnabled,
       aiGoalBreakdownEnabled: aiEnabled,
       aiMotivationalEnabled: aiEnabled,
       aiPredictiveEnabled: aiEnabled,
@@ -541,7 +555,8 @@ export function OnboardingScreen() {
       <Text variant="bodyMedium" style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
         Get smart suggestions, optimal reminder times, and personalized productivity tips.
       </Text>
-      <View style={[styles.toggleRow, { backgroundColor: theme.colors.surfaceVariant, marginTop: 32 }]}>
+      
+      <View style={[styles.toggleRow, { backgroundColor: theme.colors.surfaceVariant, marginTop: 24, marginBottom: 16 }]}>
         <View style={styles.toggleLabel}>
           <Icon name="star-four-points-outline" size={24} color={theme.colors.onSurface} />
           <Text variant="bodyLarge" style={{ color: theme.colors.onSurface, marginLeft: 12 }}>
@@ -550,9 +565,38 @@ export function OnboardingScreen() {
         </View>
         <Switch value={aiEnabled} onValueChange={setAiEnabled} />
       </View>
-      <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 12, textAlign: 'center' }}>
-        You can configure your AI provider in Settings later.
-      </Text>
+
+      {aiEnabled && (
+        <Surface style={[styles.card, { backgroundColor: theme.colors.surface }]} elevation={0}>
+          <APIKeySettings 
+            apiKey={apiKey} 
+            onSave={async (key) => setApiKey(key)} 
+          />
+          
+          {apiKey ? (
+            <>
+              <AIFeaturesSettings
+                smartRemindersEnabled={smartRemindersEnabled}
+                onSmartRemindersToggle={() => setSmartRemindersEnabled(!smartRemindersEnabled)}
+                personalityEnabled={personalityEnabled}
+                onPersonalityToggle={() => setPersonalityEnabled(!personalityEnabled)}
+                hasApiKey={true}
+              />
+              <AIPrivacySettings 
+                piiEnabled={piiEnabled}
+                onPiiToggle={() => setPiiEnabled(!piiEnabled)}
+                isLast={true}
+              />
+            </>
+          ) : (
+             <View style={{ padding: 16, alignItems: 'center' }}>
+                <Text variant="bodySmall" style={{ color: theme.colors.error }}>
+                   Please set your OpenRouter API Key to continue
+                </Text>
+             </View>
+          )}
+        </Surface>
+      )}
     </View>
   );
 
@@ -709,6 +753,12 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     alignItems: 'center',
+  },
+  card: {
+    width: '100%',
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginTop: 8,
   },
   toggleRow: {
     flexDirection: 'row',

@@ -3,33 +3,28 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  TextInput,
   LayoutAnimation,
-  Platform,
-  UIManager,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Text,
   useTheme,
-  Switch,
-  Button,
-  Portal,
-  Modal,
-  Snackbar,
   Icon,
   Surface,
-  TouchableRipple,
+  IconButton,
   Chip,
   ProgressBar,
-  IconButton,
 } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import type { AppSettings, AIFocusArea } from '../types';
 import { AI_FOCUS_AREAS, AIUsageStats, AIPersonalityTrait } from '../types/aiSettings';
 import { aiLogService, aiStatsService } from '../services';
 import { useSettings } from '../context/SettingsContext';
-import { piiAnonymizer } from '../utils/piiAnonymizer';
+import { SettingRow } from '../components/SettingRow';
+import { APIKeySettings } from '../components/ai-settings/APIKeySettings';
+import { AIFeaturesSettings } from '../components/ai-settings/AIFeaturesSettings';
+import { AIPrivacySettings } from '../components/ai-settings/AIPrivacySettings';
+import { AIModelRow } from '../components/ai-settings/AIModelRow';
 
 /**
  * Stat Card Component - Displays a single statistic
@@ -101,59 +96,6 @@ const TraitCard = memo(({
 });
 
 /**
- * Setting Row Component - Reused from SettingsScreen
- */
-const SettingRow = memo(({
-  icon,
-  title,
-  subtitle,
-  right,
-  onPress,
-  disabled = false,
-  isLast = false,
-}: {
-  icon: string;
-  title: string;
-  subtitle?: string;
-  right?: React.ReactNode;
-  onPress?: () => void;
-  disabled?: boolean;
-  isLast?: boolean;
-}) => {
-  const theme = useTheme();
-  
-  return (
-    <TouchableRipple 
-      onPress={!disabled && onPress ? onPress : undefined}
-      disabled={disabled}
-      style={[
-        styles.settingRow, 
-        disabled && styles.disabledRow,
-        !isLast && { borderBottomWidth: 1, borderBottomColor: theme.colors.outlineVariant + '40' }
-      ]}
-      rippleColor={theme.colors.primaryContainer + '40'}
-    >
-      <View style={styles.settingRowContent}>
-        <Surface style={[styles.iconContainer, { backgroundColor: theme.colors.secondaryContainer + '50' }]} elevation={0}>
-          <Icon source={icon} size={24} color={theme.colors.onSecondaryContainer} />
-        </Surface>
-        <View style={styles.settingTextContainer}>
-          <Text variant="titleMedium" style={[styles.settingTitle, { color: theme.colors.onSurface }]}>
-            {title}
-          </Text>
-          {subtitle && (
-            <Text variant="bodyMedium" style={[styles.settingSubtitle, { color: theme.colors.onSurfaceVariant }]}>
-              {subtitle}
-            </Text>
-          )}
-        </View>
-        {right && <View style={styles.settingRight}>{right}</View>}
-      </View>
-    </TouchableRipple>
-  );
-});
-
-/**
  * AISettingsScreen - Dedicated AI configuration and analytics
  */
 export function AISettingsScreen() {
@@ -162,16 +104,9 @@ export function AISettingsScreen() {
   const { settings, updateSettings } = useSettings();
   const insets = useSafeAreaInsets();
 
-  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState('');
-  const [snackbarVisible, setSnackbarVisible] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
   const [stats, setStats] = useState<AIUsageStats | null>(null);
   const [traits, setTraits] = useState<AIPersonalityTrait[]>([]);
-  const tabBarHeight = settings.showTabBarLabels ? 80 : 64;
-  const tabBarBottomPadding = insets.bottom + 12;
-  const snackbarBottom = tabBarHeight + tabBarBottomPadding + 8;
-
+  
   // Load stats on mount
   useEffect(() => {
     setStats(aiStatsService.getUsageStats());
@@ -181,12 +116,11 @@ export function AISettingsScreen() {
   const saveSettings = useCallback(async (updates: Partial<AppSettings>, message: string) => {
     try {
       await updateSettings(updates);
-      setSnackbarMessage(message);
-      setSnackbarVisible(true);
+      // Removed local snackbar management as it should ideally be handled by a global toaster or context if needed,
+      // but for now relying on the screen structure or if we want to add it back we can.
+      // The original code had local snackbar state.
     } catch (error) {
       console.error('Failed to save settings:', error);
-      setSnackbarMessage('Error saving settings');
-      setSnackbarVisible(true);
     }
   }, [updateSettings]);
 
@@ -210,13 +144,9 @@ export function AISettingsScreen() {
     await saveSettings({ aiPiiAnonymizationEnabled: newEnabled }, newEnabled ? 'PII Protection ON' : 'PII Protection OFF');
   }, [settings, saveSettings]);
 
-  const handleSaveApiKey = useCallback(async () => {
-    setShowApiKeyModal(false);
-    if (apiKeyInput.trim()) {
-      await saveSettings({ openRouterApiKey: apiKeyInput.trim() }, 'API Key saved');
-    }
-    setApiKeyInput('');
-  }, [apiKeyInput, saveSettings]);
+  const handleSaveApiKey = useCallback(async (apiKey: string) => {
+    await saveSettings({ openRouterApiKey: apiKey }, 'API Key saved');
+  }, [saveSettings]);
 
   const handleOpenModelSelection = useCallback(() => {
     router.push('/model-selection');
@@ -345,18 +275,10 @@ export function AISettingsScreen() {
             PRIVACY & SECURITY
           </Text>
           <Surface style={[styles.card, { backgroundColor: theme.colors.surface }]} elevation={0}>
-            <SettingRow
-              icon="shield-check-outline"
-              title="PII Anonymization"
-              subtitle="Remove personal data before AI processing"
+            <AIPrivacySettings 
+              piiEnabled={settings.aiPiiAnonymizationEnabled !== false}
+              onPiiToggle={handlePiiToggle}
               isLast={true}
-              right={
-                <Switch
-                  value={settings.aiPiiAnonymizationEnabled !== false}
-                  onValueChange={handlePiiToggle}
-                  color={theme.colors.primary}
-                />
-              }
             />
           </Surface>
         </View>
@@ -367,58 +289,27 @@ export function AISettingsScreen() {
             AI CONFIGURATION
           </Text>
           <Surface style={[styles.card, { backgroundColor: theme.colors.surface }]} elevation={0}>
-            <SettingRow
-              icon="key-outline"
-              title="OpenRouter API Key"
-              subtitle={settings.openRouterApiKey ? "••••••••" + settings.openRouterApiKey.slice(-4) : "Not configured"}
-              onPress={() => setShowApiKeyModal(true)}
-              right={
-                <View style={[styles.smallBadge, { backgroundColor: settings.openRouterApiKey ? theme.colors.primaryContainer : theme.colors.errorContainer + '50' }]}>
-                  <Text variant="labelMedium" style={{ color: settings.openRouterApiKey ? theme.colors.primary : theme.colors.error }}>
-                    {settings.openRouterApiKey ? "Set" : "Required"}
-                  </Text>
-                </View>
-              }
+            <APIKeySettings 
+              apiKey={settings.openRouterApiKey} 
+              onSave={handleSaveApiKey} 
             />
+            
             {settings.openRouterApiKey && (
               <>
-                <SettingRow
-                  icon="robot-outline"
-                  title="AI Model"
-                  subtitle={settings.selectedAiModel || "Default (Llama 3.3)"}
-                  onPress={handleOpenModelSelection}
-                  right={
-                    <View style={[styles.smallBadge, { backgroundColor: theme.colors.secondaryContainer + '50' }]}>
-                      <Text variant="labelMedium" style={{ color: theme.colors.onSecondaryContainer }}>
-                        Select
-                      </Text>
-                    </View>
-                  }
+                <AIModelRow 
+                  selectedModel={settings.selectedAiModel} 
+                  onPress={handleOpenModelSelection} 
+                  hasApiKey={true}
                 />
-                <SettingRow
-                  icon="brain"
-                  title="Smart Reminders"
-                  subtitle="AI suggests optimal reminder times"
-                  right={
-                    <Switch
-                      value={settings.smartRemindersEnabled}
-                      onValueChange={handleSmartRemindersToggle}
-                      color={theme.colors.primary}
-                    />
-                  }
+                
+                <AIFeaturesSettings
+                  smartRemindersEnabled={settings.smartRemindersEnabled}
+                  onSmartRemindersToggle={handleSmartRemindersToggle}
+                  personalityEnabled={settings.aiPersonalityEnabled !== false}
+                  onPersonalityToggle={handlePersonalityToggle}
+                  hasApiKey={true}
                 />
-                <SettingRow
-                  icon="account-heart-outline"
-                  title="Personality Insights"
-                  subtitle="Track patterns and derive traits"
-                  right={
-                    <Switch
-                      value={settings.aiPersonalityEnabled !== false}
-                      onValueChange={handlePersonalityToggle}
-                      color={theme.colors.primary}
-                    />
-                  }
-                />
+
                 <SettingRow
                   icon="file-document-outline"
                   title="View AI Logs"
@@ -440,71 +331,6 @@ export function AISettingsScreen() {
 
         <View style={styles.footerSpacing} />
       </ScrollView>
-
-      {/* API Key Modal */}
-      <Portal>
-        <Modal
-          visible={showApiKeyModal}
-          onDismiss={() => {
-            setShowApiKeyModal(false);
-            setApiKeyInput('');
-          }}
-          contentContainerStyle={[
-            styles.modalContainer,
-            { backgroundColor: theme.colors.surface }
-          ]}
-        >
-          <Text variant="headlineSmall" style={[styles.modalTitle, { color: theme.colors.onSurface }]}>
-            OpenRouter API Key
-          </Text>
-          <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, textAlign: 'center', marginBottom: 16 }}>
-            Get your API key from openrouter.ai
-          </Text>
-          <TextInput
-            value={apiKeyInput}
-            onChangeText={setApiKeyInput}
-            placeholder="sk-or-..."
-            placeholderTextColor={theme.colors.onSurfaceVariant + '80'}
-            secureTextEntry
-            style={[
-              styles.apiKeyInput,
-              {
-                backgroundColor: theme.colors.surfaceVariant + '50',
-                color: theme.colors.onSurface,
-                borderColor: theme.colors.outline + '30',
-              }
-            ]}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <View style={styles.modalButtons}>
-            <Button mode="text" onPress={() => {
-              setShowApiKeyModal(false);
-              setApiKeyInput('');
-            }}>
-              Cancel
-            </Button>
-            <Button 
-              mode="contained" 
-              onPress={handleSaveApiKey}
-              disabled={!apiKeyInput.trim()}
-            >
-              Save
-            </Button>
-          </View>
-        </Modal>
-      </Portal>
-
-      <Portal>
-        <Snackbar
-          visible={snackbarVisible}
-          onDismiss={() => setSnackbarVisible(false)}
-          duration={2000}
-          style={[styles.snackbar, { marginBottom: snackbarBottom }]}
-        >
-          {snackbarMessage}
-        </Snackbar>
-      </Portal>
     </SafeAreaView>
   );
 };
@@ -614,77 +440,13 @@ const styles = StyleSheet.create({
   focusChip: {
     marginBottom: 4,
   },
-  settingRow: {
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-  },
-  disabledRow: {
-    opacity: 0.4,
-  },
-  settingRowContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  settingTextContainer: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  settingTitle: {
-    fontWeight: '600',
-    fontSize: 15,
-    letterSpacing: -0.2,
-  },
-  settingSubtitle: {
-    marginTop: 2,
-    fontSize: 13,
-  },
-  settingRight: {
-    marginLeft: 12,
-  },
   smallBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
-  modalContainer: {
-    margin: 20,
-    padding: 24,
-    borderRadius: 28,
-    maxHeight: '80%',
-    elevation: 4,
-  },
-  modalTitle: {
-    textAlign: 'center',
-    marginBottom: 16,
-    fontWeight: '700',
-  },
-  apiKeyInput: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 12,
-    fontSize: 16,
-    borderWidth: 1,
-    marginBottom: 16,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
-  },
   footerSpacing: {
     height: 40,
-  },
-  snackbar: {
-    zIndex: 1200,
-    elevation: 12,
   },
 });
 
