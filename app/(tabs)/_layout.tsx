@@ -4,6 +4,7 @@ import { Tabs } from 'expo-router';
 import { useTheme } from 'react-native-paper';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useSettings } from '../../src/context/SettingsContext';
+import { AnimatedTabBar } from '../../src/components/AnimatedTabBar';
 
 /**
  * Tab Layout with Expo Router Tabs
@@ -17,36 +18,20 @@ import { useSettings } from '../../src/context/SettingsContext';
  */
 export default function TabLayout() {
   const theme = useTheme();
-  const { settings } = useSettings();
-  const showLabels = settings.showTabBarLabels;
+  
+  // We can choose to use settings here if we want to toggle the custom bar or modify it
+  // const { settings } = useSettings();
 
   return (
     <Tabs
+      tabBar={(props) => <AnimatedTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
+        // Since we have a floating tab bar, we need to hide the default one completely 
+        // effectively handled by passing `tabBar` prop, but good to ensure no background leaks
         tabBarStyle: {
-          backgroundColor: theme.colors.surface,
-          borderTopColor: theme.colors.outlineVariant,
-          borderTopWidth: 0.5,
-          paddingTop: 4,
-          height: Platform.OS === 'ios' ? 85 : 60,
-          elevation: 8,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
+          position: 'absolute', // Required for transparent background extend
         },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
-          marginBottom: Platform.OS === 'ios' ? 0 : 8,
-        },
-        tabBarShowLabel: showLabels,
-        // Add animation for tab switching
-        animation: 'shift',
-        tabBarHideOnKeyboard: true,
       }}
     >
       {/* Goals Tab - Index handles conditional rendering of Full/Minimal view */}
@@ -57,7 +42,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size, focused }) => (
             <MaterialCommunityIcons 
               name={focused ? 'bullseye-arrow' : 'bullseye'} 
-              size={size} 
+              size={24} 
               color={color} 
             />
           ),
@@ -72,7 +57,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size, focused }) => (
             <MaterialCommunityIcons 
               name={focused ? 'timer' : 'timer-outline'} 
-              size={size} 
+              size={24} 
               color={color} 
             />
           ),
@@ -87,7 +72,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size, focused }) => (
             <MaterialCommunityIcons 
               name={focused ? 'chart-line' : 'chart-timeline-variant'} 
-              size={size} 
+              size={24} 
               color={color} 
             />
           ),
@@ -102,7 +87,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size, focused }) => (
             <MaterialCommunityIcons 
               name={focused ? 'cog' : 'cog-outline'} 
-              size={size} 
+              size={24} 
               color={color} 
             />
           ),
