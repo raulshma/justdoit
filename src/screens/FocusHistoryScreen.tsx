@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, RefreshControl, SectionList } from 'react
 import { Text, useTheme, Surface, Icon, IconButton, Chip, Divider } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useRouter } from 'expo-router';
 import { focusTimerService } from '../services';
 import type { FocusSession } from '../types';
 
@@ -150,7 +151,8 @@ interface SectionData {
  * FocusHistoryScreen - Display focus session history
  * High-fidelity design with grouped sessions and filtering
  */
-export const FocusHistoryScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+export function FocusHistoryScreen() {
+  const router = useRouter();
   const theme = useTheme();
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'work' | 'break'>('all');
@@ -243,7 +245,7 @@ export const FocusHistoryScreen: React.FC<{ navigation: any }> = ({ navigation }
         <IconButton
           icon="arrow-left"
           size={24}
-          onPress={() => navigation.goBack()}
+          onPress={() => router.back()}
         />
         <Text variant="headlineSmall" style={[styles.headerTitle, { color: theme.colors.onSurface }]}>
           Focus History

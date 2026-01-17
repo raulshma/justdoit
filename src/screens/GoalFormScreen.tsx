@@ -18,7 +18,8 @@ import {
 } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useForm } from '@tanstack/react-form';
-import type { GoalFormScreenProps, GoalFormMode } from '../navigation/types';
+import { useRouter } from 'expo-router';
+import type { GoalFormMode } from '../navigation/types';
 import type { Priority, RecurrencePattern, Goal, Subgoal, SubgoalProgress, AIGoalAnalysis, SuggestedSubgoal, ClarifiedGoal, CategorySuggestion, GoalImage, GoalSuggestion, AIGeneratedSubgoal } from '../types';
 import { goalManager, subgoalManager, templateService, aiService, categoryManager, advancedAIService } from '../services';
 import { useSettings } from '../context/SettingsContext';
@@ -165,19 +166,27 @@ const getDefaultFormValues = (): GoalFormValues => ({
 });
 
 /**
+ * GoalFormScreen Props
+ */
+interface GoalFormScreenProps {
+  goalId?: string;
+  mode?: GoalFormMode;
+}
+
+/**
  * GoalFormScreen - Unified screen for add, view, and edit goal modes
  * Editorial-style layout with large typography and minimal inputs.
  * Refactored to use TanStack Form for form state management.
  */
-export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, route }) => {
+export function GoalFormScreen({ goalId, mode: propsMode }: GoalFormScreenProps) {
+  const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { settings } = useSettings();
   const alert = useAlert();
   
   // Determine if we're in add mode or viewing/editing an existing goal
-  const goalId = route.params?.goalId;
-  const initialMode = route.params?.mode || (goalId ? 'view' : 'add');
+  const initialMode = propsMode || (goalId ? 'view' : 'add');
   
   const [mode, setMode] = useState<GoalFormMode>(initialMode);
   const [goal, setGoal] = useState<Goal | null>(null);
@@ -260,7 +269,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
             visionBoardImages: value.visionBoardImages,
           });
         }
-        navigation.goBack();
+        router.back();
       } catch (error) {
         console.error(error);
       } finally {
@@ -309,10 +318,10 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
         }
       } else {
         // Goal not found, go back
-        navigation.goBack();
+        router.back();
       }
     }
-  }, [goalId, navigation]);
+  }, [goalId, router]);
 
   const handleDateSelect = (date: Date) => {
     form.setFieldValue('dueDate', date);
@@ -374,7 +383,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
             'Would you like to mark the goal as complete?',
             async () => {
               await goalManager.toggleComplete(goalId);
-              navigation.goBack();
+              router.back();
             },
             undefined,
             'Complete Goal',
@@ -385,7 +394,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
     } catch (error) {
       console.error('Failed to toggle subgoal:', error);
     }
-  }, [goalId, refreshSubgoals, navigation]);
+  }, [goalId, refreshSubgoals, router]);
 
   /**
    * Handle deleting a subgoal
@@ -429,7 +438,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
         'Are you sure you want to delete this goal?',
         async () => {
           await goalManager.deleteGoal(goalId!);
-          navigation.goBack();
+          router.back();
         },
         undefined,
         'Delete',
@@ -437,7 +446,7 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
         true
       );
     }
-  }, [goal, goalId, navigation]);
+  }, [goal, goalId, router]);
 
   /**
    * Handle delete this occurrence only
@@ -445,8 +454,8 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
   const handleDeleteThisOnly = useCallback(async () => {
     setShowDeleteDialog(false);
     await goalManager.deleteGoal(goalId!);
-    navigation.goBack();
-  }, [goalId, navigation]);
+    router.back();
+  }, [goalId, router]);
 
   /**
    * Handle delete all occurrences
@@ -454,8 +463,8 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
   const handleDeleteAll = useCallback(async () => {
     setShowDeleteDialog(false);
     await goalManager.deleteRecurringSeries(goalId!);
-    navigation.goBack();
-  }, [goalId, navigation]);
+    router.back();
+  }, [goalId, router]);
 
   /**
    * Handle cancel with unsaved changes warning
@@ -466,16 +475,16 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
       alert.confirm(
         'Discard Changes',
         'You have unsaved changes. Are you sure you want to discard them?',
-        () => navigation.goBack(),
+        () => router.back(),
         undefined,
         'Discard',
         'Keep Editing',
         true
       );
     } else {
-      navigation.goBack();
+      router.back();
     }
-  }, [form.state.isDirty, navigation, isReadOnly]);
+  }, [form.state.isDirty, router, isReadOnly]);
 
   /**
    * Switch to edit mode
@@ -597,8 +606,8 @@ export const GoalFormScreen: React.FC<GoalFormScreenProps> = ({ navigation, rout
    */
   const handleViewRelatedGoal = useCallback((relatedGoalId: string) => {
     setShowAIPanel(false);
-    navigation.push('GoalForm', { goalId: relatedGoalId, mode: 'view' });
-  }, [navigation]);
+    router.push({ pathname: '/goal/[id]', params: { id: relatedGoalId, mode: 'view' } });
+  }, [router]);
 
   /**
    * Handle AI Coach suggestion application

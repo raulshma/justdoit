@@ -16,7 +16,7 @@ import {
   Icon,
   Chip,
 } from 'react-native-paper';
-import type { ModelSelectionScreenProps } from '../navigation/types';
+import { useRouter } from 'expo-router';
 import { aiService, type OpenRouterModel, type GroupedModels } from '../services/aiService';
 import { useSettings } from '../context/SettingsContext';
 import { ThemedIcon } from '../components/ThemedIcon';
@@ -248,7 +248,8 @@ const ModelCard = memo(({
 /**
  * ModelSelectionScreen - Full-screen model picker with rich metadata
  */
-export const ModelSelectionScreen: React.FC<ModelSelectionScreenProps> = ({ navigation }) => {
+export function ModelSelectionScreen() {
+  const router = useRouter();
   const theme = useTheme();
   const { settings, updateSettings } = useSettings();
   
@@ -285,12 +286,12 @@ export const ModelSelectionScreen: React.FC<ModelSelectionScreenProps> = ({ navi
   
   const handleSelectModel = useCallback(async (modelId: string) => {
     await updateSettings({ selectedAiModel: modelId });
-    navigation.goBack();
-  }, [updateSettings, navigation]);
+    router.back();
+  }, [updateSettings, router]);
   
   const handleClose = useCallback(() => {
-    navigation.goBack();
-  }, [navigation]);
+    router.back();
+  }, [router]);
   
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>

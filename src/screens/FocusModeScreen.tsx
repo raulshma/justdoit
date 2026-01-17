@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Dimensions } from 'react-native';
 import { Text, useTheme, FAB, Snackbar, Surface, Icon, IconButton } from 'react-native-paper';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import type { Goal, FocusSession } from '../types';
@@ -25,7 +25,8 @@ const getTodayDate = (): string => {
  * Enhanced Pomodoro-style focus sessions linked to daily goals
  * High Fidelity "Avant-Garde" Design
  */
-export const FocusModeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+export function FocusModeScreen() {
+  const router = useRouter();
   const theme = useTheme();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -98,8 +99,8 @@ export const FocusModeScreen: React.FC<{ navigation: any }> = ({ navigation }) =
    * Handle goal press
    */
   const handleGoalPress = useCallback((goalId: string) => {
-    navigation.navigate('GoalForm', { goalId, mode: 'view' });
-  }, [navigation]);
+    router.push({ pathname: '/goal/[id]', params: { id: goalId, mode: 'view' } });
+  }, [router]);
 
   /**
    * Handle goal delete
@@ -198,7 +199,7 @@ export const FocusModeScreen: React.FC<{ navigation: any }> = ({ navigation }) =
                 iconColor={theme.colors.onSurfaceVariant}
                 containerColor={theme.colors.surfaceVariant}
                 size={22}
-                onPress={() => navigation.navigate('FocusHistory')}
+                onPress={() => router.push('/focus-history')}
               />
               <IconButton
                 icon={linkedGoal ? 'link-variant' : 'link-variant-off'}

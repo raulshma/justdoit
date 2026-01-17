@@ -14,8 +14,7 @@ import {
   Surface,
   TouchableRipple,
 } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
-import type { SettingsScreenProps } from '../navigation/types';
+import { useRouter } from 'expo-router';
 import type { AppSettings, ColorPalette } from '../types';
 import { notificationService, aiLogService, calendarService, backupService, convexSyncService, ambientSoundService } from '../services';
 import { colorPaletteInfoList, themeMoods, getPalettesByMood } from '../theme/colors';
@@ -204,9 +203,9 @@ const springAnimation = {
 /**
  * SettingsScreen - High Fidelity Novel Design
  */
-export const SettingsScreen: React.FC<SettingsScreenProps> = () => {
+export function SettingsScreen() {
   const theme = useTheme();
-  const navigation = useNavigation();
+  const router = useRouter();
   const { settings, updateSettings } = useSettings();
   
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -349,8 +348,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = () => {
   }, [apiKeyInput, saveSettings]);
 
   const handleOpenModelSelection = useCallback(() => {
-    navigation.navigate('ModelSelection');
-  }, [navigation]);
+    router.push('/model-selection');
+  }, [router]);
 
   const handleExportData = useCallback(async () => {
     setIsExporting(true);
@@ -635,7 +634,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = () => {
               title="AI Settings"
               subtitle={settings.openRouterApiKey ? "Configure AI, view stats & insights" : "Set up AI-powered features"}
               isLast={true}
-              onPress={() => navigation.navigate('AISettings')}
+              onPress={() => router.push('/ai-settings')}
               right={
                 <View style={[styles.smallBadge, { backgroundColor: settings.openRouterApiKey ? theme.colors.primaryContainer : theme.colors.secondaryContainer + '50' }]}>
                   <Text variant="labelMedium" style={{ color: settings.openRouterApiKey ? theme.colors.primary : theme.colors.onSecondaryContainer }}>

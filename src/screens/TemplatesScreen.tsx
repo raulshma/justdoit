@@ -10,14 +10,12 @@ import {
   IconButton,
 } from 'react-native-paper';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useRouter } from 'expo-router';
 import type { GoalTemplate, Category } from '../types';
 import { templateService, categoryManager, storageService } from '../services';
 import { TemplateCard, TemplatePreview } from '../components';
 import { ThemedIcon } from '../components/ThemedIcon';
 import { useAlert } from '../context/AlertContext';
-
-type TemplatesScreenProps = NativeStackScreenProps<any, 'Templates'>;
 
 interface TemplateSection {
   title: string;
@@ -29,7 +27,8 @@ interface TemplateSection {
  * TemplatesScreen - Shows template list organized by category
  * Requirements: 3.1, 3.2, 3.6
  */
-export const TemplatesScreen: React.FC<TemplatesScreenProps> = ({ navigation }) => {
+export function TemplatesScreen() {
+  const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const alert = useAlert();
@@ -136,12 +135,12 @@ export const TemplatesScreen: React.FC<TemplatesScreenProps> = ({ navigation }) 
       setSelectedTemplate(null);
 
       // Navigate to edit the new goal for customization
-      navigation.navigate('GoalForm', { goalId: goal.id, mode: 'edit' });
+      router.push({ pathname: '/goal/[id]', params: { id: goal.id, mode: 'edit' } });
     } catch (error) {
       console.error('Failed to create goal from template:', error);
       alert.error('Error', 'Failed to create goal from template. Please try again.');
     }
-  }, [selectedTemplate, navigation, alert]);
+  }, [selectedTemplate, router, alert]);
 
   /**
    * Handle deleting a custom template
@@ -154,20 +153,18 @@ export const TemplatesScreen: React.FC<TemplatesScreenProps> = ({ navigation }) 
       templateService.deleteCustomTemplate(selectedTemplate.id);
       setShowDeleteConfirm(false);
       setSelectedTemplate(null);
-      // Force re-render by navigating to same screen
-      navigation.setParams({});
     } catch (error) {
       console.error('Failed to delete template:', error);
       alert.error('Error', 'Failed to delete template. Please try again.');
     }
-  }, [selectedTemplate, navigation, alert]);
+  }, [selectedTemplate, alert]);
 
   /**
    * Handle closing the screen
    */
   const handleClose = useCallback(() => {
-    navigation.goBack();
-  }, [navigation]);
+    router.back();
+  }, [router]);
 
   /**
    * Render section header

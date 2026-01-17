@@ -3,6 +3,7 @@
     "name": "JustDoIt",
     "slug": "justdoit",
     "version": "0.1.0",
+    "scheme": "justdoit",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",

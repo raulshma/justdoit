@@ -1,7 +1,7 @@
 {
   "name": "justdoit",
   "version": "0.1.0",
-  "main": "index.ts",
+  "main": "expo-router/entry",
   "scripts": {
     "start": "bun expo start",
     "android": "bun expo run:android",
@@ -33,6 +33,7 @@
     "expo-image-picker": "~17.0.10",
     "expo-keep-awake": "~15.0.8",
     "expo-notifications": "^0.32.16",
+    "expo-router": "^6.0.21",
     "expo-sharing": "^14.0.8",
     "expo-speech-recognition": "^3.0.1",
     "expo-status-bar": "~3.0.9",

@@ -1,10 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { FAB, useTheme, Snackbar, Text } from 'react-native-paper';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { HomeStackParamList } from '../navigation/types';
 import type { Goal } from '../types';
 import { goalManager } from '../services';
 import {
@@ -15,8 +13,6 @@ import {
   VoiceGoalCreator,
 } from '../components';
 import { useSettings } from '../context/SettingsContext';
-
-type MinimalGoalsScreenProps = NativeStackScreenProps<HomeStackParamList, 'MinimalGoals'>;
 
 /**
  * Gets today's date in ISO format (YYYY-MM-DD)
@@ -38,10 +34,10 @@ const getTomorrowDate = (): string => {
  * MinimalGoalsScreen - Ultra-minimal goals view
  * Pure focus on goals, no gamification, no calendar, no extra elements
  */
-export const MinimalGoalsScreen: React.FC<MinimalGoalsScreenProps> = ({ navigation: stackNavigation }) => {
+export function MinimalGoalsScreen() {
   const theme = useTheme();
-  const rootNavigation = useNavigation();
-  const { settings } = useSettings();
+  const router = useRouter();
+  const { settings, updateSettings } = useSettings();
   
   const [goals, setGoals] = useState<Goal[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -122,8 +118,8 @@ export const MinimalGoalsScreen: React.FC<MinimalGoalsScreenProps> = ({ navigati
    * Handle goal press - navigate to detail screen
    */
   const handleGoalPress = useCallback((goalId: string) => {
-    rootNavigation.navigate('GoalForm', { goalId, mode: 'view' });
-  }, [rootNavigation]);
+    router.push({ pathname: '/goal/[id]', params: { id: goalId, mode: 'view' } });
+  }, [router]);
 
   /**
    * Handle goal deletion (immediate, no undo)
@@ -215,8 +211,8 @@ export const MinimalGoalsScreen: React.FC<MinimalGoalsScreenProps> = ({ navigati
    */
   const handleAddGoal = useCallback(() => {
     setFabOpen(false);
-    rootNavigation.navigate('GoalForm', { mode: 'add' });
-  }, [rootNavigation]);
+    router.push('/goal/new');
+  }, [router]);
 
   /**
    * Dismiss snackbar
@@ -245,27 +241,29 @@ export const MinimalGoalsScreen: React.FC<MinimalGoalsScreenProps> = ({ navigati
   }, []);
 
   /**
-   * Switch back to full goals view
+   * Switch back to full goals view - also updates setting
    */
-  const handleSwitchToFullView = useCallback(() => {
-    stackNavigation.replace('Home', { ignoreMinimalRedirect: true });
-  }, [stackNavigation]);
+  const handleSwitchToFullView = useCallback(async () => {
+    // Turn off minimal view setting so it persists
+    // Context update will trigger parent to re-render HomeScreen
+    await updateSettings({ minimalGoalsView: false });
+  }, [updateSettings]);
 
   /**
    * Handle template press
    */
   const handleOpenTemplates = useCallback(() => {
     setFabOpen(false);
-    rootNavigation.navigate('Templates');
-  }, [rootNavigation]);
+    router.push('/templates');
+  }, [router]);
 
   /**
    * Handle challenges press
    */
   const handleOpenChallenges = useCallback(() => {
     setFabOpen(false);
-    rootNavigation.navigate('Challenges');
-  }, [rootNavigation]);
+    router.push('/challenges');
+  }, [router]);
   
   /**
    * Handle voice goal creation

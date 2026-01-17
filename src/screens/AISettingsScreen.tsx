@@ -24,16 +24,12 @@ import {
   ProgressBar,
   IconButton,
 } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../navigation/types';
+import { useRouter } from 'expo-router';
 import type { AppSettings, AIFocusArea } from '../types';
 import { AI_FOCUS_AREAS, AIUsageStats, AIPersonalityTrait } from '../types/aiSettings';
 import { aiLogService, aiStatsService } from '../services';
 import { useSettings } from '../context/SettingsContext';
 import { piiAnonymizer } from '../utils/piiAnonymizer';
-
-type AISettingsScreenProps = NativeStackScreenProps<RootStackParamList, 'AISettings'>;
 
 /**
  * Stat Card Component - Displays a single statistic
@@ -160,9 +156,9 @@ const SettingRow = memo(({
 /**
  * AISettingsScreen - Dedicated AI configuration and analytics
  */
-export const AISettingsScreen: React.FC<AISettingsScreenProps> = () => {
+export function AISettingsScreen() {
   const theme = useTheme();
-  const navigation = useNavigation();
+  const router = useRouter();
   const { settings, updateSettings } = useSettings();
 
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
@@ -219,12 +215,12 @@ export const AISettingsScreen: React.FC<AISettingsScreenProps> = () => {
   }, [apiKeyInput, saveSettings]);
 
   const handleOpenModelSelection = useCallback(() => {
-    navigation.navigate('ModelSelection');
-  }, [navigation]);
+    router.push('/model-selection');
+  }, [router]);
 
   const handleViewLogs = useCallback(() => {
-    navigation.navigate('Logs' as never);
-  }, [navigation]);
+    router.push('/logs');
+  }, [router]);
 
   // Format large numbers
   const formatNumber = (num: number): string => {
@@ -245,7 +241,7 @@ export const AISettingsScreen: React.FC<AISettingsScreenProps> = () => {
             <IconButton
               icon="arrow-left"
               size={24}
-              onPress={() => navigation.goBack()}
+              onPress={() => router.back()}
               style={styles.backButton}
             />
             <View style={styles.headerText}>

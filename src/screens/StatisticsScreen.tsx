@@ -1,9 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { Text, useTheme, Surface, ProgressBar } from 'react-native-paper';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { StatisticsScreenProps } from '../navigation/types';
 import type { Statistics } from '../types';
 import type { Challenge } from '../types/challenge';
 import type { PersonalBest } from '../types/personalBest';
@@ -34,9 +33,9 @@ import { ChallengeCard } from '../components/ChallengeCard';
  * 
  * Requirements: 6.6, 8.2, 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 7.3
  */
-export const StatisticsScreen: React.FC<StatisticsScreenProps> = () => {
+export function StatisticsScreen() {
   const theme = useTheme();
-  const navigation = useNavigation();
+  const router = useRouter();
   const { settings } = useSettings();
   const [stats, setStats] = useState<Statistics>({
     todayCompleted: 0,
@@ -240,7 +239,7 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = () => {
       {settings.gamificationEnabled && (
         <View style={styles.badgeShowcaseSection}>
           <TouchableOpacity
-            onPress={() => navigation.navigate('Achievements')}
+            onPress={() => router.push('/achievements')}
             activeOpacity={0.7}
           >
           <View style={styles.sectionHeader}>
@@ -268,7 +267,7 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = () => {
                 unlockedInfo={unlockedInfo}
                 progress={100}
                 currentProgress={badge.criteria.threshold}
-                onPress={() => navigation.navigate('Achievements')}
+                onPress={() => router.push('/achievements')}
               />
             ))}
           </View>
@@ -281,7 +280,7 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = () => {
             >
               Complete goals to earn badges!
             </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Achievements')}>
+            <TouchableOpacity onPress={() => router.push('/achievements')}>
               <Text 
                 variant="labelMedium" 
                 style={[styles.viewAllBadges, { color: theme.colors.primary }]}
@@ -340,7 +339,7 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = () => {
       {settings.gamificationEnabled && activeChallenges.length > 0 && (
         <View style={styles.challengesSection}>
           <TouchableOpacity
-            onPress={() => navigation.navigate('Challenges')}
+            onPress={() => router.push('/challenges')}
             activeOpacity={0.7}
           >
             <View style={styles.sectionHeader}>
@@ -362,7 +361,7 @@ export const StatisticsScreen: React.FC<StatisticsScreenProps> = () => {
             <ChallengeCard
               key={challenge.id}
               challenge={challenge}
-              onPress={() => navigation.navigate('Challenges')}
+              onPress={() => router.push('/challenges')}
             />
           ))}
         </View>
