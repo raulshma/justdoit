@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, TextInput } from 'react-native';
 import { Text, useTheme, Button, Portal, Modal } from 'react-native-paper';
 import { SettingRow } from '../SettingRow';
+import { withAlpha } from '../../utils/colorUtils';
 
 interface APIKeySettingsProps {
   apiKey?: string;
@@ -41,7 +42,16 @@ export function APIKeySettings({ apiKey, onSave, containerStyle }: APIKeySetting
         subtitle={apiKey ? "••••••••" + apiKey.slice(-4) : "Not configured"}
         onPress={handleOpenModal}
         right={
-          <View style={[styles.smallBadge, { backgroundColor: apiKey ? theme.colors.primaryContainer : theme.colors.errorContainer + '50' }]}>
+          <View
+            style={[
+              styles.smallBadge,
+              {
+                backgroundColor: apiKey
+                  ? theme.colors.primaryContainer
+                  : withAlpha(theme.colors.errorContainer, 0.3),
+              },
+            ]}
+          >
             <Text variant="labelMedium" style={{ color: apiKey ? theme.colors.primary : theme.colors.error }}>
               {apiKey ? "Set" : "Required"}
             </Text>
@@ -71,14 +81,14 @@ export function APIKeySettings({ apiKey, onSave, containerStyle }: APIKeySetting
             value={apiKeyInput}
             onChangeText={setApiKeyInput}
             placeholder="sk-or-..."
-            placeholderTextColor={theme.colors.onSurfaceVariant + '80'}
+            placeholderTextColor={withAlpha(theme.colors.onSurfaceVariant, 0.5)}
             secureTextEntry
             style={[
               styles.apiKeyInput,
               {
-                backgroundColor: theme.colors.surfaceVariant + '50',
+                backgroundColor: withAlpha(theme.colors.surfaceVariant, 0.3),
                 color: theme.colors.onSurface,
-                borderColor: theme.colors.outline + '30',
+                borderColor: withAlpha(theme.colors.outline, 0.2),
               }
             ]}
             autoCapitalize="none"

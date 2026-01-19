@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, useTheme, Surface, TouchableRipple, Icon } from 'react-native-paper';
+import { withAlpha } from '../utils/colorUtils';
 
 /**
  * Setting Row Component - High fidelity with improved spacing and typography
@@ -33,12 +34,12 @@ export const SettingRow = memo(({
       style={[
         styles.settingRow, 
         disabled && styles.disabledRow,
-        !isLast && { borderBottomWidth: 1, borderBottomColor: theme.colors.outlineVariant + '40' }
+        !isLast && { borderBottomWidth: 1, borderBottomColor: withAlpha(theme.colors.outlineVariant, 0.25) }
       ]}
-      rippleColor={theme.colors.primaryContainer + '40'}
+      rippleColor={withAlpha(theme.colors.primaryContainer, 0.25)}
     >
       <View style={styles.settingRowContent}>
-        <Surface style={[styles.iconContainer, { backgroundColor: theme.colors.secondaryContainer + '50' }]} elevation={0}>
+        <Surface style={[styles.iconContainer, { backgroundColor: withAlpha(theme.colors.secondaryContainer, 0.3) }]} elevation={0}>
           <Icon source={icon} size={24} color={theme.colors.onSecondaryContainer} />
         </Surface>
         <View style={styles.settingTextContainer}>
