@@ -37,6 +37,7 @@ const AI_FEATURE_INFO: Record<string, AIFeatureInfo> = {
     description: 'AI analyzes your productivity patterns to suggest the optimal times for task reminders.',
     howItWorks: 'The system looks at when you complete tasks and identifying your peak productivity hours. It then suggests reminder times that align with these peak periods.',
     privacy: 'Task completion timestamps are analyzed locally. No personal content is sent to the cloud for this feature unless "Cloud Analysis" is explicitly enabled.',
+    executionDetails: 'Runs daily at 9:00 AM or when you complete 5+ tasks to refine suggestions.',
     icon: 'brain',
   },
   aiSmartRescheduling: {
@@ -45,6 +46,7 @@ const AI_FEATURE_INFO: Record<string, AIFeatureInfo> = {
     description: 'Automatically suggests new dates for overdue tasks based on your schedule and priorities.',
     howItWorks: 'When a task becomes overdue, AI evaluates its priority and your upcoming schedule to recommend a realistic new due date.',
     privacy: 'Schedule availability is processed. Task titles are used to determine context only if "Privacy Preserving Mode" is disabled.',
+    executionDetails: 'Triggered automatically when a task becomes overdue by more than 24 hours.',
     icon: 'calendar-clock',
   },
   aiMotivational: {
@@ -53,6 +55,7 @@ const AI_FEATURE_INFO: Record<string, AIFeatureInfo> = {
     description: 'Receive personalized motivational quotes and messages on your dashboard to keep you inspired.',
     howItWorks: 'AI selects quotes and drafts short encouragement messages based on your current progress and streak status.',
     privacy: 'Aggregated progress data (e.g., "5 day streak") is used to tailor messages. No specific task data is shared.',
+    executionDetails: 'Updates on app launch and when milestones (streaks, levels) are reached.',
     icon: 'message-text-outline',
   },
   aiPatternDetection: {
@@ -61,6 +64,7 @@ const AI_FEATURE_INFO: Record<string, AIFeatureInfo> = {
     description: 'Identifies recurring habits and potential improvement areas in your workflow.',
     howItWorks: 'Analyzes long-term usage history to find trends, such as "You often miss deadlines on Mondays" or "You are most productive in the morning".',
     privacy: 'Usage metadata is analyzed. Specific task contents are anonymized before pattern analysis.',
+    executionDetails: 'Analyzes weekly usage every Sunday night to provide insights for the week ahead.',
     icon: 'chart-timeline-variant',
   },
   aiGoalBreakdown: {
@@ -69,6 +73,7 @@ const AI_FEATURE_INFO: Record<string, AIFeatureInfo> = {
     description: 'Intelligently breaks down complex goals into smaller, manageable subgoals.',
     howItWorks: 'When you create a broad goal like "Learn Spanish", AI suggests concrete steps like "Download app", "Practice 15 mins daily", etc.',
     privacy: 'The specific goal title you request to break down is sent to the AI provider. Enabling PII protection is recommended.',
+    executionDetails: 'Triggered manually when you tap "Break down this goal" on a goal detail screen.',
     icon: 'format-list-checks',
   },
   aiGoalCoach: {
@@ -77,6 +82,7 @@ const AI_FEATURE_INFO: Record<string, AIFeatureInfo> = {
     description: 'An interactive assistant to help you plan, refine, and reflect on your goals.',
     howItWorks: 'Chat with the AI to brainstorm ideas, clarify objectives, or get advice on overcoming obstacles.',
     privacy: 'Chat history is processed by the AI provider to maintain context. Detailed logs can be reviewed in settings.',
+    executionDetails: 'Active whenever you open the Goal Coach chat interface.',
     icon: 'account-tie-voice',
   },
   aiPersonality: {
@@ -85,6 +91,7 @@ const AI_FEATURE_INFO: Record<string, AIFeatureInfo> = {
     description: 'Derives a "Productivity Personality" profile from your usage style.',
     howItWorks: 'Assigns traits like "Early Bird", "Marathoner", or "Planner" based on how you interact with the app.',
     privacy: 'Derived solely from behavioral metrics (time of use, completion rates). No content analysis required.',
+    executionDetails: 'Recalculated weekly based on your activity patterns.',
     icon: 'account-heart-outline',
   },
 };
@@ -173,6 +180,7 @@ export function AISettingsScreen() {
   // Modal State
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedFeature, setSelectedFeature] = useState<AIFeatureInfo | null>(null);
+  const [modalMode, setModalMode] = useState<'confirm' | 'info'>('confirm');
   const [pendingFeatureKey, setPendingFeatureKey] = useState<keyof AppSettings | null>(null);
   const [pendingFeatureName, setPendingFeatureName] = useState<string>('');
 
@@ -216,12 +224,22 @@ export function AISettingsScreen() {
       setSelectedFeature(featureInfo);
       setPendingFeatureKey(key);
       setPendingFeatureName(name);
+      setModalMode('confirm');
       setModalVisible(true);
     } else {
       // Fallback if no info found (shouldn't happen if config is complete)
       await saveSettings({ [key]: true }, `${name} ON`);
     }
   }, [saveSettings]);
+
+  const handleShowFeatureInfo = useCallback((featureId: string) => {
+    const featureInfo = AI_FEATURE_INFO[featureId];
+    if (featureInfo) {
+      setSelectedFeature(featureInfo);
+      setModalMode('info');
+      setModalVisible(true);
+    }
+  }, []);
 
   const handleConfirmEnable = useCallback(async () => {
     if (pendingFeatureKey) {
@@ -429,7 +447,7 @@ export function AISettingsScreen() {
                   hasApiKey={true}
                 />
                 
-                <AIFeaturesSettings
+                  <AIFeaturesSettings
                   smartRemindersEnabled={settings.smartRemindersEnabled}
                   onSmartRemindersToggle={handleSmartRemindersToggle}
                   aiSmartReschedulingEnabled={settings.aiSmartReschedulingEnabled !== false}
@@ -445,6 +463,7 @@ export function AISettingsScreen() {
                   personalityEnabled={settings.aiPersonalityEnabled !== false}
                   onPersonalityToggle={handlePersonalityToggle}
                   hasApiKey={true}
+                  onShowFeatureInfo={handleShowFeatureInfo}
                 />
 
                 <SettingRow
@@ -474,6 +493,7 @@ export function AISettingsScreen() {
         featureInfo={selectedFeature}
         onDismiss={handleDismissModal}
         onConfirm={handleConfirmEnable}
+        mode={modalMode}
       />
     </SafeAreaView>
   );

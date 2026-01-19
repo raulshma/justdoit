@@ -9,6 +9,7 @@ export interface AIFeatureInfo {
   description: string;
   howItWorks: string;
   privacy: string;
+  executionDetails?: string;
   icon: string;
 }
 
@@ -17,6 +18,7 @@ interface AIFeatureInfoModalProps {
   featureInfo: AIFeatureInfo | null;
   onDismiss: () => void;
   onConfirm: () => void;
+  mode?: 'confirm' | 'info';
 }
 
 export function AIFeatureInfoModal({
@@ -24,6 +26,7 @@ export function AIFeatureInfoModal({
   featureInfo,
   onDismiss,
   onConfirm,
+  mode = 'confirm',
 }: AIFeatureInfoModalProps) {
   const theme = useTheme();
 
@@ -50,6 +53,20 @@ export function AIFeatureInfoModal({
                 {featureInfo.description}
               </Text>
             </View>
+            
+            {featureInfo.executionDetails && (
+              <Surface style={[styles.infoCard, { backgroundColor: theme.colors.surfaceVariant }]} elevation={0}>
+                <View style={styles.cardHeader}>
+                  <IconButton icon="clock-outline" size={20} iconColor={theme.colors.primary} style={{ margin: 0, marginRight: 8 }} />
+                  <Text variant="titleMedium" style={{ fontWeight: '600', color: theme.colors.primary }}>
+                    When it runs
+                  </Text>
+                </View>
+                <Text variant="bodyMedium" style={{ color: theme.colors.onSurface }}>
+                  {featureInfo.executionDetails}
+                </Text>
+              </Surface>
+            )}
 
             <Surface style={[styles.infoCard, { backgroundColor: theme.colors.surfaceVariant }]} elevation={0}>
               <View style={styles.cardHeader}>
@@ -77,12 +94,20 @@ export function AIFeatureInfoModal({
           </ScrollView>
 
           <View style={styles.footer}>
-            <Button mode="outlined" onPress={onDismiss} style={styles.button}>
-              Cancel
-            </Button>
-            <Button mode="contained" onPress={onConfirm} style={styles.button}>
-              Enable Feature
-            </Button>
+            {mode === 'confirm' ? (
+              <>
+                <Button mode="outlined" onPress={onDismiss} style={styles.button}>
+                  Cancel
+                </Button>
+                <Button mode="contained" onPress={onConfirm} style={styles.button}>
+                  Enable Feature
+                </Button>
+              </>
+            ) : (
+              <Button mode="contained" onPress={onDismiss} style={styles.button}>
+                Close
+              </Button>
+            )}
           </View>
         </SafeAreaView>
       </Modal>

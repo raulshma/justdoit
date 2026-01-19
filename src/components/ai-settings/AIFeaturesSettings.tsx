@@ -19,6 +19,7 @@ interface AIFeaturesSettingsProps {
   personalityEnabled: boolean;
   onPersonalityToggle: () => void;
   hasApiKey: boolean;
+  onShowFeatureInfo?: (featureId: string) => void;
 }
 
 export function AIFeaturesSettings({
@@ -36,7 +37,8 @@ export function AIFeaturesSettings({
   onGoalCoachToggle,
   personalityEnabled,
   onPersonalityToggle,
-  hasApiKey
+  hasApiKey,
+  onShowFeatureInfo,
 }: AIFeaturesSettingsProps) {
   const theme = useTheme();
 
@@ -48,6 +50,7 @@ export function AIFeaturesSettings({
         icon="brain"
         title="Smart Reminders"
         subtitle="AI suggests optimal reminder times"
+        onPress={onShowFeatureInfo ? () => onShowFeatureInfo('smartReminders') : undefined}
         right={
           <Switch
             value={smartRemindersEnabled}
@@ -61,6 +64,7 @@ export function AIFeaturesSettings({
         icon="calendar-clock"
         title="Smart Rescheduling"
         subtitle="Suggests new dates for overdue goals"
+        onPress={onShowFeatureInfo ? () => onShowFeatureInfo('aiSmartRescheduling') : undefined}
         right={
           <Switch
             value={aiSmartReschedulingEnabled}
@@ -74,6 +78,7 @@ export function AIFeaturesSettings({
         icon="message-text-outline"
         title="Motivational Messages"
         subtitle="AI generated motivation on dashboard"
+        onPress={onShowFeatureInfo ? () => onShowFeatureInfo('aiMotivational') : undefined}
         right={
           <Switch
             value={aiMotivationalEnabled}
@@ -87,6 +92,7 @@ export function AIFeaturesSettings({
         icon="chart-timeline-variant"
         title="Pattern Detection"
         subtitle="Analyze habits and suggest improvements"
+        onPress={onShowFeatureInfo ? () => onShowFeatureInfo('aiPatternDetection') : undefined}
         right={
           <Switch
             value={aiPatternDetectionEnabled}
@@ -100,6 +106,7 @@ export function AIFeaturesSettings({
         icon="format-list-checks"
         title="Goal Breakdown"
         subtitle="Auto-generate subgoals for complex tasks"
+        onPress={onShowFeatureInfo ? () => onShowFeatureInfo('aiGoalBreakdown') : undefined}
         right={
           <Switch
             value={aiGoalBreakdownEnabled}
@@ -113,6 +120,7 @@ export function AIFeaturesSettings({
         icon="account-tie-voice"
         title="AI Goal Coach"
         subtitle="Conversational assistant for goal planning"
+        onPress={onShowFeatureInfo ? () => onShowFeatureInfo('aiGoalCoach') : undefined}
         right={
           <Switch
             value={aiGoalCoachEnabled}
@@ -126,6 +134,7 @@ export function AIFeaturesSettings({
         icon="account-heart-outline"
         title="Personality Insights"
         subtitle="Track patterns and derive traits"
+        onPress={onShowFeatureInfo ? () => onShowFeatureInfo('aiPersonality') : undefined}
         right={
           <Switch
             value={personalityEnabled}
