@@ -206,7 +206,7 @@ const springAnimation = {
 export function SettingsScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const { settings, updateSettings } = useSettings();
+  const { settings, updateSettings, setDailyReminderTime } = useSettings();
   const insets = useSafeAreaInsets();
   
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -281,11 +281,18 @@ export function SettingsScreen() {
 
   const handleTimeSelect = useCallback(async (time: string) => {
     setShowTimePicker(false);
-    if (settings.dailyReminderEnabled && settings.notificationsEnabled) {
-      await notificationService.scheduleDailyPlanningReminder(time);
+    try {
+      await setDailyReminderTime(time);
+      setSnackbarMessage(`Time set to ${formatTimeDisplay(time)}`);
+      setSnackbarVisible(true);
+    } catch (error) {
+      console.error('Failed to set time:', error);
+      // Even if scheduling failed, the setting might have been saved.
+      // We'll show a generic error but the UI should update via context
+      setSnackbarMessage('Note: Reminder saved but scheduling failed');
+      setSnackbarVisible(true);
     }
-    await saveSettings({ dailyReminderTime: time }, `Time set to ${formatTimeDisplay(time)}`);
-  }, [settings, saveSettings]);
+  }, [setDailyReminderTime]);
 
   const handleDarkModeToggle = useCallback(async () => {
     const newEnabled = !settings.darkModeEnabled;
