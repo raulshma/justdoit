@@ -100,6 +100,7 @@ export function AnimatedTabBar({ state, descriptors, navigation }: BottomTabBarP
             backgroundColor: glassBackground,
             borderColor: theme.colors.outlineVariant,
             height: showLabels ? 80 : 64,
+            borderRadius: showLabels ? 40 : 32,
           }
         ]}
         onLayout={handleLayout}

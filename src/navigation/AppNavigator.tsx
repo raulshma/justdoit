@@ -28,6 +28,7 @@ import {
   OnboardingScreen,
   MinimalGoalsScreen,
 } from '../screens';
+import { AnimatedTabBar } from '../components/AnimatedTabBar';
 
 // Create navigators
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
@@ -224,23 +225,11 @@ function MainTabNavigator() {
 
   return (
     <Tab.Navigator
+      tabBar={props => <AnimatedTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: theme.colors.surface,
-          borderTopColor: theme.colors.outlineVariant,
-          borderTopWidth: 0.325,
-          paddingBottom: showLabels ? 16 : 24,
-          paddingTop: showLabels ? 12 : 16,
-          height: showLabels ? 75 : 70,
-        },
-        tabBarActiveTintColor: theme.colors.primary,
+        tabBarActiveTintColor: theme.colors.primary, // These might still be used by descriptors if passed down
         tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
-        tabBarShowLabel: showLabels,
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
-        },
       }}
     >
       <Tab.Screen
