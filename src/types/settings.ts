@@ -14,6 +14,16 @@ export type ColorPalette =
   | 'spotify' | 'discord' | 'airbnb' | 'notion' | 'linear';
 
 /**
+ * Modes for the Minimal View task counter
+ */
+export type MinimalViewCountMode = 'remaining' | 'remaining_today' | 'today_total' | 'week_total' | 'month_total';
+
+/**
+ * Modes for the Home Screen task counter
+ */
+export type HomeViewCountMode = 'remaining' | 'completed_today' | 'today_total' | 'week_total';
+
+/**
  * Mood categories for theme grouping
  */
 export type ThemeMood = 'calm' | 'energetic' | 'elegant' | 'bold' | 'inspired';
@@ -92,6 +102,10 @@ export interface AppSettings {
   convexToken?: string;
   /** Whether to use minimal goals view by default */
   minimalGoalsView: boolean;
+  /** Selected count mode for minimal goals view */
+  minimalViewCountMode: MinimalViewCountMode;
+  /** Selected count mode for home screen view */
+  homeViewCountMode: HomeViewCountMode;
   
   // Focus Timer Settings
   /** Work session duration in minutes (default: 25) */

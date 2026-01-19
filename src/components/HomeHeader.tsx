@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
-import type { CalendarEvent, Goal, PatternInsight, MotivationalMessage, RescheduleSuggestion } from '../types';
+import type { CalendarEvent, Goal, PatternInsight, MotivationalMessage, RescheduleSuggestion, HomeViewCountMode } from '../types';
 import { MotivationalBanner } from './MotivationalBanner';
 import { CategoryFilter } from './CategoryFilter';
 import { XPDisplay } from './XPDisplay';
@@ -29,6 +29,15 @@ interface HomeHeaderProps {
   patternInsights: PatternInsight[];
   motivationalMessage: MotivationalMessage | null;
   
+  // Count display
+  counts: {
+    todayRemaining: number;
+    todayCompleted: number;
+    todayTotal: number;
+    weekTotal: number;
+  };
+  homeViewCountMode: HomeViewCountMode;
+  
   // Settings
   gamificationEnabled: boolean;
   calendarIntegrationEnabled: boolean;
@@ -41,6 +50,7 @@ interface HomeHeaderProps {
   onModifyReschedule: (suggestion: RescheduleSuggestion) => void;
   onDismissReschedule: (goalId: string) => void; 
   onDismissPatternInsight: (id: string) => void;
+  onCycleCountMode: () => void;
 }
 
 /**
@@ -63,6 +73,8 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   rescheduleSuggestions,
   patternInsights,
   motivationalMessage,
+  counts,
+  homeViewCountMode,
   gamificationEnabled,
   calendarIntegrationEnabled,
   onSelectCategory,
@@ -72,6 +84,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   onModifyReschedule,
   onDismissReschedule,
   onDismissPatternInsight,
+  onCycleCountMode,
 }) => {
   const theme = useTheme();
   const [showInsightsSheet, setShowInsightsSheet] = useState(false);
@@ -117,17 +130,34 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
           {getTimeGreeting()}
         </Text>
 
-        <Text variant="headlineSmall" style={[styles.headerSubtitle, { color: theme.colors.outline }]}>
-          {(() => {
-            const today = getTodayDate();
-            const todayGoals = filteredGoals.filter((g) => g.dueDate === today);
-            const remaining = todayGoals.filter((g) => !g.isCompleted).length;
-
-            if (todayGoals.length === 0) return 'No tasks scheduled.';
-            if (remaining === 0) return 'All clear.';
-            return `${remaining} remaining.`;
-          })()}
-        </Text>
+        <TouchableOpacity 
+          onPress={onCycleCountMode} 
+          activeOpacity={0.7}
+          style={styles.countButton}
+        >
+          <Text variant="headlineSmall" style={[styles.headerSubtitle, { color: theme.colors.outline }]}>
+            {(() => {
+              if (homeViewCountMode === 'remaining') {
+                return counts.todayRemaining === 0 ? 'All clear.' : `${counts.todayRemaining} remaining.`;
+              }
+              if (homeViewCountMode === 'completed_today') {
+                return counts.todayCompleted === 0 ? 'None completed today.' : `${counts.todayCompleted} completed today.`;
+              }
+              if (homeViewCountMode === 'today_total') {
+                return counts.todayTotal === 0 ? 'No tasks.' : `${counts.todayTotal} tasks today.`;
+              }
+              if (homeViewCountMode === 'week_total') {
+                return counts.weekTotal === 0 ? 'No tasks.' : `${counts.weekTotal} tasks this week.`;
+              }
+              return 'No tasks.';
+            })()}
+          </Text>
+          <View style={styles.tapIndicatorContainer}>
+            <Text variant="labelSmall" style={[styles.tapIndicator, { color: theme.colors.onSurfaceVariant }]}>
+              Tap to change
+            </Text>
+          </View>
+        </TouchableOpacity>
 
         {/* Minimal Streak Display */}
         {gamificationEnabled && currentStreak > 0 && (
@@ -251,6 +281,20 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     marginBottom: 16,
     opacity: 0.7,
+  },
+  countButton: {
+    paddingVertical: 4,
+  },
+  tapIndicatorContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    marginTop: -12,
+    marginBottom: 4,
+  },
+  tapIndicator: {
+    fontSize: 10,
+    opacity: 0.5,
+    letterSpacing: 0.5,
   },
   streakContainer: {
     flexDirection: 'row',

@@ -25,6 +25,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showTabBarLabels: false,
   hasCompletedOnboarding: false,
   minimalGoalsView: false,
+  minimalViewCountMode: 'remaining',
+  homeViewCountMode: 'remaining',
   // Focus Timer defaults
   focusWorkDuration: 25,
   focusShortBreakDuration: 5,

@@ -3,7 +3,8 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { FAB, useTheme, Snackbar, Text, Portal } from 'react-native-paper';
 import { useFocusEffect, useRouter, useSegments } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { Goal } from '../types';
+import type { Goal, MinimalViewCountMode } from '../types';
+import { getTodayDate, formatDateFriendly } from '../utils/dateUtils';
 import { goalManager, carryForwardService } from '../services';
 import {
   GoalList,
@@ -13,22 +14,6 @@ import {
   VoiceGoalCreator,
 } from '../components';
 import { useSettings } from '../context/SettingsContext';
-
-/**
- * Gets today's date in ISO format (YYYY-MM-DD)
- */
-const getTodayDate = (): string => {
-  return new Date().toISOString().split('T')[0];
-};
-
-/**
- * Gets tomorrow's date in ISO format (YYYY-MM-DD)
- */
-const getTomorrowDate = (): string => {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  return tomorrow.toISOString().split('T')[0];
-};
 
 /**
  * MinimalGoalsScreen - Ultra-minimal goals view
@@ -104,6 +89,69 @@ export function MinimalGoalsScreen() {
     
     setGoals(focusModeGoals);
   }, [settings.focusModeEnabled]);
+
+  // Extra counts state
+  const [counts, setCounts] = useState({
+    remainingToday: 0,
+    todayTotal: 0,
+    weekTotal: 0,
+    monthTotal: 0,
+  });
+
+  useEffect(() => {
+    const all = goalManager.getAllGoals();
+    const todayStr = getTodayDate();
+
+    const nextWeek = new Date();
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    const nextWeekStr = `${nextWeek.getFullYear()}-${String(nextWeek.getMonth() + 1).padStart(2, '0')}-${String(nextWeek.getDate()).padStart(2, '0')}`;
+
+    const nextMonth = new Date();
+    nextMonth.setDate(nextMonth.getDate() + 30);
+    const nextMonthStr = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, '0')}-${String(nextMonth.getDate()).padStart(2, '0')}`;
+
+    // Remaining Today (Goals due today that are incomplete)
+    const rTotal = all.filter(g => g.dueDate === todayStr && !g.isCompleted).length;
+
+    // Today Total (Goals due today only, complete + incomplete)
+    const tTotal = all.filter(g => g.dueDate === todayStr).length;
+
+    // Week Total (Overdue + Today + Next 7 Days, Complete + Incomplete)
+    const wTotal = all.filter(g => g.dueDate <= nextWeekStr).length;
+
+    // Month Total (Overdue + Today + Next 30 Days, Complete + Incomplete)
+    const mTotal = all.filter(g => g.dueDate <= nextMonthStr).length;
+
+    setCounts({ remainingToday: rTotal, todayTotal: tTotal, weekTotal: wTotal, monthTotal: mTotal });
+
+    // Re-calc periodically to catch any changes
+    const timer = setInterval(() => {
+      const allGoals = goalManager.getAllGoals();
+      const today = getTodayDate();
+
+      const newNextWeek = new Date();
+      newNextWeek.setDate(newNextWeek.getDate() + 7);
+      const newNextWeekStr = `${newNextWeek.getFullYear()}-${String(newNextWeek.getMonth() + 1).padStart(2, '0')}-${String(newNextWeek.getDate()).padStart(2, '0')}`;
+
+      const newNextMonth = new Date();
+      newNextMonth.setDate(newNextMonth.getDate() + 30);
+      const newNextMonthStr = `${newNextMonth.getFullYear()}-${String(newNextMonth.getMonth() + 1).padStart(2, '0')}-${String(newNextMonth.getDate()).padStart(2, '0')}`;
+
+      const newRTotal = allGoals.filter(g => g.dueDate === today && !g.isCompleted).length;
+      const newTTotal = allGoals.filter(g => g.dueDate === today).length;
+      const newWTotal = allGoals.filter(g => g.dueDate <= newNextWeekStr).length;
+      const newMTotal = allGoals.filter(g => g.dueDate <= newNextMonthStr).length;
+
+      setCounts({
+        remainingToday: newRTotal,
+        todayTotal: newTTotal,
+        weekTotal: newWTotal,
+        monthTotal: newMTotal,
+      });
+    }, 5000); // Check every 5 seconds
+
+    return () => clearInterval(timer);
+  }, [settings.minimalViewCountMode]); // Only depend on mode for the effect setup
 
   /**
    * Refresh goals on screen focus
@@ -323,9 +371,7 @@ export function MinimalGoalsScreen() {
   }, [loadGoals]);
 
   // Count remaining goals
-  const today = getTodayDate();
-  const todayGoals = goals.filter(g => g.dueDate === today);
-  const remaining = todayGoals.filter(g => !g.isCompleted).length;
+  const remaining = goals.length;
   const tabBarHeight = settings.showTabBarLabels ? 80 : 64;
   const tabBarBottomPadding = insets.bottom + 12;
   const floatingBottom = tabBarHeight + tabBarBottomPadding + 16;
@@ -347,17 +393,44 @@ export function MinimalGoalsScreen() {
         onMoveToToday={handleMoveToToday}
         refreshing={refreshing}
         onRefresh={handleRefresh}
+
         ListHeaderComponent={
           <View style={styles.headerContainer}>
             <View style={styles.topBar}>
-              <View style={styles.leftHeader}>
-                <Text variant="displaySmall" style={[styles.remainingCount, { color: theme.colors.onSurface }]}>
-                  {remaining}
-                </Text>
-                <Text variant="bodyLarge" style={[styles.remainingLabel, { color: theme.colors.onSurfaceVariant }]}>
-                  {remaining === 1 ? 'task left' : 'tasks left'}
-                </Text>
-              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  const modes: MinimalViewCountMode[] = ['remaining', 'remaining_today', 'today_total', 'week_total', 'month_total'];
+                  const currentIndex = modes.indexOf(settings.minimalViewCountMode);
+                  const nextMode = modes[(currentIndex + 1) % modes.length];
+                  updateSettings({ minimalViewCountMode: nextMode });
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={styles.leftHeader}>
+                  <Text variant="displaySmall" style={[styles.remainingCount, { color: theme.colors.onSurface }]}>
+                    {settings.minimalViewCountMode === 'remaining'
+                      ? remaining
+                      : settings.minimalViewCountMode === 'remaining_today'
+                        ? counts.remainingToday
+                      : settings.minimalViewCountMode === 'today_total'
+                        ? counts.todayTotal
+                        : settings.minimalViewCountMode === 'week_total'
+                          ? counts.weekTotal
+                          : counts.monthTotal}
+                  </Text>
+                  <Text variant="bodyLarge" style={[styles.remainingLabel, { color: theme.colors.onSurfaceVariant }]}>
+                    {settings.minimalViewCountMode === 'remaining'
+                      ? (remaining === 1 ? 'task left' : 'tasks left')
+                      : settings.minimalViewCountMode === 'remaining_today'
+                        ? (counts.remainingToday === 1 ? 'left today' : 'left today')
+                      : settings.minimalViewCountMode === 'today_total'
+                        ? 'today total'
+                        : settings.minimalViewCountMode === 'week_total'
+                          ? 'week total'
+                          : 'month total'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
               
               {/* Switch to Full View Button */}
               <TouchableOpacity

@@ -4,7 +4,7 @@ import { FAB, useTheme, Snackbar, Text, Portal } from 'react-native-paper';
 import { useFocusEffect, useRouter, useSegments } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getTodayDate } from '../utils/dateUtils';
-import type { Goal, Challenge, CalendarEvent, PatternInsight, MotivationalMessage, RescheduleSuggestion, Priority } from '../types';
+import type { Goal, Challenge, CalendarEvent, PatternInsight, MotivationalMessage, RescheduleSuggestion, Priority, HomeViewCountMode } from '../types';
 import { goalManager, calendarService, advancedAIService, carryForwardService } from '../services';
 import { useCategories } from '../context/CategoryContext';
 import { useGamification } from '../context/GamificationContext';
@@ -35,7 +35,7 @@ export function HomeScreen() {
   const segments = useSegments();
   const insets = useSafeAreaInsets();
   const { categories } = useCategories();
-  const { settings } = useSettings();
+  const { settings, updateSettings } = useSettings();
   const {
     getTotalXP,
     getCurrentLevel,
@@ -52,6 +52,14 @@ export function HomeScreen() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [todayCompletedCount, setTodayCompletedCount] = useState(0);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
+  
+  // Count state for cycling through different metrics
+  const [counts, setCounts] = useState({
+    todayRemaining: 0,
+    todayCompleted: 0,
+    todayTotal: 0,
+    weekTotal: 0,
+  });
   const [snackbarMessage, setSnackbarMessage] = useState('');
 
   // Quick View state
@@ -97,6 +105,38 @@ export function HomeScreen() {
   const [patternInsights, setPatternInsights] = useState<PatternInsight[]>([]);
   const [motivationalMessage, setMotivationalMessage] = useState<MotivationalMessage | null>(null);
   const [rescheduleSuggestions, setRescheduleSuggestions] = useState<RescheduleSuggestion[]>([]);
+
+  /**
+   * Calculate counts for different view modes
+   */
+  useEffect(() => {
+    const allGoals = goalManager.getAllGoals();
+    const todayStr = getTodayDate();
+    
+    const nextWeek = new Date();
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    const nextWeekStr = nextWeek.toISOString().split('T')[0];
+    
+    // Today Remaining (goals due today that aren't completed)
+    const todayGoals = allGoals.filter(g => g.dueDate === todayStr && !g.isCompleted);
+    const todayRemaining = todayGoals.length;
+
+    // Today Completed (goals due today that are completed)
+    const todayCompleted = allGoals.filter(g => g.dueDate === todayStr && g.isCompleted).length;
+
+    // Today Total (all goals due today, complete or incomplete)
+    const todayTotal = allGoals.filter(g => g.dueDate === todayStr).length;
+
+    // Week Total (goals due in the next 7 days, including today)
+    const weekTotal = allGoals.filter(g => g.dueDate <= nextWeekStr).length;
+
+    setCounts({
+      todayRemaining,
+      todayCompleted,
+      todayTotal,
+      weekTotal,
+    });
+  }, [goals]); // Re-calculate when goals change
 
   /**
    * Load goals from storage
@@ -545,6 +585,16 @@ export function HomeScreen() {
   }, []);
 
   /**
+   * Handle cycling through count modes
+   */
+  const handleCycleCountMode = useCallback(async () => {
+    const modes: HomeViewCountMode[] = ['remaining', 'completed_today', 'today_total', 'week_total'];
+    const currentIndex = modes.indexOf(settings.homeViewCountMode);
+    const nextMode = modes[(currentIndex + 1) % modes.length];
+    await updateSettings({ homeViewCountMode: nextMode });
+  }, [settings.homeViewCountMode, updateSettings]);
+
+  /**
    * Handle challenge long press
    */
   const handleChallengeLongPress = useCallback((challenge: Challenge) => {
@@ -608,6 +658,8 @@ export function HomeScreen() {
             rescheduleSuggestions={rescheduleSuggestions}
             patternInsights={patternInsights}
             motivationalMessage={motivationalMessage}
+            counts={counts}
+            homeViewCountMode={settings.homeViewCountMode}
             gamificationEnabled={settings.gamificationEnabled}
             calendarIntegrationEnabled={settings.calendarIntegrationEnabled}
             onSelectCategory={handleCategorySelect}
@@ -617,6 +669,7 @@ export function HomeScreen() {
             onModifyReschedule={handleModifyReschedule}
             onDismissReschedule={handleDismissReschedule}
             onDismissPatternInsight={handleDismissPatternInsight}
+            onCycleCountMode={handleCycleCountMode}
           />
         }
         ListFooterComponent={
