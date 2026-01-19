@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View, Image, Animated, Modal } from 'react-native';
 import BootSplash from 'react-native-bootsplash';
+import { useTheme } from 'react-native-paper';
 import { colorPalettes } from '../theme/colors';
 
 type Props = {
@@ -9,6 +10,7 @@ type Props = {
 };
 
 const SplashScreen: React.FC<Props> = ({ isAppReady, onAnimationComplete }) => {
+  const theme = useTheme();
   const [isBootSplashHidden, setIsBootSplashHidden] = useState(false);
   const opacity = useRef(new Animated.Value(1)).current;
   const scale = useRef(new Animated.Value(1)).current;
@@ -49,7 +51,7 @@ const SplashScreen: React.FC<Props> = ({ isAppReady, onAnimationComplete }) => {
       animationType="none"
       hardwareAccelerated
     >
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <Animated.View style={[styles.logoContainer, { opacity, transform: [{ scale }] }]}>
           <Image
             source={require('../../assets/bootsplash/logo.png')}

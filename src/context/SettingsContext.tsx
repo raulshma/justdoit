@@ -48,8 +48,8 @@ interface SettingsContextValue extends SettingsState {
  * Initial state
  */
 const initialState: SettingsState = {
-  settings: DEFAULT_SETTINGS,
-  isLoading: true,
+  settings: storageService.getSettings(),
+  isLoading: false,
   error: null,
 };
 
@@ -103,13 +103,6 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, []);
-
-  /**
-   * Initial load
-   */
-  useEffect(() => {
-    refreshSettings();
-  }, [refreshSettings]);
 
   /**
    * Update settings with partial updates

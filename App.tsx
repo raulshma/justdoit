@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
+import { NavigationContainer, NavigationContainerRef, DefaultTheme as NavigationDefaultTheme, DarkTheme as NavigationDarkTheme } from '@react-navigation/native';
 import { PaperProvider } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Notifications from 'expo-notifications';
@@ -25,6 +25,20 @@ function AppContent() {
 
   const [isAppReady, setAppReady] = React.useState(false);
   const [isSplashAnimationComplete, setIsSplashAnimationComplete] = React.useState(false);
+
+  // Construct Navigation Theme based on Paper Theme
+  const navigationTheme = {
+    ...(settings.darkModeEnabled ? NavigationDarkTheme : NavigationDefaultTheme),
+    colors: {
+      ...(settings.darkModeEnabled ? NavigationDarkTheme.colors : NavigationDefaultTheme.colors),
+      primary: theme.colors.primary,
+      background: theme.colors.background,
+      card: theme.colors.surface,
+      text: theme.colors.onSurface,
+      border: theme.colors.outline,
+      notification: theme.colors.error,
+    },
+  };
 
   /**
    * Handle notification response - navigate to goal detail
@@ -119,7 +133,7 @@ function AppContent() {
   return (
     <PaperProvider theme={theme}>
       <AlertProvider>
-        <NavigationContainer ref={navigationRef}>
+        <NavigationContainer ref={navigationRef} theme={navigationTheme}>
           <AppNavigator />
         </NavigationContainer>
         <StatusBar style={settings.darkModeEnabled ? 'light' : 'dark'} />
