@@ -79,8 +79,13 @@ export function OnboardingScreen() {
   const [selectedTime, setSelectedTime] = useState(DEFAULT_REMINDER_TIME);
   const [aiEnabled, setAiEnabled] = useState(false);
   const [apiKey, setApiKey] = useState('');
-  const [smartRemindersEnabled, setSmartRemindersEnabled] = useState(true);
-  const [personalityEnabled, setPersonalityEnabled] = useState(true);
+  const [smartRemindersEnabled, setSmartRemindersEnabled] = useState(false);
+  const [personalityEnabled, setPersonalityEnabled] = useState(false);
+  const [aiSmartReschedulingEnabled, setAiSmartReschedulingEnabled] = useState(false);
+  const [aiMotivationalEnabled, setAiMotivationalEnabled] = useState(false);
+  const [aiPatternDetectionEnabled, setAiPatternDetectionEnabled] = useState(false);
+  const [aiGoalBreakdownEnabled, setAiGoalBreakdownEnabled] = useState(false);
+  const [aiGoalCoachEnabled, setAiGoalCoachEnabled] = useState(false);
   const [piiEnabled, setPiiEnabled] = useState(true);
 
   const [gamificationEnabled, setGamificationEnabled] = useState(true);
@@ -139,15 +144,39 @@ export function OnboardingScreen() {
       aiPiiAnonymizationEnabled: piiEnabled,
       
       // Default enabled features if AI is on
-      aiGoalCoachEnabled: aiEnabled,
-      aiSmartReschedulingEnabled: aiEnabled,
-      aiPatternDetectionEnabled: aiEnabled && personalityEnabled,
-      aiGoalBreakdownEnabled: aiEnabled,
-      aiMotivationalEnabled: aiEnabled,
+      aiGoalCoachEnabled: aiEnabled && aiGoalCoachEnabled,
+      aiSmartReschedulingEnabled: aiEnabled && aiSmartReschedulingEnabled,
+      aiPatternDetectionEnabled: aiEnabled && aiPatternDetectionEnabled,
+      aiGoalBreakdownEnabled: aiEnabled && aiGoalBreakdownEnabled,
+      aiMotivationalEnabled: aiEnabled && aiMotivationalEnabled,
+      // Predictive enabled if any other AI feature is enabled
       aiPredictiveEnabled: aiEnabled,
     });
     await completeOnboarding();
-  }, [notificationsEnabled, selectedTime, gamificationEnabled, focusModeEnabled, carryForwardEnabled, calendarEnabled, minimalGoalsView, focusWorkDuration, focusAmbientEnabled, selectedAmbientSound, aiEnabled, updateSettings, completeOnboarding]);
+  }, [
+    notificationsEnabled,
+    selectedTime,
+    gamificationEnabled,
+    focusModeEnabled,
+    carryForwardEnabled,
+    calendarEnabled,
+    minimalGoalsView,
+    focusWorkDuration,
+    focusAmbientEnabled,
+    selectedAmbientSound,
+    aiEnabled,
+    apiKey,
+    smartRemindersEnabled,
+    personalityEnabled,
+    aiSmartReschedulingEnabled,
+    aiMotivationalEnabled,
+    aiPatternDetectionEnabled,
+    aiGoalBreakdownEnabled,
+    aiGoalCoachEnabled,
+    piiEnabled,
+    updateSettings,
+    completeOnboarding,
+  ]);
 
   const handleSelectPalette = useCallback(async (paletteId: ColorPalette) => {
     await updateSettings({ colorPalette: paletteId });
@@ -578,9 +607,19 @@ export function OnboardingScreen() {
               <AIFeaturesSettings
                 smartRemindersEnabled={smartRemindersEnabled}
                 onSmartRemindersToggle={() => setSmartRemindersEnabled(!smartRemindersEnabled)}
+                aiSmartReschedulingEnabled={aiSmartReschedulingEnabled}
+                onSmartReschedulingToggle={() => setAiSmartReschedulingEnabled(!aiSmartReschedulingEnabled)}
+                aiMotivationalEnabled={aiMotivationalEnabled}
+                onMotivationalToggle={() => setAiMotivationalEnabled(!aiMotivationalEnabled)}
+                aiPatternDetectionEnabled={aiPatternDetectionEnabled}
+                onPatternDetectionToggle={() => setAiPatternDetectionEnabled(!aiPatternDetectionEnabled)}
+                aiGoalBreakdownEnabled={aiGoalBreakdownEnabled}
+                onGoalBreakdownToggle={() => setAiGoalBreakdownEnabled(!aiGoalBreakdownEnabled)}
+                aiGoalCoachEnabled={aiGoalCoachEnabled}
+                onGoalCoachToggle={() => setAiGoalCoachEnabled(!aiGoalCoachEnabled)}
                 personalityEnabled={personalityEnabled}
                 onPersonalityToggle={() => setPersonalityEnabled(!personalityEnabled)}
-                hasApiKey={true}
+                hasApiKey={!!apiKey}
               />
               <AIPrivacySettings 
                 piiEnabled={piiEnabled}
@@ -638,7 +677,33 @@ export function OnboardingScreen() {
         {item.type === 'complete' && renderCompleteSlide()}
       </View>
     );
-  }, [settings, selectedMood, notificationsEnabled, selectedTime, gamificationEnabled, focusModeEnabled, carryForwardEnabled, calendarEnabled, minimalGoalsView, focusWorkDuration, focusAmbientEnabled, selectedAmbientSound, aiEnabled, palettesForMood, theme]);
+  }, [
+    settings, 
+    selectedMood, 
+    notificationsEnabled, 
+    selectedTime, 
+    gamificationEnabled, 
+    focusModeEnabled, 
+    carryForwardEnabled, 
+    calendarEnabled, 
+    minimalGoalsView, 
+    focusWorkDuration, 
+    focusAmbientEnabled, 
+    selectedAmbientSound, 
+    aiEnabled, 
+    palettesForMood, 
+    theme,
+    // Add missing AI dependencies
+    apiKey,
+    smartRemindersEnabled,
+    personalityEnabled,
+    aiSmartReschedulingEnabled,
+    aiMotivationalEnabled,
+    aiPatternDetectionEnabled,
+    aiGoalBreakdownEnabled,
+    aiGoalCoachEnabled,
+    piiEnabled
+  ]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
@@ -646,6 +711,15 @@ export function OnboardingScreen() {
         ref={flatListRef}
         data={SLIDES}
         renderItem={renderSlide}
+        extraData={{
+          settings,
+          apiKey,
+          aiEnabled,
+          notificationsEnabled,
+          selectedTime,
+          currentIndex,
+          selectedMood
+        }}
         keyExtractor={item => item.id}
         horizontal
         pagingEnabled

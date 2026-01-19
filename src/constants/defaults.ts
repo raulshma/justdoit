@@ -35,12 +35,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
   focusAmbientSound: 'none',
   focusAutoCompleteEnabled: false,
   // Advanced AI defaults
-  aiGoalCoachEnabled: true,
-  aiSmartReschedulingEnabled: true,
-  aiPatternDetectionEnabled: true,
-  aiGoalBreakdownEnabled: true,
-  aiMotivationalEnabled: true,
-  aiPredictiveEnabled: true,
+  aiGoalCoachEnabled: false,
+  aiSmartReschedulingEnabled: false,
+  aiPatternDetectionEnabled: false,
+  aiGoalBreakdownEnabled: false,
+  aiMotivationalEnabled: false,
+  aiPredictiveEnabled: false,
 };
 
 /**

@@ -25,6 +25,69 @@ import { APIKeySettings } from '../components/ai-settings/APIKeySettings';
 import { AIFeaturesSettings } from '../components/ai-settings/AIFeaturesSettings';
 import { AIPrivacySettings } from '../components/ai-settings/AIPrivacySettings';
 import { AIModelRow } from '../components/ai-settings/AIModelRow';
+import { AIFeatureInfoModal, AIFeatureInfo } from '../components/AIFeatureInfoModal';
+
+/**
+ * AI Feature Information Definitions
+ */
+const AI_FEATURE_INFO: Record<string, AIFeatureInfo> = {
+  smartReminders: {
+    id: 'smartReminders',
+    title: 'Smart Reminders',
+    description: 'AI analyzes your productivity patterns to suggest the optimal times for task reminders.',
+    howItWorks: 'The system looks at when you complete tasks and identifying your peak productivity hours. It then suggests reminder times that align with these peak periods.',
+    privacy: 'Task completion timestamps are analyzed locally. No personal content is sent to the cloud for this feature unless "Cloud Analysis" is explicitly enabled.',
+    icon: 'brain',
+  },
+  aiSmartRescheduling: {
+    id: 'aiSmartRescheduling',
+    title: 'Smart Rescheduling',
+    description: 'Automatically suggests new dates for overdue tasks based on your schedule and priorities.',
+    howItWorks: 'When a task becomes overdue, AI evaluates its priority and your upcoming schedule to recommend a realistic new due date.',
+    privacy: 'Schedule availability is processed. Task titles are used to determine context only if "Privacy Preserving Mode" is disabled.',
+    icon: 'calendar-clock',
+  },
+  aiMotivational: {
+    id: 'aiMotivational',
+    title: 'Motivational Messages',
+    description: 'Receive personalized motivational quotes and messages on your dashboard to keep you inspired.',
+    howItWorks: 'AI selects quotes and drafts short encouragement messages based on your current progress and streak status.',
+    privacy: 'Aggregated progress data (e.g., "5 day streak") is used to tailor messages. No specific task data is shared.',
+    icon: 'message-text-outline',
+  },
+  aiPatternDetection: {
+    id: 'aiPatternDetection',
+    title: 'Pattern Detection',
+    description: 'Identifies recurring habits and potential improvement areas in your workflow.',
+    howItWorks: 'Analyzes long-term usage history to find trends, such as "You often miss deadlines on Mondays" or "You are most productive in the morning".',
+    privacy: 'Usage metadata is analyzed. Specific task contents are anonymized before pattern analysis.',
+    icon: 'chart-timeline-variant',
+  },
+  aiGoalBreakdown: {
+    id: 'aiGoalBreakdown',
+    title: 'Goal Breakdown',
+    description: 'Intelligently breaks down complex goals into smaller, manageable subgoals.',
+    howItWorks: 'When you create a broad goal like "Learn Spanish", AI suggests concrete steps like "Download app", "Practice 15 mins daily", etc.',
+    privacy: 'The specific goal title you request to break down is sent to the AI provider. Enabling PII protection is recommended.',
+    icon: 'format-list-checks',
+  },
+  aiGoalCoach: {
+    id: 'aiGoalCoach',
+    title: 'AI Goal Coach',
+    description: 'An interactive assistant to help you plan, refine, and reflect on your goals.',
+    howItWorks: 'Chat with the AI to brainstorm ideas, clarify objectives, or get advice on overcoming obstacles.',
+    privacy: 'Chat history is processed by the AI provider to maintain context. Detailed logs can be reviewed in settings.',
+    icon: 'account-tie-voice',
+  },
+  aiPersonality: {
+    id: 'aiPersonality',
+    title: 'Personality Insights',
+    description: 'Derives a "Productivity Personality" profile from your usage style.',
+    howItWorks: 'Assigns traits like "Early Bird", "Marathoner", or "Planner" based on how you interact with the app.',
+    privacy: 'Derived solely from behavioral metrics (time of use, completion rates). No content analysis required.',
+    icon: 'account-heart-outline',
+  },
+};
 
 /**
  * Stat Card Component - Displays a single statistic
@@ -107,6 +170,12 @@ export function AISettingsScreen() {
   const [stats, setStats] = useState<AIUsageStats | null>(null);
   const [traits, setTraits] = useState<AIPersonalityTrait[]>([]);
   
+  // Modal State
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedFeature, setSelectedFeature] = useState<AIFeatureInfo | null>(null);
+  const [pendingFeatureKey, setPendingFeatureKey] = useState<keyof AppSettings | null>(null);
+  const [pendingFeatureName, setPendingFeatureName] = useState<string>('');
+
   // Load stats on mount
   useEffect(() => {
     setStats(aiStatsService.getUsageStats());
@@ -129,40 +198,73 @@ export function AISettingsScreen() {
     await saveSettings({ aiFocusArea: focusArea }, `Focus set to ${focusArea}`);
   }, [saveSettings]);
 
-  const handleSmartRemindersToggle = useCallback(async () => {
-    const newEnabled = !settings.smartRemindersEnabled;
-    await saveSettings({ smartRemindersEnabled: newEnabled }, newEnabled ? 'Smart Reminders ON' : 'Smart Reminders OFF');
-  }, [settings, saveSettings]);
+  const handleFeatureToggle = useCallback(async (
+    key: keyof AppSettings, 
+    currentValue: boolean, 
+    featureId: string,
+    name: string
+  ) => {
+    // If currently enabled, disable immediately
+    if (currentValue) {
+      await saveSettings({ [key]: false }, `${name} OFF`);
+      return;
+    }
 
-  const handlePersonalityToggle = useCallback(async () => {
-    const newEnabled = !settings.aiPersonalityEnabled;
-    await saveSettings({ aiPersonalityEnabled: newEnabled }, newEnabled ? 'Personality ON' : 'Personality OFF');
-  }, [settings, saveSettings]);
+    // If currently disabled, show confirmation modal
+    const featureInfo = AI_FEATURE_INFO[featureId];
+    if (featureInfo) {
+      setSelectedFeature(featureInfo);
+      setPendingFeatureKey(key);
+      setPendingFeatureName(name);
+      setModalVisible(true);
+    } else {
+      // Fallback if no info found (shouldn't happen if config is complete)
+      await saveSettings({ [key]: true }, `${name} ON`);
+    }
+  }, [saveSettings]);
 
-  const handleSmartReschedulingToggle = useCallback(async () => {
-    const newEnabled = !settings.aiSmartReschedulingEnabled;
-    await saveSettings({ aiSmartReschedulingEnabled: newEnabled }, newEnabled ? 'Smart Rescheduling ON' : 'Smart Rescheduling OFF');
-  }, [settings, saveSettings]);
+  const handleConfirmEnable = useCallback(async () => {
+    if (pendingFeatureKey) {
+      await saveSettings({ [pendingFeatureKey]: true }, `${pendingFeatureName} ON`);
+    }
+    setModalVisible(false);
+    setSelectedFeature(null);
+    setPendingFeatureKey(null);
+  }, [pendingFeatureKey, pendingFeatureName, saveSettings]);
 
-  const handleMotivationalToggle = useCallback(async () => {
-    const newEnabled = !settings.aiMotivationalEnabled;
-    await saveSettings({ aiMotivationalEnabled: newEnabled }, newEnabled ? 'Motivation ON' : 'Motivation OFF');
-  }, [settings, saveSettings]);
+  const handleDismissModal = useCallback(() => {
+    setModalVisible(false);
+    setSelectedFeature(null);
+    setPendingFeatureKey(null);
+  }, []);
 
-  const handlePatternDetectionToggle = useCallback(async () => {
-    const newEnabled = !settings.aiPatternDetectionEnabled;
-    await saveSettings({ aiPatternDetectionEnabled: newEnabled }, newEnabled ? 'Pattern Detection ON' : 'Pattern Detection OFF');
-  }, [settings, saveSettings]);
+  const handleSmartRemindersToggle = useCallback(() => {
+    handleFeatureToggle('smartRemindersEnabled', settings.smartRemindersEnabled, 'smartReminders', 'Smart Reminders');
+  }, [settings.smartRemindersEnabled, handleFeatureToggle]);
 
-  const handleGoalBreakdownToggle = useCallback(async () => {
-    const newEnabled = !settings.aiGoalBreakdownEnabled;
-    await saveSettings({ aiGoalBreakdownEnabled: newEnabled }, newEnabled ? 'Goal Breakdown ON' : 'Goal Breakdown OFF');
-  }, [settings, saveSettings]);
+  const handlePersonalityToggle = useCallback(() => {
+    handleFeatureToggle('aiPersonalityEnabled', settings.aiPersonalityEnabled !== false, 'aiPersonality', 'Personality');
+  }, [settings.aiPersonalityEnabled, handleFeatureToggle]);
 
-  const handleGoalCoachToggle = useCallback(async () => {
-    const newEnabled = !settings.aiGoalCoachEnabled;
-    await saveSettings({ aiGoalCoachEnabled: newEnabled }, newEnabled ? 'Goal Coach ON' : 'Goal Coach OFF');
-  }, [settings, saveSettings]);
+  const handleSmartReschedulingToggle = useCallback(() => {
+    handleFeatureToggle('aiSmartReschedulingEnabled', settings.aiSmartReschedulingEnabled !== false, 'aiSmartRescheduling', 'Smart Rescheduling');
+  }, [settings.aiSmartReschedulingEnabled, handleFeatureToggle]);
+
+  const handleMotivationalToggle = useCallback(() => {
+    handleFeatureToggle('aiMotivationalEnabled', settings.aiMotivationalEnabled !== false, 'aiMotivational', 'Motivation');
+  }, [settings.aiMotivationalEnabled, handleFeatureToggle]);
+
+  const handlePatternDetectionToggle = useCallback(() => {
+    handleFeatureToggle('aiPatternDetectionEnabled', settings.aiPatternDetectionEnabled !== false, 'aiPatternDetection', 'Pattern Detection');
+  }, [settings.aiPatternDetectionEnabled, handleFeatureToggle]);
+
+  const handleGoalBreakdownToggle = useCallback(() => {
+    handleFeatureToggle('aiGoalBreakdownEnabled', settings.aiGoalBreakdownEnabled !== false, 'aiGoalBreakdown', 'Goal Breakdown');
+  }, [settings.aiGoalBreakdownEnabled, handleFeatureToggle]);
+
+  const handleGoalCoachToggle = useCallback(() => {
+    handleFeatureToggle('aiGoalCoachEnabled', settings.aiGoalCoachEnabled !== false, 'aiGoalCoach', 'Goal Coach');
+  }, [settings.aiGoalCoachEnabled, handleFeatureToggle]);
 
   const handlePiiToggle = useCallback(async () => {
     const newEnabled = !settings.aiPiiAnonymizationEnabled;
@@ -366,6 +468,13 @@ export function AISettingsScreen() {
 
         <View style={styles.footerSpacing} />
       </ScrollView>
+
+      <AIFeatureInfoModal
+        visible={modalVisible}
+        featureInfo={selectedFeature}
+        onDismiss={handleDismissModal}
+        onConfirm={handleConfirmEnable}
+      />
     </SafeAreaView>
   );
 };
