@@ -121,24 +121,43 @@ export function LogDetailsSheet({
             </View>
           )}
 
-          {/* Provider Metadata / Token Usage */}
+            {/* Provider Metadata / Token Usage */}
           {logEntry.providerMetadata && (
             <View style={styles.section}>
               <Text variant="labelMedium" style={{ color: theme.colors.primary }}>
                 Token Usage & Metadata
               </Text>
               <View style={[styles.metadataBox, { backgroundColor: theme.colors.surfaceVariant + '30', borderColor: theme.colors.outlineVariant }]}>
-                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                  Input Tokens: {logEntry.providerMetadata.inputTokens ?? 'N/A'}
-                </Text>
-                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                  Output Tokens: {logEntry.providerMetadata.outputTokens ?? 'N/A'}
-                </Text>
+                <View style={styles.metadataRow}>
+                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, flex: 1 }}>
+                    Input Tokens: {logEntry.providerMetadata.inputTokens ?? 'N/A'}
+                  </Text>
+                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, flex: 1 }}>
+                    Output Tokens: {logEntry.providerMetadata.outputTokens ?? 'N/A'}
+                  </Text>
+                </View>
                 <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, fontWeight: 'bold' }}>
                   Total Tokens: {logEntry.providerMetadata.totalTokens ?? 'N/A'}
                 </Text>
+                
+                {logEntry.providerMetadata.tokensPerSecond && (
+                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                    Throughput: {logEntry.providerMetadata.tokensPerSecond} tokens/s
+                  </Text>
+                )}
+                
+                {logEntry.providerMetadata.estimatedCost && (
+                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                    Est. Cost: ${logEntry.providerMetadata.estimatedCost.toFixed(6)}
+                  </Text>
+                )}
+
+                {(logEntry.providerMetadata.modelId || logEntry.providerMetadata.finishReason) && (
+                  <View style={styles.divider} />
+                )}
+
                 {logEntry.providerMetadata.modelId && (
-                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 4 }}>
+                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
                     Model ID: {logEntry.providerMetadata.modelId}
                   </Text>
                 )}
@@ -147,6 +166,42 @@ export function LogDetailsSheet({
                     Finish Reason: {logEntry.providerMetadata.finishReason}
                   </Text>
                 )}
+              </View>
+            </View>
+          )}
+
+          {/* Provider Response Headers */}
+          {logEntry.providerMetadata?.headers && (
+            <View style={styles.section}>
+              <Text variant="labelMedium" style={{ color: theme.colors.primary }}>
+                Provider Response Headers
+              </Text>
+              <View style={[styles.codeBox, { backgroundColor: theme.colors.surfaceVariant + '50' }]}>
+                <Text 
+                  variant="bodySmall" 
+                  selectable
+                  style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}
+                >
+                  {JSON.stringify(logEntry.providerMetadata.headers, null, 2)}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* Raw Provider Metadata */}
+          {logEntry.providerMetadata?.raw && (
+            <View style={styles.section}>
+              <Text variant="labelMedium" style={{ color: theme.colors.primary }}>
+                Raw Provider Metadata
+              </Text>
+              <View style={[styles.codeBox, { backgroundColor: theme.colors.surfaceVariant + '50' }]}>
+                <Text 
+                  variant="bodySmall" 
+                  selectable
+                  style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}
+                >
+                  {JSON.stringify(logEntry.providerMetadata.raw, null, 2)}
+                </Text>
               </View>
             </View>
           )}
@@ -240,7 +295,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     marginTop: 4,
-    gap: 2,
+    gap: 4,
+  },
+  metadataRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    marginVertical: 4,
   },
   errorBox: {
     padding: 12,
