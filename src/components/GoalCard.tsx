@@ -4,6 +4,7 @@ import {
   StyleSheet,
   Dimensions,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
@@ -12,6 +13,7 @@ import Animated, {
   withSequence,
   runOnJS,
   runOnUI,
+  interpolateColor,
 } from 'react-native-reanimated';
 import { ThemedIcon } from './ThemedIcon';
 import {
@@ -133,6 +135,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   const scale = useSharedValue(1);
   const cardOpacity = useSharedValue(goal.isCompleted ? 0.5 : 1);
   const checkboxScale = useSharedValue(1);
+  const hasTriggeredHaptic = useSharedValue(0);
 
   useEffect(() => {
     cardOpacity.value = withTiming(goal.isCompleted ? 0.5 : 1, { duration: 400 });
@@ -197,22 +200,32 @@ export const GoalCard: React.FC<GoalCardProps> = ({
     onLongPress?.(goal.id);
   };
 
+  const triggerSwipeHaptic = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  };
+
   const gesture = Gesture.Pan()
     .minDistance(1)
     .onTouchesDown(() => {
       gestureState.value = STATE_TOUCH_DOWN;
       scale.value = withSpring(0.98, { damping: 20, stiffness: 300 });
+      hasTriggeredHaptic.value = 0;
       runOnJS(startLongPressTimer)();
     })
     .onTouchesUp(() => {
        if (gestureState.value === STATE_LONG_PRESSING) {
          runOnJS(onLongPressEnd!)(goal.id);
+         runOnJS(cancelLongPressTimer)();
+         scale.value = withSpring(1);
+         gestureState.value = STATE_IDLE;
        } else if (gestureState.value === STATE_TOUCH_DOWN) {
          runOnJS(onPress)(goal.id);
+         runOnJS(cancelLongPressTimer)();
+         scale.value = withSpring(1);
+         gestureState.value = STATE_IDLE;
        }
-       runOnJS(cancelLongPressTimer)();
-       scale.value = withSpring(1);
-       gestureState.value = STATE_IDLE;
+       // If Swiping, we do NOT reset state here; we let onEnd handle it.
+       // This ensures the swipe action can trigger in onEnd.
     })
     .onUpdate((e) => {
       if (gestureState.value === STATE_LONG_PRESSING) return;
@@ -231,11 +244,20 @@ export const GoalCard: React.FC<GoalCardProps> = ({
       if (gestureState.value === STATE_SWIPING) {
         translateX.value = e.translationX;
         actionOpacity.value = Math.min(Math.abs(e.translationX) / SWIPE_THRESHOLD, 1);
+        
+        const isPastThreshold = Math.abs(e.translationX) > SWIPE_THRESHOLD;
+        if (isPastThreshold && hasTriggeredHaptic.value === 0) {
+          hasTriggeredHaptic.value = 1;
+          runOnJS(triggerSwipeHaptic)();
+        } else if (!isPastThreshold && hasTriggeredHaptic.value === 1) {
+           hasTriggeredHaptic.value = 0;
+        }
       }
     })
     .onEnd(() => {
       runOnJS(cancelLongPressTimer)();
       scale.value = withSpring(1);
+      hasTriggeredHaptic.value = 0;
 
       if (gestureState.value === STATE_SWIPING) {
         // Swipe left-to-right (positive) = Delete
@@ -268,18 +290,49 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   }));
 
   // Delete layer (left side, revealed when swiping right)
-  const deleteLayerStyle = useAnimatedStyle(() => ({
-    opacity: translateX.value > 0 ? actionOpacity.value : 0,
-  }));
+  const deleteLayerStyle = useAnimatedStyle(() => {
+    const backgroundColor = interpolateColor(
+      translateX.value,
+      [0, SWIPE_THRESHOLD],
+      [theme.colors.errorContainer, theme.colors.error]
+    );
+    return {
+      width: translateX.value > 0 ? translateX.value : 0,
+      opacity: translateX.value > 0 ? actionOpacity.value : 0,
+      backgroundColor,
+    };
+  });
 
   // Complete layer (right side, revealed when swiping left)
-  const completeLayerStyle = useAnimatedStyle(() => ({
-    opacity: translateX.value < 0 ? actionOpacity.value : 0,
-  }));
+  const completeLayerStyle = useAnimatedStyle(() => {
+    const backgroundColor = interpolateColor(
+      translateX.value,
+      [-SWIPE_THRESHOLD, 0],
+      [theme.colors.primary, theme.colors.primaryContainer]
+    );
+    return {
+      width: translateX.value < 0 ? -translateX.value : 0,
+      opacity: translateX.value < 0 ? actionOpacity.value : 0,
+      backgroundColor,
+    };
+  });
 
   const checkboxStyle = useAnimatedStyle(() => ({
     transform: [{ scale: checkboxScale.value }],
   }));
+  
+  // Icon animation style
+  const actionIconStyle = useAnimatedStyle(() => {
+    const isPastThreshold = Math.abs(translateX.value) > SWIPE_THRESHOLD;
+    const overshoot = Math.abs(translateX.value) - SWIPE_THRESHOLD;
+    
+    return {
+      transform: [
+        { scale: withSpring(isPastThreshold ? 1.2 : 1) },
+        { rotate: `${isPastThreshold ? Math.sin(overshoot * 0.2) * 15 : 0}deg` }
+      ]
+    };
+  });
 
   const handleCheckboxPress = useCallback(() => {
     checkboxScale.value = withSequence(
@@ -295,32 +348,34 @@ export const GoalCard: React.FC<GoalCardProps> = ({
       <Animated.View
         style={[
           styles.deleteLayer,
-          { backgroundColor: theme.colors.errorContainer },
           deleteLayerStyle,
           variant === 'minimal' && styles.minimalActionLayer,
         ]}
       >
-        <IconButton
-          icon="delete-outline"
-          iconColor={theme.colors.error}
-          size={24}
-        />
+        <Animated.View style={actionIconStyle}>
+          <IconButton
+            icon="delete-outline"
+            iconColor={theme.colors.onError}
+            size={24}
+          />
+        </Animated.View>
       </Animated.View>
 
       {/* Complete Action Layer */}
       <Animated.View
         style={[
           styles.completeLayer,
-          { backgroundColor: theme.colors.primaryContainer },
           completeLayerStyle,
           variant === 'minimal' && styles.minimalActionLayer,
         ]}
       >
-        <IconButton
-          icon="check"
-          iconColor={theme.colors.primary}
-          size={24}
-        />
+        <Animated.View style={actionIconStyle}>
+          <IconButton
+            icon="check"
+            iconColor={theme.colors.onPrimary}
+            size={24}
+          />
+        </Animated.View>
       </Animated.View>
 
       {/* Main Content */}
@@ -526,18 +581,26 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   deleteLayer: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'flex-start',
     paddingLeft: 20,
+    overflow: 'hidden',
   },
   completeLayer: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    right: 0,
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'flex-end',
     paddingRight: 20,
+    overflow: 'hidden',
   },
   cardWrapper: {
     borderRadius: 24,
