@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View, Image, Animated, Dimensions } from 'react-native';
+import { StyleSheet, View, Image, Animated, Modal } from 'react-native';
 import BootSplash from 'react-native-bootsplash';
 import { colorPalettes } from '../theme/colors';
 
@@ -42,25 +42,32 @@ const SplashScreen: React.FC<Props> = ({ isAppReady, onAnimationComplete }) => {
   }, [isAppReady, isBootSplashHidden, onAnimationComplete, opacity, scale]);
 
   return (
-    <View style={styles.container}>
-      <Animated.View style={[styles.logoContainer, { opacity, transform: [{ scale }] }]}>
-        <Image 
-          source={require('../../assets/bootsplash/logo.png')} 
-          style={styles.logo} 
-          resizeMode="contain" 
-        />
-      </Animated.View>
-    </View>
+    <Modal
+      transparent
+      visible
+      statusBarTranslucent
+      animationType="none"
+      hardwareAccelerated
+    >
+      <View style={styles.container}>
+        <Animated.View style={[styles.logoContainer, { opacity, transform: [{ scale }] }]}>
+          <Image
+            source={require('../../assets/bootsplash/logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </Animated.View>
+      </View>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
+    flex: 1,
     backgroundColor: colorPalettes.default.light.background,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 9999, // Ensure it's on top
   },
   logoContainer: {
     flex: 1,

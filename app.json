@@ -29,6 +29,9 @@
       "package": "com.justdoit.app",
       "useNextNotificationsApi": true,
       "permissions": [
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.READ_CALENDAR",

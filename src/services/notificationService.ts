@@ -1,4 +1,5 @@
 import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 import { Goal } from '../types';
 
 /**
@@ -40,8 +41,35 @@ export class NotificationService implements INotificationService {
   private notificationResponseListener: Notifications.EventSubscription | null = null;
   private onNotificationResponse: ((goalId: string) => void) | null = null;
 
+  private hasEnsuredAndroidChannel = false;
+
   constructor() {
     this.setupNotificationResponseListener();
+    // Fire-and-forget: ensure channel exists early for Android 13+ permission prompt & scheduling.
+    void this.ensureAndroidNotificationChannel();
+  }
+
+  /**
+   * Ensures a default Android notification channel exists.
+   * Without at least one channel, Android 13+ may not show the notifications permission prompt.
+   */
+  private async ensureAndroidNotificationChannel(): Promise<void> {
+    if (Platform.OS !== 'android') return;
+    if (this.hasEnsuredAndroidChannel) return;
+
+    try {
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'Default',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FF231F7C',
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      });
+      this.hasEnsuredAndroidChannel = true;
+    } catch (error) {
+      // Don't fail app startup if channel creation fails; scheduling may still work on some devices.
+      console.warn('Failed to create Android notification channel:', error);
+    }
   }
 
   /**
@@ -66,6 +94,7 @@ export class NotificationService implements INotificationService {
    */
   async requestPermissions(): Promise<boolean> {
     try {
+      await this.ensureAndroidNotificationChannel();
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       
       if (existingStatus === 'granted') {
@@ -105,10 +134,12 @@ export class NotificationService implements INotificationService {
           body: goal.title,
           data: { goalId: goal.id },
           sound: true,
+          ...(Platform.OS === 'android' ? { channelId: 'default' } : {}),
         },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DATE,
           date: reminderDate,
+          ...(Platform.OS === 'android' ? { channelId: 'default' } : {}),
         },
       });
 
@@ -142,10 +173,18 @@ export class NotificationService implements INotificationService {
    */
   async scheduleDailyPlanningReminder(time: string): Promise<string> {
     try {
+      await this.ensureAndroidNotificationChannel();
       // Cancel existing daily planning reminder first
       await this.cancelDailyPlanningReminder();
 
       const [hours, minutes] = time.split(':').map(Number);
+
+      if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+        throw new Error(`Invalid daily reminder time: "${time}" (expected HH:mm)`);
+      }
+      if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+        throw new Error(`Out-of-range daily reminder time: "${time}"`);
+      }
 
       const notificationId = await Notifications.scheduleNotificationAsync({
         identifier: DAILY_PLANNING_REMINDER_ID,
@@ -154,11 +193,13 @@ export class NotificationService implements INotificationService {
           body: "It's time to set your goals for tomorrow!",
           data: { type: 'daily-planning' },
           sound: true,
+          ...(Platform.OS === 'android' ? { channelId: 'default' } : {}),
         },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DAILY,
           hour: hours,
           minute: minutes,
+          ...(Platform.OS === 'android' ? { channelId: 'default' } : {}),
         },
       });
 

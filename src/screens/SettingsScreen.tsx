@@ -282,13 +282,6 @@ export function SettingsScreen() {
   const router = useRouter();
   const { settings, updateSettings, setDailyReminderTime } = useSettings();
   const insets = useSafeAreaInsets();
-
-  useEffect(() => {
-    // Enable LayoutAnimation on Android for smoother accordion transitions
-    if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-      UIManager.setLayoutAnimationEnabledExperimental(true);
-    }
-  }, []);
   
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
@@ -340,8 +333,9 @@ export function SettingsScreen() {
     }
   }, [updateSettings]);
 
-  const handleNotificationsToggle = useCallback(async () => {
-    const newEnabled = !settings.notificationsEnabled;
+  const handleNotificationsToggle = useCallback(async (value?: boolean) => {
+    const newEnabled = typeof value === 'boolean' ? value : !settings.notificationsEnabled;
+
     if (newEnabled) {
       const granted = await notificationService.requestPermissions();
       if (!granted) {
@@ -349,23 +343,44 @@ export function SettingsScreen() {
         setSnackbarVisible(true);
         return;
       }
-      if (settings.dailyReminderEnabled) {
+    }
+
+    // Persist the user choice even if scheduling fails on a specific device/config.
+    await saveSettings(
+      { notificationsEnabled: newEnabled },
+      newEnabled ? 'Notifications ON' : 'Notifications OFF'
+    );
+
+    try {
+      if (!newEnabled) {
+        await notificationService.cancelAllReminders();
+      } else if (settings.dailyReminderEnabled) {
         await notificationService.scheduleDailyPlanningReminder(settings.dailyReminderTime);
       }
-    } else {
-      await notificationService.cancelAllReminders();
+    } catch (error) {
+      console.warn('Notification scheduling update failed:', error);
+      setSnackbarMessage('Saved, but scheduling failed on this device');
+      setSnackbarVisible(true);
     }
-    await saveSettings({ notificationsEnabled: newEnabled }, newEnabled ? 'Notifications ON' : 'Notifications OFF');
   }, [settings, saveSettings]);
 
-  const handleDailyReminderToggle = useCallback(async () => {
-    const newEnabled = !settings.dailyReminderEnabled;
-    if (newEnabled && settings.notificationsEnabled) {
-      await notificationService.scheduleDailyPlanningReminder(settings.dailyReminderTime);
-    } else {
-      await notificationService.cancelDailyPlanningReminder();
-    }
+  const handleDailyReminderToggle = useCallback(async (value?: boolean) => {
+    const newEnabled = typeof value === 'boolean' ? value : !settings.dailyReminderEnabled;
+
+    // Persist first so the UI reliably reflects the user's intent.
     await saveSettings({ dailyReminderEnabled: newEnabled }, newEnabled ? 'Reminder ON' : 'Reminder OFF');
+
+    try {
+      if (newEnabled && settings.notificationsEnabled) {
+        await notificationService.scheduleDailyPlanningReminder(settings.dailyReminderTime);
+      } else {
+        await notificationService.cancelDailyPlanningReminder();
+      }
+    } catch (error) {
+      console.warn('Daily reminder scheduling update failed:', error);
+      setSnackbarMessage('Reminder saved, but scheduling failed');
+      setSnackbarVisible(true);
+    }
   }, [settings, saveSettings]);
 
   const handleTimeSelect = useCallback(async (time: string) => {
