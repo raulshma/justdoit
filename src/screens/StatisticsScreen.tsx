@@ -138,30 +138,22 @@ export function StatisticsScreen() {
       >
         {/* Header Section */}
       <View style={styles.headerContainer}>
-        <Text variant="headlineMedium" style={styles.headerTitle}>
-          Insights
-        </Text>
-        <Text variant="bodyLarge" style={[styles.headerSubtitle, { color: theme.colors.onSurfaceVariant }]}>
-          Your habit journey
-        </Text>
-      </View>
-      
-      {/* ENTRY POINT: History Button */}
-      <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+        <View>
+          <Text variant="headlineMedium" style={styles.headerTitle}>
+            Insights
+          </Text>
+          <Text variant="bodyLarge" style={[styles.headerSubtitle, { color: theme.colors.onSurfaceVariant }]}>
+            Your habit journey
+          </Text>
+        </View>
+
+        {/* History Button */}
         <TouchableOpacity 
           onPress={() => router.push('/history')}
-          style={{ 
-            backgroundColor: theme.colors.surfaceVariant,
-            padding: 12,
-            borderRadius: 12,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8
-          }}
+          style={[styles.historyButton, { backgroundColor: theme.colors.surfaceVariant }]}
+          accessibilityLabel="View Goal History"
         >
-           <ThemedIcon name="history" size={20} color={theme.colors.primary} />
-           <Text style={{ fontWeight: '600', color: theme.colors.onSurface }}>View Goal History</Text>
+           <ThemedIcon name="history" size={24} color={theme.colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -420,9 +412,19 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
-    marginBottom: 8,
+    marginBottom: 24,
     marginTop: 12,
+  },
+  historyButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     fontWeight: '800',

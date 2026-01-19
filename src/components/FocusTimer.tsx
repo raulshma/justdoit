@@ -13,6 +13,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { focusTimerService } from '../services/focusTimerService';
+import { storageService } from '../services/storageService';
 import { CustomDurationPicker } from './CustomDurationPicker';
 import type { FocusTimerState, FocusSession } from '../types';
 
@@ -196,7 +197,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
 
   // Handle start break
   const handleStartBreak = useCallback((isLong: boolean) => {
-    const settings = require('../constants').DEFAULT_SETTINGS;
+    const settings = storageService.getSettings();
     const duration = isLong
       ? settings.focusLongBreakDuration * 60
       : settings.focusShortBreakDuration * 60;

@@ -179,8 +179,12 @@ class FocusTimerService {
       date: new Date().toISOString().split('T')[0],
     };
 
-    // Stop ambient sound during breaks
-    ambientSoundService.pause();
+    // Start ambient sound if enabled
+    if (settings.focusAmbientSoundEnabled && settings.focusAmbientSound !== 'none') {
+      ambientSoundService.play(settings.focusAmbientSound);
+    } else {
+      ambientSoundService.pause();
+    }
 
     this.timeRemaining = duration;
     this.setState('break');
@@ -212,10 +216,9 @@ class FocusTimerService {
     this.setState(previousState);
     this.startTimer();
 
-    // Resume ambient sound for work sessions
+    // Resume ambient sound if enabled
     const settings = storageService.getSettings();
     if (
-      previousState === 'running' &&
       settings.focusAmbientSoundEnabled &&
       settings.focusAmbientSound !== 'none'
     ) {
