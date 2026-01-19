@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useMemo, useEffect, memo } from 'react';
-import { View, StyleSheet, ScrollView, TextInput, LayoutAnimation, Platform, UIManager } from 'react-native';
+import React, { useState, useCallback, useMemo, memo } from 'react';
+import { View, StyleSheet, ScrollView, LayoutAnimation } from 'react-native';
 
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -16,10 +16,11 @@ import {
 } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import type { AppSettings, ColorPalette } from '../types';
-import { notificationService, aiLogService, calendarService, backupService, convexSyncService, ambientSoundService } from '../services';
+import { notificationService } from '../services';
 import { colorPaletteInfoList, themeMoods, getPalettesByMood } from '../theme/colors';
 import type { ThemeMood } from '../types/settings';
 import { useSettings } from '../context/SettingsContext';
+import { AdvancedSettingRow } from '../components/settings/AdvancedSettingRow';
 
 /**
  * Generate time options for daily reminder
@@ -128,134 +129,6 @@ const ColorPaletteItem = memo(function ColorPaletteItem({
 });
 
 /**
- * Setting Row Component - Novel Design
- * High fidelity with improved spacing and typography
- * Memoized for performance
- */
-const SettingRow = memo(({
-  icon,
-  title,
-  subtitle,
-  right,
-  switchValue,
-  onSwitchValueChange,
-  switchDisabled,
-  badgeText,
-  badgeTone = 'secondary',
-  rightText,
-  rightTextColor,
-  onPress,
-  disabled = false,
-  danger = false,
-  isLast = false,
-}: {
-  icon: string;
-  title: string;
-  subtitle?: string;
-  right?: React.ReactNode;
-  switchValue?: boolean;
-  onSwitchValueChange?: () => void;
-  switchDisabled?: boolean;
-  badgeText?: string;
-  badgeTone?: 'primary' | 'secondary';
-  rightText?: string;
-  rightTextColor?: string;
-  onPress?: () => void;
-  disabled?: boolean;
-  danger?: boolean;
-  isLast?: boolean;
-}) => {
-  const theme = useTheme();
-
-  const rightNode = useMemo(() => {
-    if (typeof switchValue === 'boolean' && onSwitchValueChange) {
-      return (
-        <Switch
-          value={switchValue}
-          onValueChange={onSwitchValueChange}
-          color={theme.colors.primary}
-          disabled={switchDisabled}
-        />
-      );
-    }
-
-    if (badgeText) {
-      const backgroundColor =
-        badgeTone === 'primary' ? theme.colors.primaryContainer : theme.colors.secondaryContainer + '50';
-      const color = badgeTone === 'primary' ? theme.colors.primary : theme.colors.onSecondaryContainer;
-      return (
-        <View style={[styles.smallBadge, { backgroundColor }]}>
-          <Text variant="labelMedium" style={{ color }}>
-            {badgeText}
-          </Text>
-        </View>
-      );
-    }
-
-    if (rightText) {
-      return (
-        <Text variant="labelMedium" style={{ color: rightTextColor || theme.colors.primary }}>
-          {rightText}
-        </Text>
-      );
-    }
-
-    return right;
-  }, [
-    badgeText,
-    badgeTone,
-    onSwitchValueChange,
-    right,
-    rightText,
-    rightTextColor,
-    switchDisabled,
-    switchValue,
-    theme.colors.onSecondaryContainer,
-    theme.colors.primary,
-    theme.colors.primaryContainer,
-    theme.colors.secondaryContainer,
-  ]);
-  
-  return (
-    <TouchableRipple 
-      onPress={!disabled && onPress ? onPress : undefined}
-      disabled={disabled}
-      style={[
-        styles.settingRow, 
-        disabled && styles.disabledRow,
-        !isLast && { borderBottomWidth: 1, borderBottomColor: theme.colors.outlineVariant + '40' } // Subtle separator using outline variant
-      ]}
-      rippleColor={theme.colors.primaryContainer + '40'}
-    >
-      <View style={styles.settingRowContent}>
-        <Surface style={[styles.iconContainer, { backgroundColor: theme.colors.secondaryContainer + '50' }]} elevation={0}>
-          <Icon source={icon} size={24} color={theme.colors.onSecondaryContainer} />
-        </Surface>
-        <View style={styles.settingTextContainer}>
-          <Text variant="titleMedium" style={[styles.settingTitle, { color: danger ? theme.colors.error : theme.colors.onSurface }]}>
-            {title}
-          </Text>
-          {subtitle && (
-            <Text variant="bodyMedium" style={[styles.settingSubtitle, { color: theme.colors.onSurfaceVariant }]}>
-              {subtitle}
-            </Text>
-          )}
-        </View>
-        {rightNode && <View style={styles.settingRight}>{rightNode}</View>}
-      </View>
-    </TouchableRipple>
-  );
-});
-
-const FOCUS_SOUNDS = ['rain', 'forest', 'cafe', 'waves'] as const;
-const FOCUS_SOUND_META: Record<(typeof FOCUS_SOUNDS)[number], { name: string; icon: string }> = {
-  rain: { name: 'Rain', icon: 'weather-rainy' },
-  forest: { name: 'Forest', icon: 'tree' },
-  cafe: { name: 'Cafe', icon: 'coffee' },
-  waves: { name: 'Waves', icon: 'wave' },
-};
-
-/**
  * Custom spring animation config for smooth expand/collapse
  */
 const springAnimation = {
@@ -284,18 +157,9 @@ export function SettingsScreen() {
   const insets = useSafeAreaInsets();
   
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState('');
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [themeExpanded, setThemeExpanded] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-  const [isImporting, setIsImporting] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [isRestoring, setIsRestoring] = useState(false);
-  const [showConvexCredentialsModal, setShowConvexCredentialsModal] = useState(false);
-  const [convexUrlInput, setConvexUrlInput] = useState('');  
-  const [convexTokenInput, setConvexTokenInput] = useState('');
   const tabBarHeight = settings.showTabBarLabels ? 80 : 64;
   const tabBarBottomPadding = insets.bottom + 12;
   const snackbarBottom = tabBarHeight + tabBarBottomPadding + 8;
@@ -422,134 +286,6 @@ export function SettingsScreen() {
     void handleColorPaletteChange(paletteId as ColorPalette);
   }, [handleColorPaletteChange]);
 
-  const handleSmartRemindersToggle = useCallback(async () => {
-    const newEnabled = !settings.smartRemindersEnabled;
-    await saveSettings({ smartRemindersEnabled: newEnabled }, newEnabled ? 'Smart Reminders ON' : 'Smart Reminders OFF');
-  }, [settings, saveSettings]);
-
-  const handleFocusModeToggle = useCallback(async () => {
-    const newEnabled = !settings.focusModeEnabled;
-    await saveSettings({ focusModeEnabled: newEnabled }, newEnabled ? 'Focus Mode ON' : 'Focus Mode OFF');
-  }, [settings, saveSettings]);
-
-  const handleCarryForwardToggle = useCallback(async () => {
-    const newEnabled = !settings.carryForwardEnabled;
-    await saveSettings({ carryForwardEnabled: newEnabled }, newEnabled ? 'Carry Forward ON' : 'Carry Forward OFF');
-  }, [settings, saveSettings]);
-
-  const handleCalendarToggle = useCallback(async () => {
-    const newEnabled = !settings.calendarIntegrationEnabled;
-    
-    if (newEnabled) {
-      // Request calendar permissions
-      const status = await calendarService.requestPermissions();
-      if (status !== 'granted') {
-        setSnackbarMessage('Calendar permission denied');
-        setSnackbarVisible(true);
-        return;
-      }
-      calendarService.clearCache();
-    }
-    
-    await saveSettings({ calendarIntegrationEnabled: newEnabled }, newEnabled ? 'Calendar ON' : 'Calendar OFF');
-  }, [settings, saveSettings]);
-
-  const handleGamificationToggle = useCallback(async () => {
-    const newEnabled = !settings.gamificationEnabled;
-    await saveSettings({ gamificationEnabled: newEnabled }, newEnabled ? 'Gamification ON' : 'Gamification OFF');
-  }, [settings, saveSettings]);
-
-  const handleSaveApiKey = useCallback(async () => {
-    setShowApiKeyModal(false);
-    if (apiKeyInput.trim()) {
-      await saveSettings({ openRouterApiKey: apiKeyInput.trim() }, 'API Key saved');
-    }
-    setApiKeyInput('');
-  }, [apiKeyInput, saveSettings]);
-
-  const handleOpenModelSelection = useCallback(() => {
-    router.push('/model-selection');
-  }, [router]);
-
-  const handleExportData = useCallback(async () => {
-    setIsExporting(true);
-    try {
-      const result = await backupService.exportToFile();
-      if (result.success) {
-        setSnackbarMessage('Data exported successfully');
-      } else {
-        setSnackbarMessage(result.error || 'Export failed');
-      }
-      setSnackbarVisible(true);
-    } finally {
-      setIsExporting(false);
-    }
-  }, []);
-
-  const handleImportData = useCallback(async () => {
-    setIsImporting(true);
-    try {
-      const result = await backupService.importFromFile();
-      if (result.success) {
-        setSnackbarMessage('Data imported! Restart the app to see changes.');
-      } else if (result.error !== 'No file selected') {
-        setSnackbarMessage(result.error || 'Import failed');
-      }
-      setSnackbarVisible(true);
-    } finally {
-      setIsImporting(false);
-    }
-  }, []);
-
-  const handleSaveConvexCredentials = useCallback(async () => {
-    setShowConvexCredentialsModal(false);
-    const updates: { convexUrl?: string; convexToken?: string } = {};
-    
-    if (convexUrlInput.trim()) {
-      updates.convexUrl = convexUrlInput.trim();
-    }
-    if (convexTokenInput.trim()) {
-      updates.convexToken = convexTokenInput.trim();
-    }
-    
-    if (Object.keys(updates).length > 0) {
-      await saveSettings(updates, 'Convex credentials saved');
-    }
-    
-    setConvexUrlInput('');
-    setConvexTokenInput('');
-  }, [convexUrlInput, convexTokenInput, saveSettings]);
-
-  const handleSyncToCloud = useCallback(async () => {
-    setIsSyncing(true);
-    try {
-      const result = await convexSyncService.syncToCloud();
-      if (result.success) {
-        setSnackbarMessage('Data synced to cloud!');
-      } else {
-        setSnackbarMessage(result.error || 'Sync failed');
-      }
-      setSnackbarVisible(true);
-    } finally {
-      setIsSyncing(false);
-    }
-  }, []);
-
-  const handleRestoreFromCloud = useCallback(async () => {
-    setIsRestoring(true);
-    try {
-      const result = await convexSyncService.syncFromCloud();
-      if (result.success) {
-        setSnackbarMessage('Data restored! Restart the app to see changes.');
-      } else {
-        setSnackbarMessage(result.error || 'Restore failed');
-      }
-      setSnackbarVisible(true);
-    } finally {
-      setIsRestoring(false);
-    }
-  }, []);
-
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ScrollView
@@ -572,7 +308,7 @@ export function SettingsScreen() {
             NOTIFICATIONS
           </Text>
           <Surface style={[styles.card, { backgroundColor: theme.colors.surface }]} elevation={0}>
-            <SettingRow
+            <AdvancedSettingRow
               icon="bell-ring-outline"
               title="Notifications"
               subtitle="Get updates and daily reminders"
@@ -582,7 +318,7 @@ export function SettingsScreen() {
             />
             {settings.notificationsEnabled && (
               <>
-                <SettingRow
+                <AdvancedSettingRow
                   icon="calendar-check-outline"
                   title="Daily Planner"
                   subtitle="Reminder to plan your day"
@@ -592,7 +328,7 @@ export function SettingsScreen() {
                   switchDisabled={!settings.notificationsEnabled}
                 />
                 {settings.dailyReminderEnabled && (
-                  <SettingRow
+                  <AdvancedSettingRow
                     icon="clock-time-four-outline"
                     title="Reminder Time"
                     subtitle={formatTimeDisplay(settings.dailyReminderTime)}
@@ -613,21 +349,21 @@ export function SettingsScreen() {
             APPEARANCE
           </Text>
           <Surface style={[styles.card, { backgroundColor: theme.colors.surface }]} elevation={0}>
-            <SettingRow
+            <AdvancedSettingRow
               icon="theme-light-dark"
               title="Dark Mode"
               subtitle="Easier on the eyes at night"
               switchValue={settings.darkModeEnabled}
               onSwitchValueChange={handleDarkModeToggle}
             />
-            <SettingRow
+            <AdvancedSettingRow
               icon="format-text"
               title="Tab Bar Labels"
               subtitle="Show text labels below icons"
               switchValue={settings.showTabBarLabels}
               onSwitchValueChange={handleTabBarLabelsToggle}
             />
-            <SettingRow
+            <AdvancedSettingRow
               icon="view-agenda-outline"
               title="Minimal Goals View"
               subtitle="Use simplified goals page"
@@ -713,282 +449,48 @@ export function SettingsScreen() {
           </Surface>
         </View>
 
-        {/* AI Features Group - Links to dedicated AI Settings */}
+        {/* Other Settings - moved to dedicated pages/modals */}
         <View style={styles.sectionContainer}>
           <Text variant="labelLarge" style={[styles.sectionHeader, { color: theme.colors.primary }]}>
-            AI FEATURES
+            MORE
           </Text>
           <Surface style={[styles.card, { backgroundColor: theme.colors.surface }]} elevation={0}>
-            <SettingRow
+            <AdvancedSettingRow
               icon="robot-happy-outline"
               title="AI Settings"
-              subtitle={settings.openRouterApiKey ? "Configure AI, view stats & insights" : "Set up AI-powered features"}
-              isLast={true}
+              subtitle={settings.openRouterApiKey ? 'Configure AI, view stats & insights' : 'Set up AI-powered features'}
               onPress={() => router.push('/ai-settings')}
               badgeText={settings.openRouterApiKey ? 'Active' : 'Setup'}
               badgeTone={settings.openRouterApiKey ? 'primary' : 'secondary'}
             />
-          </Surface>
-        </View>
-
-        {/* Data Backup Group */}
-        <View style={styles.sectionContainer}>
-          <Text variant="labelLarge" style={[styles.sectionHeader, { color: theme.colors.primary }]}>
-            DATA & BACKUP
-          </Text>
-          <Surface style={[styles.card, { backgroundColor: theme.colors.surface }]} elevation={0}>
-            <SettingRow
-              icon="export"
-              title="Export Data"
-              subtitle="Save all your data to a file"
-              onPress={handleExportData}
-              disabled={isExporting}
-              rightText={isExporting ? 'Exporting...' : undefined}
-              badgeText={!isExporting ? 'JSON' : undefined}
-            />
-            <SettingRow
-              icon="import"
-              title="Import Data"
-              subtitle="Restore from a backup file"
-              onPress={handleImportData}
-              disabled={isImporting}
-              rightText={isImporting ? 'Importing...' : undefined}
-              badgeText={!isImporting ? 'Restore' : undefined}
-            />
-            <SettingRow
-              icon="cloud-sync-outline"
-              title="Convex Credentials"
-              subtitle={settings.convexUrl && settings.convexToken ? "Configured" : "Set URL and Token for cloud sync"}
-              onPress={() => {
-                setConvexUrlInput(settings.convexUrl || '');
-                setConvexTokenInput(settings.convexToken || '');
-                setShowConvexCredentialsModal(true);
-              }}
-              badgeText={(settings.convexUrl && settings.convexToken) ? 'Ready' : 'Setup'}
-              badgeTone={(settings.convexUrl && settings.convexToken) ? 'primary' : 'secondary'}
-            />
-            {settings.convexUrl && settings.convexToken && (
-              <>
-                <SettingRow
-                  icon="cloud-upload-outline"
-                  title="Sync to Cloud"
-                  subtitle="Upload your data to Convex"
-                  onPress={handleSyncToCloud}
-                  disabled={isSyncing}
-                  rightText={isSyncing ? 'Syncing...' : undefined}
-                  badgeText={!isSyncing ? 'Sync' : undefined}
-                  badgeTone={!isSyncing ? 'primary' : 'secondary'}
-                />
-                <SettingRow
-                  icon="cloud-download-outline"
-                  title="Restore from Cloud"
-                  subtitle="Download your data from Convex"
-                  onPress={handleRestoreFromCloud}
-                  disabled={isRestoring}
-                  isLast={true}
-                  rightText={isRestoring ? 'Restoring...' : undefined}
-                  badgeText={!isRestoring ? 'Restore' : undefined}
-                />
-              </>
-            )}
-          </Surface>
-        </View>
-
-        {/* Smart Features Group */}
-        <View style={styles.sectionContainer}>
-          <Text variant="labelLarge" style={[styles.sectionHeader, { color: theme.colors.primary }]}>
-            SMART FEATURES
-          </Text>
-          <Surface style={[styles.card, { backgroundColor: theme.colors.surface }]} elevation={0}>
-            <SettingRow
-              icon="target"
-              title="Focus Mode"
-              subtitle="Show only top 3 daily priorities"
-              switchValue={settings.focusModeEnabled}
-              onSwitchValueChange={handleFocusModeToggle}
-            />
-            <SettingRow
-              icon="arrow-right-bold"
-              title="Carry Forward"
-              subtitle="Auto-move incomplete goals to today"
-              switchValue={settings.carryForwardEnabled}
-              onSwitchValueChange={handleCarryForwardToggle}
-            />
-            <SettingRow
-              icon="calendar-sync"
-              title="Calendar Integration"
-              subtitle="Show calendar events on goals page"
-              switchValue={settings.calendarIntegrationEnabled}
-              onSwitchValueChange={handleCalendarToggle}
-            />
-            <SettingRow
+            <AdvancedSettingRow
               icon="trophy-outline"
-              title="Gamification"
-              subtitle="XP, badges, challenges & personal bests"
-              isLast={true}
-              switchValue={settings.gamificationEnabled}
-              onSwitchValueChange={handleGamificationToggle}
+              title="Smart Features"
+              subtitle="Focus mode, carry-forward, calendar & gamification"
+              onPress={() => router.push('/smart-features-settings')}
             />
-          </Surface>
-        </View>
-
-        {/* Focus Timer Group */}
-        <View style={styles.sectionContainer}>
-          <Text variant="labelLarge" style={[styles.sectionHeader, { color: theme.colors.primary }]}>
-            FOCUS TIMER
-          </Text>
-          <Surface style={[styles.card, { backgroundColor: theme.colors.surface }]} elevation={0}>
-            <SettingRow
+            <AdvancedSettingRow
               icon="timer-sand"
-              title="Work Duration"
-              subtitle={`${settings.focusWorkDuration} minutes per session`}
-              right={
-                <View style={styles.durationControls}>
-                  <TouchableRipple
-                    onPress={() => settings.focusWorkDuration > 15 && saveSettings({ focusWorkDuration: settings.focusWorkDuration - 5 }, 'Work duration updated')}
-                    style={[styles.durationButton, { backgroundColor: theme.colors.surfaceVariant }]}
-                    borderless
-                  >
-                    <Icon source="minus" size={18} color={theme.colors.onSurfaceVariant} />
-                  </TouchableRipple>
-                  <Text variant="titleMedium" style={{ color: theme.colors.primary, minWidth: 32, textAlign: 'center' }}>
-                    {settings.focusWorkDuration}
-                  </Text>
-                  <TouchableRipple
-                    onPress={() => settings.focusWorkDuration < 60 && saveSettings({ focusWorkDuration: settings.focusWorkDuration + 5 }, 'Work duration updated')}
-                    style={[styles.durationButton, { backgroundColor: theme.colors.surfaceVariant }]}
-                    borderless
-                  >
-                    <Icon source="plus" size={18} color={theme.colors.onSurfaceVariant} />
-                  </TouchableRipple>
-                </View>
-              }
+              title="Focus Timer"
+              subtitle="Work sessions, breaks, reminders & sounds"
+              onPress={() => router.push('/focus-timer-settings')}
             />
-            <SettingRow
-              icon="coffee-outline"
-              title="Short Break"
-              subtitle={`${settings.focusShortBreakDuration} minutes`}
-              right={
-                <View style={styles.durationControls}>
-                  <TouchableRipple
-                    onPress={() => settings.focusShortBreakDuration > 3 && saveSettings({ focusShortBreakDuration: settings.focusShortBreakDuration - 1 }, 'Break duration updated')}
-                    style={[styles.durationButton, { backgroundColor: theme.colors.surfaceVariant }]}
-                    borderless
-                  >
-                    <Icon source="minus" size={18} color={theme.colors.onSurfaceVariant} />
-                  </TouchableRipple>
-                  <Text variant="titleMedium" style={{ color: theme.colors.primary, minWidth: 32, textAlign: 'center' }}>
-                    {settings.focusShortBreakDuration}
-                  </Text>
-                  <TouchableRipple
-                    onPress={() => settings.focusShortBreakDuration < 15 && saveSettings({ focusShortBreakDuration: settings.focusShortBreakDuration + 1 }, 'Break duration updated')}
-                    style={[styles.durationButton, { backgroundColor: theme.colors.surfaceVariant }]}
-                    borderless
-                  >
-                    <Icon source="plus" size={18} color={theme.colors.onSurfaceVariant} />
-                  </TouchableRipple>
-                </View>
-              }
+            <AdvancedSettingRow
+              icon="cloud-sync-outline"
+              title="Data & Backup"
+              subtitle="Export, import, and cloud sync"
+              onPress={() => router.push('/data-backup-settings')}
+              badgeText={settings.convexUrl && settings.convexToken ? 'Ready' : undefined}
+              badgeTone="primary"
             />
-            <SettingRow
-              icon="bell-ring-outline"
-              title="Break Reminders"
-              subtitle="Get notified when breaks end"
-              switchValue={settings.focusBreakRemindersEnabled}
-              onSwitchValueChange={() =>
-                saveSettings(
-                  { focusBreakRemindersEnabled: !settings.focusBreakRemindersEnabled },
-                  settings.focusBreakRemindersEnabled ? 'Break reminders OFF' : 'Break reminders ON'
-                )
-              }
-            />
-            <SettingRow
-              icon="music-note"
-              title="Ambient Sounds"
-              subtitle="Background audio during focus"
-              switchValue={settings.focusAmbientSoundEnabled}
-              onSwitchValueChange={() =>
-                saveSettings(
-                  { focusAmbientSoundEnabled: !settings.focusAmbientSoundEnabled },
-                  settings.focusAmbientSoundEnabled ? 'Ambient sounds OFF' : 'Ambient sounds ON'
-                )
-              }
-            />
-            {settings.focusAmbientSoundEnabled && (
-              <View style={styles.soundOptionsContainer}>
-                {FOCUS_SOUNDS.map((sound) => {
-                  const meta = FOCUS_SOUND_META[sound];
-                  const isSelected = settings.focusAmbientSound === sound;
-                  return (
-                    <TouchableRipple
-                      key={sound}
-                      onPress={() => {
-                        saveSettings({ focusAmbientSound: sound }, `Sound: ${meta.name}`);
-                        ambientSoundService.playPreview(sound);
-                      }}
-                      style={[
-                        styles.soundOption,
-                        { 
-                          backgroundColor: isSelected ? theme.colors.primaryContainer : theme.colors.surfaceVariant,
-                          borderColor: isSelected ? theme.colors.primary : 'transparent',
-                          borderWidth: isSelected ? 2 : 0,
-                        }
-                      ]}
-                      borderless
-                    >
-                      <View style={styles.soundOptionContent}>
-                        <Icon 
-                          source={meta.icon} 
-                          size={20} 
-                          color={isSelected ? theme.colors.primary : theme.colors.onSurfaceVariant} 
-                        />
-                        <Text 
-                          variant="labelMedium" 
-                          style={{ 
-                            color: isSelected ? theme.colors.primary : theme.colors.onSurfaceVariant,
-                            marginTop: 4,
-                            fontWeight: isSelected ? '600' : '400',
-                          }}
-                        >
-                          {meta.name}
-                        </Text>
-                        {isSelected && (
-                          <Icon source="check" size={12} color={theme.colors.primary} />
-                        )}
-                      </View>
-                    </TouchableRipple>
-                  );
-                })}
-              </View>
-            )}
-            <SettingRow
-              icon="check-circle-outline"
-              title="Auto-Complete Goals"
-              subtitle="Complete goals after focus sessions"
+            <AdvancedSettingRow
+              icon="information-outline"
+              title="About"
+              subtitle="Version and app info"
+              onPress={() => router.push('/about')}
               isLast={true}
-              switchValue={settings.focusAutoCompleteEnabled}
-              onSwitchValueChange={() =>
-                saveSettings(
-                  { focusAutoCompleteEnabled: !settings.focusAutoCompleteEnabled },
-                  settings.focusAutoCompleteEnabled ? 'Auto-complete OFF' : 'Auto-complete ON'
-                )
-              }
             />
           </Surface>
-        </View>
-
-        {/* About / Info Section - Redesigned as unique footer */}
-        <View style={styles.aboutContainer}>
-           <Icon source="code-tags" size={32} color={theme.colors.primary + '80'} />
-           <Text variant="titleMedium" style={{ marginTop: 12, opacity: 0.7, fontWeight: '700' }}>
-             JustDoIt
-           </Text>
-           <Text variant="bodySmall" style={{ opacity: 0.5, marginTop: 4 }}>
-             Version 1.0.0 (Alpha)
-           </Text>
-           <Text variant="bodySmall" style={{ opacity: 0.4, marginTop: 2 }}>
-             Designed for focus & flow
-           </Text>
         </View>
         
         <View style={styles.footerSpacing} />
@@ -1033,140 +535,6 @@ export function SettingsScreen() {
           <Button mode="text" onPress={() => setShowTimePicker(false)} style={styles.modalCancel}>
             Cancel
           </Button>
-        </Modal>
-      </Portal>
-
-      {/* API Key Modal */}
-      <Portal>
-        <Modal
-          visible={showApiKeyModal}
-          onDismiss={() => {
-            setShowApiKeyModal(false);
-            setApiKeyInput('');
-          }}
-          contentContainerStyle={[
-            styles.modalContainer,
-            { backgroundColor: theme.colors.surface }
-          ]}
-        >
-          <Text variant="headlineSmall" style={[styles.modalTitle, { color: theme.colors.onSurface }]}>
-            OpenRouter API Key
-          </Text>
-          <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, textAlign: 'center', marginBottom: 16 }}>
-            Get your API key from openrouter.ai
-          </Text>
-          <TextInput
-            value={apiKeyInput}
-            onChangeText={setApiKeyInput}
-            placeholder="sk-or-..."
-            placeholderTextColor={theme.colors.onSurfaceVariant + '80'}
-            secureTextEntry
-            style={[
-              styles.apiKeyInput,
-              {
-                backgroundColor: theme.colors.surfaceVariant + '50',
-                color: theme.colors.onSurface,
-                borderColor: theme.colors.outline + '30',
-              }
-            ]}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <View style={styles.modalButtons}>
-            <Button mode="text" onPress={() => {
-              setShowApiKeyModal(false);
-              setApiKeyInput('');
-            }}>
-              Cancel
-            </Button>
-            <Button 
-              mode="contained" 
-              onPress={handleSaveApiKey}
-              disabled={!apiKeyInput.trim()}
-            >
-              Save
-            </Button>
-          </View>
-        </Modal>
-      </Portal>
-
-      {/* Convex Credentials Modal */}
-      <Portal>
-        <Modal
-          visible={showConvexCredentialsModal}
-          onDismiss={() => {
-            setShowConvexCredentialsModal(false);
-            setConvexUrlInput('');
-            setConvexTokenInput('');
-          }}
-          contentContainerStyle={[
-            styles.modalContainer,
-            { backgroundColor: theme.colors.surface }
-          ]}
-        >
-          <Text variant="headlineSmall" style={[styles.modalTitle, { color: theme.colors.onSurface }]}>
-            Convex Credentials
-          </Text>
-          <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, textAlign: 'center', marginBottom: 16 }}>
-            Enter your Convex deployment URL and auth token
-          </Text>
-          <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 4 }}>
-            Deployment URL
-          </Text>
-          <TextInput
-            value={convexUrlInput}
-            onChangeText={setConvexUrlInput}
-            placeholder="https://your-project.convex.cloud"
-            placeholderTextColor={theme.colors.onSurfaceVariant + '80'}
-            style={[
-              styles.apiKeyInput,
-              {
-                backgroundColor: theme.colors.surfaceVariant + '50',
-                color: theme.colors.onSurface,
-                borderColor: theme.colors.outline + '30',
-                marginBottom: 12,
-              }
-            ]}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="url"
-          />
-          <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 4 }}>
-            Auth Token
-          </Text>
-          <TextInput
-            value={convexTokenInput}
-            onChangeText={setConvexTokenInput}
-            placeholder="Your secure token"
-            placeholderTextColor={theme.colors.onSurfaceVariant + '80'}
-            secureTextEntry
-            style={[
-              styles.apiKeyInput,
-              {
-                backgroundColor: theme.colors.surfaceVariant + '50',
-                color: theme.colors.onSurface,
-                borderColor: theme.colors.outline + '30',
-              }
-            ]}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <View style={styles.modalButtons}>
-            <Button mode="text" onPress={() => {
-              setShowConvexCredentialsModal(false);
-              setConvexUrlInput('');
-              setConvexTokenInput('');
-            }}>
-              Cancel
-            </Button>
-            <Button 
-              mode="contained" 
-              onPress={handleSaveConvexCredentials}
-              disabled={!convexUrlInput.trim() && !convexTokenInput.trim()}
-            >
-              Save
-            </Button>
-          </View>
         </Modal>
       </Portal>
 
@@ -1229,17 +597,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.03,
     shadowRadius: 16,
   },
-  settingRow: {
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-  },
-  disabledRow: {
-    opacity: 0.4,
-  },
-  settingRowContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   iconContainer: {
     width: 46,
     height: 46,
@@ -1256,18 +613,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
     letterSpacing: -0.2,
-  },
-  settingSubtitle: {
-    marginTop: 2,
-    fontSize: 13,
-  },
-  settingRight: {
-    marginLeft: 12,
-  },
-  smallBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
   },
   
   // Palette Section
@@ -1408,86 +753,8 @@ const styles = StyleSheet.create({
   modalCancel: {
     marginTop: 16,
   },
-  apiKeyInput: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 12,
-    fontSize: 16,
-    borderWidth: 1,
-    marginBottom: 16,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
-  },
-  modelGroupHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 4,
-  },
-  modelBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  modelOption: {
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    marginVertical: 2,
-  },
-  
-  // About
-  aboutContainer: {
-    alignItems: 'center',
-    paddingTop: 20,
-    paddingBottom: 40,
-  },
   footerSpacing: {
     height: 80, // Extra space at bottom
-  },
-  
-  // Focus Timer duration controls
-  durationControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  durationButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  
-  // Sound options
-  soundOptionsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingBottom: 16,
-  },
-  soundOption: {
-    flex: 1,
-    minWidth: 70,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  soundOptionContent: {
-    alignItems: 'center',
-    gap: 2,
   },
   snackbar: {
     zIndex: 1200,

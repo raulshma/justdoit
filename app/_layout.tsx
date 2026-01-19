@@ -252,6 +252,42 @@ export default function RootLayout() {
                       }}
                     />
                     <Stack.Screen
+                      name="smart-features-settings"
+                      options={{
+                        presentation: 'pageSheet',
+                        animation: 'slide_from_bottom',
+                        animationDuration: 100,
+                        headerShown: false,
+                      }}
+                    />
+                    <Stack.Screen
+                      name="focus-timer-settings"
+                      options={{
+                        presentation: 'pageSheet',
+                        animation: 'slide_from_bottom',
+                        animationDuration: 100,
+                        headerShown: false,
+                      }}
+                    />
+                    <Stack.Screen
+                      name="data-backup-settings"
+                      options={{
+                        presentation: 'pageSheet',
+                        animation: 'slide_from_bottom',
+                        animationDuration: 100,
+                        headerShown: false,
+                      }}
+                    />
+                    <Stack.Screen
+                      name="about"
+                      options={{
+                        presentation: 'pageSheet',
+                        animation: 'slide_from_bottom',
+                        animationDuration: 100,
+                        headerShown: false,
+                      }}
+                    />
+                    <Stack.Screen
                       name="focus-history"
                       options={{
                         presentation: 'pageSheet',
