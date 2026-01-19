@@ -458,7 +458,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                 )}
 
                   {/* Meta Row: Detailed info for default view, or critical info for minimal */}
-                  {(goal.reminderTime || goal.recurrence.type !== 'none' || category || isBlocked || prediction) && variant !== 'minimal' && (
+                  {(goal.reminderTime || goal.recurrence.type !== 'none' || category || isBlocked || prediction) && (
                   <View style={styles.metaRow}>
                     {/* Blocked indicator - high priority display */}
                     {isBlocked && (

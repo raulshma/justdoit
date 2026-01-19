@@ -145,6 +145,25 @@ export function StatisticsScreen() {
           Your habit journey
         </Text>
       </View>
+      
+      {/* ENTRY POINT: History Button */}
+      <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+        <TouchableOpacity 
+          onPress={() => router.push('/history')}
+          style={{ 
+            backgroundColor: theme.colors.surfaceVariant,
+            padding: 12,
+            borderRadius: 12,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8
+          }}
+        >
+           <ThemedIcon name="history" size={20} color={theme.colors.primary} />
+           <Text style={{ fontWeight: '600', color: theme.colors.onSurface }}>View Goal History</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Hero: Streak Display */}
       <View style={styles.heroSection}>

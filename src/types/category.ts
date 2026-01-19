@@ -8,6 +8,8 @@ export interface Category {
   name: string;
   /** Hex color code for visual identification */
   color: string;
+  /** Material Design icon name */
+  icon?: string;
   /** Whether this is a built-in default category */
   isDefault: boolean;
   /** ISO timestamp when created */
@@ -18,9 +20,9 @@ export interface Category {
  * Default categories provided by the app
  */
 export const DEFAULT_CATEGORIES: Omit<Category, 'createdAt'>[] = [
-  { id: 'health', name: 'Health', color: '#4CAF50', isDefault: true },
-  { id: 'work', name: 'Work', color: '#2196F3', isDefault: true },
-  { id: 'personal', name: 'Personal', color: '#9C27B0', isDefault: true },
-  { id: 'learning', name: 'Learning', color: '#FF9800', isDefault: true },
-  { id: 'other', name: 'Other', color: '#9E9E9E', isDefault: true },
+  { id: 'health', name: 'Health', color: '#4CAF50', icon: 'heart', isDefault: true },
+  { id: 'work', name: 'Work', color: '#2196F3', icon: 'briefcase', isDefault: true },
+  { id: 'personal', name: 'Personal', color: '#9C27B0', icon: 'account', isDefault: true },
+  { id: 'learning', name: 'Learning', color: '#FF9800', icon: 'school', isDefault: true },
+  { id: 'other', name: 'Other', color: '#9E9E9E', icon: 'shape', isDefault: true },
 ];

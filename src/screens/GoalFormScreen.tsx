@@ -778,6 +778,41 @@ export function GoalFormScreen({ goalId, mode: propsMode }: GoalFormScreenProps)
             </View>
           )}
 
+          {/* Contextual History Button for Recurring Series (View Mode) */}
+          {(isRecurring && isReadOnly && goalId) && (
+            <TouchableOpacity 
+              onPress={() => router.push({ 
+                pathname: '/history', 
+                params: { 
+                  seriesId: goal?.recurrence.parentGoalId || goalId,
+                  seriesTitle: goal?.title 
+                } 
+              })}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginHorizontal: 16,
+                marginBottom: 16,
+                padding: 12,
+                backgroundColor: theme.colors.surfaceVariant + '80', // Transparent version
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: theme.colors.outlineVariant,
+              }}
+            >
+              <ThemedIcon name="history" size={20} color={theme.colors.primary} />
+              <View style={{ marginLeft: 12, flex: 1 }}>
+                <Text variant="labelLarge" style={{ fontWeight: '600', color: theme.colors.onSurface }}>
+                  View Series History
+                </Text>
+                <Text variant="labelSmall" style={{ color: theme.colors.outline }}>
+                  See past completions for this goal
+                </Text>
+              </View>
+              <ThemedIcon name="chevron-right" size={20} color={theme.colors.outline} />
+            </TouchableOpacity>
+          )}
+
           {/* Title Input / Display */}
           {isReadOnly ? (
             <Text style={[styles.titleDisplay, { color: theme.colors.onSurface }]}>

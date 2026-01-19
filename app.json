@@ -2,7 +2,7 @@
   "expo": {
     "name": "JustDoIt",
     "slug": "justdoit",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "scheme": "justdoit",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

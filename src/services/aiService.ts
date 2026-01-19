@@ -617,27 +617,25 @@ Always suggest at least 3 subgoals.`;
 
     const prompt = type === 'title'
       ? `You are an AI assistant helping users write better goal titles.
+Current Input: "${text}"${contextInfo}
 
-Rewrite this goal title to be:
-- Clear and specific
-- Action-oriented (start with a verb if possible)
-- Concise but descriptive
-- Motivating
+Refine the goal title to be:
+1.  **Correctly Spelled & Grammatically Correct**: Fix all typos and grammar issues.
+2.  **Clean & Specific**: Use clear, standard language.
+3.  **Preserve Intent**: Do NOT add new details or assumptions that are not present in the input or context.
+4.  **Action-Oriented**: Start with a verb if appropriate (e.g., "Run 5k" instead of "Running").
 
-Original Title: "${text}"${contextInfo}
-
-Respond with ONLY the rewritten title, nothing else. No quotes, no explanation.`
+Respond with ONLY the refined title. No quotes.`
       : `You are an AI assistant helping users write better goal descriptions.
+Current Input: "${text}"${contextInfo}
 
-Rewrite this goal description to be:
-- Clear and well-structured
-- Include specific details and context
-- Motivating and actionable
-- Concise yet comprehensive
+Refine the goal description to be:
+1.  **Correctly Spelled & Grammatically Correct**: Fix all typos and grammar issues immediately.
+2.  **Preserve Intent**: Key Priority. Do NOT add specific details (like specific places, times, or items) unless they are in the input or context.
+3.  **Coherent & Flowing**: Ensure the text reads well.
+4.  **Context-Aware**: Use the title context to interpret vague phrases, but do not invent new steps.
 
-Original Description: "${text}"${contextInfo}
-
-Respond with ONLY the rewritten description, nothing else. No quotes, no explanation.`;
+Respond with ONLY the refined description. No quotes.`;
 
     const requestBody = { model: modelId, prompt };
 
