@@ -45,6 +45,31 @@ export interface GoalImage {
 }
 
 /**
+ * Goal history action types
+ */
+export type GoalHistoryAction = 'created' | 'updated' | 'completed' | 'uncompleted' | 'postponed';
+
+/**
+ * Represents a change in a specific field
+ */
+export interface GoalHistoryChange {
+  field: string;
+  oldValue?: any;
+  newValue?: any;
+}
+
+/**
+ * Goal history entry
+ */
+export interface GoalHistoryEntry {
+  id: string;
+  action: GoalHistoryAction;
+  timestamp: string;
+  changes?: GoalHistoryChange[];
+  note?: string;
+}
+
+/**
  * Goal entity representing a task or objective the user wants to accomplish
  */
 export interface Goal {
@@ -122,4 +147,7 @@ export interface Goal {
   moodBoardImages?: GoalImage[];
   /** Vision board grid images (max 9) */
   visionBoardImages?: GoalImage[];
+  
+  /** Audit history of the goal */
+  history?: GoalHistoryEntry[];
 }

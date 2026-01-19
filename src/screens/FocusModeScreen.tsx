@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, Dimensions } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Dimensions, TouchableOpacity } from 'react-native';
 import { Text, useTheme, FAB, Snackbar, Surface, Icon, IconButton, Portal } from 'react-native-paper';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -261,26 +261,31 @@ export function FocusModeScreen() {
                       key={goal.id} 
                       entering={FadeInDown.delay(400 + index * 100).duration(500)}
                       layout={Layout.springify()}
-                      style={styles.goalWrapper}
+                      style={styles.priorityRow}
                     >
-                      <View style={[styles.rankBadge, { backgroundColor: theme.colors.secondaryContainer }]}>
-                        <Text variant="labelSmall" style={{ color: theme.colors.onSecondaryContainer, fontWeight: 'bold' }}>
-                          {index + 1}
+                      <View style={styles.rankColumn}>
+                        <Text variant="displaySmall" style={[styles.rankNumber, { color: theme.colors.outlineVariant }]}>
+                          0{index + 1}
                         </Text>
+                        <IconButton
+                          icon="play-circle"
+                          mode="contained"
+                          containerColor={theme.colors.primaryContainer}
+                          iconColor={theme.colors.primary}
+                          size={20}
+                          onPress={() => handleStartFocusOnGoal(goal)}
+                          style={{ margin: 0,marginTop: 4 }}
+                        />
                       </View>
-                      <GoalCard
-                        goal={goal}
-                        onToggleComplete={handleToggleComplete}
-                        onPress={handleGoalPress}
-                        onDelete={handleDeleteGoal}
-                      />
-                      <IconButton
-                        icon="play-circle"
-                        iconColor={theme.colors.primary}
-                        size={28}
-                        style={styles.playButton}
-                        onPress={() => handleStartFocusOnGoal(goal)}
-                      />
+                      
+                      <View style={styles.cardContainer}>
+                        <GoalCard
+                          goal={goal}
+                          onToggleComplete={handleToggleComplete}
+                          onPress={handleGoalPress}
+                          onDelete={handleDeleteGoal}
+                        />
+                      </View>
                     </Animated.View>
                   ))}
                 </View>
@@ -351,33 +356,27 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   goalsList: {
-    gap: 16,
+    gap: 24,
   },
-  goalWrapper: {
-    position: 'relative',
+  priorityRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
   },
-  rankBadge: {
-    position: 'absolute',
-    top: -8,
-    left: -8,
-    zIndex: 10,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+  rankColumn: {
+    width: 48,
     alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 2,
-    borderWidth: 2,
-    borderColor: 'white', // Should ideally match background
+    paddingTop: 4,
+    marginRight: 12,
   },
-  playButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    zIndex: 10,
-    backgroundColor: 'rgba(255,255,255,0.8)', // slight backdrop for contrast
-    borderRadius: 20,
+  rankNumber: {
+    fontWeight: '800',
+    opacity: 0.3,
+    fontSize: 28,
   },
+  cardContainer: {
+    flex: 1,
+  },
+  // Legacy styles removed: goalWrapper, rankBadge, playButton
   emptyCard: {
     padding: 40,
     borderRadius: 24,

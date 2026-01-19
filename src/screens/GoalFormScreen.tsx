@@ -43,6 +43,7 @@ import {
   AIGoalCoach,
   GoalBreakdownModal,
   CategoryPicker,
+  GoalTimeline,
 } from '../components';
 import { ThemedIcon } from '../components/ThemedIcon';
 
@@ -1279,6 +1280,14 @@ export function GoalFormScreen({ goalId, mode: propsMode }: GoalFormScreenProps)
                 </Text>
               </TouchableOpacity>
             </>
+          )}
+          
+          {/* Goal Audit History (View Mode Only) */}
+          {(isReadOnly && goal && goal.history && goal.history.length > 0) && (
+             <>
+               <View style={[styles.divider, { backgroundColor: theme.colors.outlineVariant }]} />
+               <GoalTimeline history={goal.history} />
+             </>
           )}
           
           <View style={{ height: 100 }} />

@@ -12,7 +12,7 @@ import {
   Dimensions,
   Animated,
 } from 'react-native';
-import { Text, useTheme, IconButton, Searchbar } from 'react-native-paper';
+import { Text, useTheme, IconButton, Searchbar, Icon } from 'react-native-paper';
 import { goalManager } from '../services';
 import type { Goal } from '../types';
 import { CustomDurationPicker } from './CustomDurationPicker';
@@ -192,37 +192,44 @@ export const GoalSelectorForFocus: React.FC<GoalSelectorForFocusProps> = ({
   const renderGoalItem = (item: Goal) => (
     <TouchableOpacity
       key={item.id}
-      style={[styles.goalItem, { backgroundColor: theme.colors.surface }]}
+      style={[styles.goalItem, { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant + '40' }]}
       onPress={() => handleSelectGoal(item.id, item.title)}
       activeOpacity={0.7}
     >
-      <View style={[styles.priorityStrip, { backgroundColor: getPriorityColor(item.priority) }]} />
+      <View style={[styles.iconContainer, { backgroundColor: theme.colors.secondaryContainer }]}>
+        <Icon source="target" size={24} color={theme.colors.onSecondaryContainer} />
+      </View>
       
       <View style={styles.goalContent}>
-        <Text variant="titleMedium" style={{ color: theme.colors.onSurface, fontWeight: '600' }} numberOfLines={1}>
+        <Text variant="titleMedium" style={{ color: theme.colors.onSurface, fontWeight: '700', marginBottom: 4 }} numberOfLines={1}>
           {item.title}
         </Text>
         
         <View style={styles.metaRow}>
-          <View style={[styles.badge, { backgroundColor: theme.colors.surfaceVariant }]}>
-             <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant, textTransform: 'uppercase' }}>
-               {item.priority}
-             </Text>
-          </View>
+          <View style={[styles.priorityDot, { backgroundColor: getPriorityColor(item.priority) }]} />
+          <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant, textTransform: 'capitalize', marginLeft: 6, fontWeight: '600' }}>
+            {item.priority} Priority
+          </Text>
           
           {item.focusSessionsCompleted && item.focusSessionsCompleted > 0 ? (
-            <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant, marginLeft: 8 }}>
-              {item.focusSessionsCompleted} sessions
-            </Text>
+            <>
+              <Text style={{ color: theme.colors.outline, marginHorizontal: 6 }}>•</Text>
+              <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                {item.focusSessionsCompleted} sessions
+              </Text>
+            </>
           ) : null}
         </View>
       </View>
       
-      <IconButton 
-        icon="chevron-right" 
-        size={20} 
-        iconColor={theme.colors.onSurfaceDisabled} 
-      />
+      <View style={[styles.chevronContainer, { backgroundColor: theme.colors.surfaceVariant + '80' }]}>
+        <IconButton 
+          icon="chevron-right" 
+          size={18} 
+          iconColor={theme.colors.onSurfaceVariant} 
+          style={{ margin: 0 }}
+        />
+      </View>
     </TouchableOpacity>
   );
 
@@ -265,7 +272,7 @@ export const GoalSelectorForFocus: React.FC<GoalSelectorForFocusProps> = ({
           <View style={styles.dragHandle} />
           
           <View style={styles.header}>
-            <Text variant="headlineSmall" style={{ color: theme.colors.onSurface, fontWeight: '800' }}>
+            <Text variant="headlineSmall" style={{ color: theme.colors.onSurface, fontWeight: '800', letterSpacing: -0.5 }}>
               Select Goal
             </Text>
             <IconButton icon="close" size={24} onPress={handleDismiss} />
@@ -288,22 +295,24 @@ export const GoalSelectorForFocus: React.FC<GoalSelectorForFocusProps> = ({
           >
             {/* No Goal Option */}
             <TouchableOpacity
-              style={[styles.noGoalButton, { borderColor: theme.colors.outlineVariant }]}
+              style={[styles.noGoalButton, { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant + '40' }]}
               onPress={handleSelectNone}
               activeOpacity={0.7}
             >
               <View style={[styles.iconBox, { backgroundColor: theme.colors.primaryContainer }]}>
-                <IconButton icon="timer-off" size={20} iconColor={theme.colors.primary} style={{ margin: 0 }} />
+                <IconButton icon="timer-off" size={22} iconColor={theme.colors.primary} style={{ margin: 0 }} />
               </View>
-              <View style={{ flex: 1 }}>
-                <Text variant="titleMedium" style={{ color: theme.colors.onSurface, fontWeight: '600' }}>
+              <View style={{ flex: 1, paddingLeft: 16 }}>
+                <Text variant="titleMedium" style={{ color: theme.colors.onSurface, fontWeight: '700' }}>
                   Just Focus
                 </Text>
-                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 2 }}>
                   Start a session without linking to a goal
                 </Text>
               </View>
-              <IconButton icon="chevron-right" size={20} iconColor={theme.colors.onSurfaceDisabled} />
+              <View style={[styles.chevronContainer, { backgroundColor: theme.colors.surfaceVariant + '80' }]}>
+                <IconButton icon="chevron-right" size={18} iconColor={theme.colors.onSurfaceVariant} style={{ margin: 0 }} />
+              </View>
             </TouchableOpacity>
 
             <Text variant="labelLarge" style={[styles.sectionTitle, { color: theme.colors.onSurfaceVariant }]}>
@@ -317,8 +326,12 @@ export const GoalSelectorForFocus: React.FC<GoalSelectorForFocusProps> = ({
               </View>
             ) : (
               <View style={styles.emptyState}>
-                <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, textAlign: 'center' }}>
-                  {searchQuery ? 'No matching goals' : "No incomplete goals for today"}
+                 <Icon source="island" size={48} color={theme.colors.onSurfaceVariant} />
+                <Text variant="titleMedium" style={{ color: theme.colors.onSurface, fontWeight: '600', marginTop: 16 }}>
+                  No goals found
+                </Text>
+                <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, textAlign: 'center', marginTop: 8 }}>
+                  {searchQuery ? 'Try ajusting your search' : "You're all caught up for today!"}
                 </Text>
               </View>
             )}
@@ -344,65 +357,75 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   modalContainer: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     paddingTop: 12,
-    minHeight: '50%',
+    minHeight: '60%',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: -4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 10,
   },
   dragHandle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(120, 120, 120, 0.4)',
+    width: 48,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: 'rgba(120, 120, 120, 0.3)',
     alignSelf: 'center',
-    marginBottom: 12,
+    marginBottom: 20,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 16,
+    paddingHorizontal: 24,
+    marginBottom: 20,
   },
   searchBar: {
-    marginHorizontal: 20,
-    marginBottom: 16,
+    marginHorizontal: 24,
+    marginBottom: 24,
     elevation: 0,
     borderRadius: 16,
-    height: 52,
+    height: 56,
+    borderWidth: 1,
+    borderColor: 'rgba(120, 120, 120, 0.1)',
   },
   scrollContent: {
     flex: 1,
   },
   scrollContentContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 24,
+    paddingHorizontal: 24,
+    paddingBottom: 40,
   },
   noGoalButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 16,
+    padding: 16,
+    borderRadius: 24,
     borderWidth: 1,
-    borderStyle: 'dashed',
-    gap: 12,
-    marginBottom: 24,
+    marginBottom: 32,
+    borderStyle: 'solid', // changed from dashed for cleaner look
   },
   iconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
   },
   sectionTitle: {
-    fontWeight: '700',
+    fontWeight: '800',
     marginBottom: 16,
-    letterSpacing: 1,
-    fontSize: 12,
+    letterSpacing: 0.5,
+    fontSize: 13,
+    paddingLeft: 4,
   },
   goalsList: {
     gap: 12,
@@ -411,35 +434,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: 20,
-    gap: 16,
-    overflow: 'hidden',
+    borderRadius: 24,
+    borderWidth: 1,
   },
-  priorityStrip: {
-    width: 4,
-    height: '100%',
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
+  iconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
   },
   goalContent: {
     flex: 1,
-    paddingLeft: 8,
+    justifyContent: 'center',
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 6,
   },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
+  priorityDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  chevronContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
   },
   emptyState: {
-    padding: 24,
+    padding: 40,
     alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

@@ -1,5 +1,5 @@
 import { randomUUID } from 'expo-crypto';
-import { Goal, Priority, RecurrencePattern, GoalImage } from '../types';
+import { Goal, Priority, RecurrencePattern, GoalImage, GoalHistoryEntry, GoalHistoryChange, GoalHistoryAction } from '../types';
 import { StorageService, storageService as defaultStorageService } from './storageService';
 import { NotificationService, notificationService as defaultNotificationService } from './notificationService';
 import { voiceNoteService } from './voiceNoteService';
@@ -179,6 +179,12 @@ export class GoalManager implements IGoalManager {
       progressPhotos: input.progressPhotos,
       moodBoardImages: input.moodBoardImages,
       visionBoardImages: input.visionBoardImages,
+      history: [{
+        id: randomUUID(),
+        action: 'created',
+        timestamp: now,
+        note: 'Goal created'
+      }],
     };
 
     // Save voice note to permanent storage if present
@@ -264,6 +270,40 @@ export class GoalManager implements IGoalManager {
       newBlockedBy = undefined;
     }
 
+    // Calculate changes for history
+    const historyChanges: GoalHistoryChange[] = [];
+    const fieldsToCheck: (keyof UpdateGoalInput & keyof Goal)[] = [
+      'title', 'description', 'dueDate', 'priority', 'recurrence', 'reminderTime'
+    ];
+
+    fieldsToCheck.forEach(field => {
+      if (updates[field] !== undefined) {
+        const oldValue = existingGoal[field];
+        const newValue = updates[field];
+        
+        // Simple equality check, deep check for objects
+        const isDifferent = typeof newValue === 'object' 
+          ? JSON.stringify(newValue) !== JSON.stringify(oldValue)
+          : newValue !== oldValue;
+
+        if (isDifferent) {
+          historyChanges.push({
+            field,
+            oldValue,
+            newValue
+          });
+        }
+      }
+    });
+
+    const now = new Date().toISOString();
+    const newHistoryEntry: GoalHistoryEntry | undefined = historyChanges.length > 0 ? {
+      id: randomUUID(),
+      action: 'updated',
+      timestamp: now,
+      changes: historyChanges
+    } : undefined;
+
     const updatedGoal: Goal = {
       ...existingGoal,
       ...(updates.title !== undefined && { title: updates.title.trim() }),
@@ -282,6 +322,9 @@ export class GoalManager implements IGoalManager {
       ...(updates.childGoalIds !== undefined && { childGoalIds: updates.childGoalIds }),
       ...(updates.categoryId !== undefined && { categoryId: updates.categoryId }),
       blockedBy: newBlockedBy,
+      history: newHistoryEntry 
+        ? [...(existingGoal.history || []), newHistoryEntry] 
+        : existingGoal.history
     };
 
     // Handle voice note update
@@ -397,6 +440,14 @@ export class GoalManager implements IGoalManager {
       ...goal,
       isCompleted: !goal.isCompleted,
       completedAt: !goal.isCompleted ? now : undefined,
+      history: [
+        ...(goal.history || []),
+        {
+          id: randomUUID(),
+          action: !goal.isCompleted ? 'completed' : 'uncompleted',
+          timestamp: now
+        }
+      ]
     };
 
     // Cancel reminder when marking as complete (Requirement 4.5)

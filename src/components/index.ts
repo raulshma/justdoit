@@ -99,3 +99,4 @@ export { MoodBoardSection } from './MoodBoardSection';
 export { CustomAlert } from './CustomAlert';
 
 export { HomeHeader } from './HomeHeader';
+export { GoalTimeline } from './GoalTimeline';
