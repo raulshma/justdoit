@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { View, StyleSheet, SectionList, TouchableOpacity, Dimensions, Platform } from 'react-native';
-import { Text, useTheme, Surface, IconButton, Searchbar, Chip, Menu, Divider } from 'react-native-paper';
+import { Text, useTheme, Surface, IconButton, Searchbar, Chip, Menu, Divider, Portal, Modal, Button } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Animated, { FadeInDown, Layout, FadeOut } from 'react-native-reanimated';
@@ -8,6 +8,8 @@ import { BlurView } from 'expo-blur';
 import { goalManager, categoryManager } from '../services';
 import type { Goal, Priority } from '../types';
 import { ThemedIcon } from '../components/ThemedIcon';
+import { CustomAlert } from '../components/CustomAlert';
+import type { AlertConfig } from '../components/CustomAlert';
 import { Swipeable } from 'react-native-gesture-handler';
 
 /**
@@ -59,6 +61,12 @@ export function HistoryScreen() {
   const [showFilters, setShowFilters] = useState(false);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Delete confirmation state
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(null);
+  const [pendingDeleteGoal, setPendingDeleteGoal] = useState<Goal | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   const categories = useMemo(() => categoryManager.getCategories(), []);
 
@@ -143,37 +151,83 @@ export function HistoryScreen() {
       // Create new goal based on the old one
       const today = new Date();
       const dueDate = today.toISOString().split('T')[0];
-      
+
       await goalManager.createGoal({
         title: goal.title,
         description: goal.description,
         priority: goal.priority,
         categoryId: goal.categoryId,
         dueDate: dueDate,
-        // Don't copy recurrence for simple redo, unless explicitly desired? 
+        // Don't copy recurrence for simple redo, unless explicitly desired?
         // Plan said "Redo (Duplicate)", simpler to just make a one-off for today usually.
-        recurrence: { type: 'none' }, 
+        recurrence: { type: 'none' },
         imageUri: goal.imageUri, // Copy assets? Maybe optional, but safe to include reference
       });
-      
+
       router.push('/'); // Go to home to see it? Or just toast?
       // Better UX: Show toast and stay here
       // But for now let's just reload or show feedback
-      // We'll assume a toast/snackbar component exists or we can just navigate 
+      // We'll assume a toast/snackbar component exists or we can just navigate
       // Plan said: "Tap 'Redo' -> Verify it appears on Today's list (Home)."
       // Let's navigate to home to show it's there.
-      router.replace('/'); 
+      router.replace('/');
     } catch (e) {
       console.error("Failed to redo goal", e);
     }
   }, [router]);
+
+  // Delete Action
+  const handleDelete = useCallback((goal: Goal) => {
+    // Check if this is a recurring goal
+    const isRecurring = goal.recurrence.type !== 'none' ||
+                        goal.recurrence.parentGoalId !== undefined;
+
+    if (isRecurring) {
+      // Show custom high-fidelity modal for recurring goals
+      setPendingDeleteGoal(goal);
+      setShowDeleteDialog(true);
+    } else {
+      // For non-recurring goals, show a simple confirmation
+      setPendingDeleteGoal(goal);
+      setAlertConfig({
+        title: 'Delete Goal',
+        message: 'Are you sure you want to delete this goal?',
+        type: 'warning',
+        buttons: [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => {
+              setAlertVisible(false);
+              setPendingDeleteGoal(null);
+            },
+          },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await goalManager.deleteGoal(goal.id);
+                loadHistory();
+              } catch (e) {
+                console.error("Failed to delete goal", e);
+              }
+              setAlertVisible(false);
+              setPendingDeleteGoal(null);
+            },
+          },
+        ],
+      });
+      setAlertVisible(true);
+    }
+  }, [loadHistory]);
 
   /**
    * Render Individual History Item
    */
   const renderItem = ({ item, index }: { item: Goal, index: number }) => {
     const category = item.categoryId ? categoryManager.getCategoryById(item.categoryId) : null;
-    
+
     const renderRightActions = (progress: any, dragX: any) => {
       return (
         <TouchableOpacity
@@ -186,21 +240,36 @@ export function HistoryScreen() {
       );
     };
 
+    const renderLeftActions = (progress: any, dragX: any) => {
+      return (
+        <TouchableOpacity
+          style={styles.deleteAction}
+          onPress={() => handleDelete(item)}
+        >
+          <ThemedIcon name="delete" size={24} color="white" />
+          <Text style={styles.deleteText}>Delete</Text>
+        </TouchableOpacity>
+      );
+    };
+
     return (
       <Animated.View entering={FadeInDown.delay(index * 30).springify()}>
-        <Swipeable renderRightActions={renderRightActions}>
+        <Swipeable
+          renderRightActions={renderRightActions}
+          renderLeftActions={renderLeftActions}
+        >
           <Surface style={[styles.card, { backgroundColor: theme.colors.surface }]} elevation={0}>
             <View style={styles.cardContent}>
               {/* Check Icon */}
               <View style={[styles.checkContainer, { backgroundColor: theme.colors.primaryContainer }]}>
                 <ThemedIcon name="check" size={16} color={theme.colors.primary} />
               </View>
-              
+
               {/* Text Content */}
               <View style={styles.textContainer}>
-                <Text variant="bodyLarge" style={[styles.goalTitle, { 
-                  textDecorationLine: 'line-through', 
-                  color: theme.colors.onSurfaceVariant 
+                <Text variant="bodyLarge" style={[styles.goalTitle, {
+                  textDecorationLine: 'line-through',
+                  color: theme.colors.onSurfaceVariant
                 }]} numberOfLines={1}>
                   {item.title}
                 </Text>
@@ -219,11 +288,11 @@ export function HistoryScreen() {
               </View>
 
               {/* Priority Indicator */}
-              <View style={[styles.priorityDot, { 
-                backgroundColor: 
-                  item.priority === 'high' ? theme.colors.error : 
-                  item.priority === 'medium' ? theme.colors.secondary : 
-                  'transparent' 
+              <View style={[styles.priorityDot, {
+                backgroundColor:
+                  item.priority === 'high' ? theme.colors.error :
+                  item.priority === 'medium' ? theme.colors.secondary :
+                  'transparent'
               }]} />
             </View>
           </Surface>
@@ -309,7 +378,7 @@ export function HistoryScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
-      <SectionList 
+      <SectionList
         sections={filteredSections}
         keyExtractor={item => item.id}
         renderItem={renderItem}
@@ -332,6 +401,102 @@ export function HistoryScreen() {
         onRefresh={loadHistory}
         refreshing={refreshing}
       />
+
+      {/* Delete Confirmation Alert */}
+      <CustomAlert
+        visible={alertVisible}
+        config={alertConfig}
+        onDismiss={() => {
+          setAlertVisible(false);
+          setAlertConfig(null);
+        }}
+      />
+
+      {/* Cancel/Delete Actions Helpers */}
+      <Portal>
+        <Modal
+          visible={showDeleteDialog}
+          onDismiss={() => setShowDeleteDialog(false)}
+          contentContainerStyle={[
+            styles.deleteModal,
+            { backgroundColor: theme.colors.surface },
+          ]}
+        >
+          <View style={styles.deleteModalIconContainer}>
+            <View style={[styles.deleteModalIconCircle, { backgroundColor: theme.colors.errorContainer }]}>
+               <ThemedIcon name="delete-outline" size={32} color={theme.colors.error} />
+            </View>
+          </View>
+          
+          <Text
+            variant="headlineSmall"
+            style={[styles.deleteModalTitle, { color: theme.colors.onSurface }]}
+          >
+            Delete Recurring Goal
+          </Text>
+          <Text
+            variant="bodyMedium"
+            style={[styles.deleteModalText, { color: theme.colors.onSurfaceVariant }]}
+          >
+            This goal repeats. Do you want to delete this specific occurrence or the entire series?
+          </Text>
+
+          <View style={styles.deleteModalButtons}>
+            <Button
+              mode="outlined"
+              onPress={async () => {
+                if (pendingDeleteGoal) {
+                  try {
+                    await goalManager.deleteGoal(pendingDeleteGoal.id);
+                    loadHistory();
+                  } catch (e) {
+                    console.error("Failed to delete goal", e);
+                  }
+                  setShowDeleteDialog(false);
+                  setPendingDeleteGoal(null);
+                }
+              }}
+              style={styles.deleteModalButton}
+              contentStyle={styles.deleteModalButtonContent}
+              icon="calendar-today"
+            >
+              This Occurrence Only
+            </Button>
+            
+            <Button
+              mode="contained"
+              onPress={async () => {
+                if (pendingDeleteGoal) {
+                  try {
+                    await goalManager.deleteRecurringSeries(pendingDeleteGoal.id);
+                    loadHistory();
+                  } catch (e) {
+                    console.error("Failed to delete recurring series", e);
+                  }
+                  setShowDeleteDialog(false);
+                  setPendingDeleteGoal(null);
+                }
+              }}
+              style={[styles.deleteModalButton, { borderColor: theme.colors.error }]}
+              contentStyle={styles.deleteModalButtonContent}
+              buttonColor={theme.colors.error}
+              textColor={theme.colors.onError}
+              icon="delete-forever"
+            >
+              Delete Entire Series
+            </Button>
+            
+            <Button
+              mode="text"
+              onPress={() => setShowDeleteDialog(false)}
+              style={styles.deleteModalButton}
+              contentStyle={styles.deleteModalButtonContent}
+            >
+              Cancel
+            </Button>
+          </View>
+        </Modal>
+      </Portal>
     </SafeAreaView>
   );
 }
@@ -436,10 +601,66 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
+  deleteAction: {
+    backgroundColor: '#CF6679',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    height: '100%',
+    marginBottom: 8,
+    marginLeft: 16, // to match card margin
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
+  },
+  deleteText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 12,
+    marginTop: 4,
+  },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 60,
     opacity: 0.7,
+  },
+  deleteModal: {
+    margin: 24,
+    padding: 24,
+    borderRadius: 28,
+    alignItems: 'center',
+  },
+  deleteModalIconContainer: {
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  deleteModalIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteModalTitle: {
+    textAlign: 'center',
+    marginBottom: 8,
+    fontWeight: '700',
+  },
+  deleteModalText: {
+    textAlign: 'center',
+    marginBottom: 24,
+    opacity: 0.7,
+    paddingHorizontal: 16,
+  },
+  deleteModalButtons: {
+    width: '100%',
+    gap: 12,
+  },
+  deleteModalButton: {
+    borderRadius: 12,
+    width: '100%',
+  },
+  deleteModalButtonContent: {
+    height: 48,
   },
 });

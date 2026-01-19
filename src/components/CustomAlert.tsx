@@ -275,11 +275,12 @@ export const CustomAlert: React.FC<CustomAlertProps> = ({
                     contentStyle={styles.buttonContent}
                     labelStyle={[
                       styles.buttonLabel,
+                      { fontSize: 13 }, // Smaller font for longer text
                       button.style === 'destructive' && { color: theme.colors.onError },
                     ]}
                     buttonColor={
-                      button.style === 'destructive' 
-                        ? theme.colors.error 
+                      button.style === 'destructive'
+                        ? theme.colors.error
                         : undefined
                     }
                     textColor={

@@ -1343,8 +1343,14 @@ export function GoalFormScreen({ goalId, mode: propsMode }: GoalFormScreenProps)
             { backgroundColor: theme.colors.surface },
           ]}
         >
+          <View style={styles.deleteModalIconContainer}>
+            <View style={[styles.deleteModalIconCircle, { backgroundColor: theme.colors.errorContainer }]}>
+               <ThemedIcon name="delete-outline" size={32} color={theme.colors.error} />
+            </View>
+          </View>
+          
           <Text
-            variant="titleMedium"
+            variant="headlineSmall"
             style={[styles.deleteModalTitle, { color: theme.colors.onSurface }]}
           >
             Delete Recurring Goal
@@ -1353,28 +1359,37 @@ export function GoalFormScreen({ goalId, mode: propsMode }: GoalFormScreenProps)
             variant="bodyMedium"
             style={[styles.deleteModalText, { color: theme.colors.onSurfaceVariant }]}
           >
-            This is a recurring goal. What would you like to delete?
+            This goal repeats. Do you want to delete this specific occurrence or the entire series?
           </Text>
+
           <View style={styles.deleteModalButtons}>
             <Button
               mode="outlined"
               onPress={handleDeleteThisOnly}
               style={styles.deleteModalButton}
+              contentStyle={styles.deleteModalButtonContent}
+              icon="calendar-today"
             >
-              This occurrence only
+              This Occurrence Only
             </Button>
+            
             <Button
               mode="contained"
               onPress={handleDeleteAll}
-              style={styles.deleteModalButton}
+              style={[styles.deleteModalButton, { borderColor: theme.colors.error }]}
+              contentStyle={styles.deleteModalButtonContent}
               buttonColor={theme.colors.error}
+              textColor={theme.colors.onError}
+              icon="delete-forever"
             >
-              All occurrences
+              Delete Entire Series
             </Button>
+            
             <Button
               mode="text"
               onPress={() => setShowDeleteDialog(false)}
               style={styles.deleteModalButton}
+              contentStyle={styles.deleteModalButtonContent}
             >
               Cancel
             </Button>
@@ -1654,22 +1669,43 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   deleteModal: {
-    margin: 20,
+    margin: 24,
     padding: 24,
-    borderRadius: 16,
+    borderRadius: 28,
+    alignItems: 'center',
+  },
+  deleteModalIconContainer: {
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  deleteModalIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   deleteModalTitle: {
-    marginBottom: 12,
-    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 8,
+    fontWeight: '700',
   },
   deleteModalText: {
+    textAlign: 'center',
     marginBottom: 24,
+    opacity: 0.7,
+    paddingHorizontal: 16,
   },
   deleteModalButtons: {
+    width: '100%',
     gap: 12,
   },
   deleteModalButton: {
-    borderRadius: 24,
+    borderRadius: 12,
+    width: '100%',
+  },
+  deleteModalButtonContent: {
+    height: 48,
   },
   milestoneModal: {
     margin: 20,
