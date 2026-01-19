@@ -27,8 +27,20 @@ export const isToday = (dateString: string): boolean => {
 /**
  * Get date status for a given date string relative to today
  */
+/**
+ * Helper to parse YYYY-MM-DD string as local date
+ * Prevents timezone issues where "2024-01-20" parses as UTC (prev day in local time)
+ */
+export const parseLocalDate = (dateString: string): Date => {
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
+/**
+ * Get date status for a given date string relative to today
+ */
 export const getDateStatus = (dateString: string): DateStatus => {
-  const date = new Date(dateString);
+  const date = parseLocalDate(dateString);
   const today = new Date();
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -36,7 +48,7 @@ export const getDateStatus = (dateString: string): DateStatus => {
   // Reset time for comparison
   today.setHours(0, 0, 0, 0);
   tomorrow.setHours(0, 0, 0, 0);
-  date.setHours(0, 0, 0, 0);
+  // date is already at 00:00:00 from parseLocalDate
 
   if (date.getTime() < today.getTime()) {
     return 'overdue';
@@ -57,7 +69,7 @@ export const formatDateFriendly = (dateString: string): string => {
   const status = getDateStatus(dateString);
   
   if (status === 'overdue') {
-    const date = new Date(dateString);
+    const date = parseLocalDate(dateString);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     date.setHours(0, 0, 0, 0);
@@ -69,9 +81,7 @@ export const formatDateFriendly = (dateString: string): string => {
   }
   
   if (status === 'today') return 'Today';
-  if (status === 'tomorrow') return 'Tomorrow';
-  
-  const date = new Date(dateString);
+  const date = parseLocalDate(dateString);
   return date.toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'short',
