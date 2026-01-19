@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, memo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, memo } from 'react';
 import { View, StyleSheet, ScrollView, TextInput, LayoutAnimation, Platform, UIManager } from 'react-native';
 
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -64,21 +64,24 @@ const formatTimeDisplay = (time: string): string => {
  * Memoized for performance
  */
 const ColorPaletteItem = memo(function ColorPaletteItem({
+  paletteId,
   colors,
   isSelected,
-  onPress,
+  onSelect,
   name,
 }: {
+  paletteId: string;
   colors: string[];
   isSelected: boolean;
-  onPress: () => void;
+  onSelect: (paletteId: string) => void;
   name: string;
 }) {
   const theme = useTheme();
+  const handlePress = useCallback(() => onSelect(paletteId), [onSelect, paletteId]);
 
   return (
     <TouchableRipple
-      onPress={onPress}
+      onPress={handlePress}
       style={[
         styles.paletteItem,
         {
@@ -134,6 +137,13 @@ const SettingRow = memo(({
   title,
   subtitle,
   right,
+  switchValue,
+  onSwitchValueChange,
+  switchDisabled,
+  badgeText,
+  badgeTone = 'secondary',
+  rightText,
+  rightTextColor,
   onPress,
   disabled = false,
   danger = false,
@@ -143,12 +153,68 @@ const SettingRow = memo(({
   title: string;
   subtitle?: string;
   right?: React.ReactNode;
+  switchValue?: boolean;
+  onSwitchValueChange?: () => void;
+  switchDisabled?: boolean;
+  badgeText?: string;
+  badgeTone?: 'primary' | 'secondary';
+  rightText?: string;
+  rightTextColor?: string;
   onPress?: () => void;
   disabled?: boolean;
   danger?: boolean;
   isLast?: boolean;
 }) => {
   const theme = useTheme();
+
+  const rightNode = useMemo(() => {
+    if (typeof switchValue === 'boolean' && onSwitchValueChange) {
+      return (
+        <Switch
+          value={switchValue}
+          onValueChange={onSwitchValueChange}
+          color={theme.colors.primary}
+          disabled={switchDisabled}
+        />
+      );
+    }
+
+    if (badgeText) {
+      const backgroundColor =
+        badgeTone === 'primary' ? theme.colors.primaryContainer : theme.colors.secondaryContainer + '50';
+      const color = badgeTone === 'primary' ? theme.colors.primary : theme.colors.onSecondaryContainer;
+      return (
+        <View style={[styles.smallBadge, { backgroundColor }]}>
+          <Text variant="labelMedium" style={{ color }}>
+            {badgeText}
+          </Text>
+        </View>
+      );
+    }
+
+    if (rightText) {
+      return (
+        <Text variant="labelMedium" style={{ color: rightTextColor || theme.colors.primary }}>
+          {rightText}
+        </Text>
+      );
+    }
+
+    return right;
+  }, [
+    badgeText,
+    badgeTone,
+    onSwitchValueChange,
+    right,
+    rightText,
+    rightTextColor,
+    switchDisabled,
+    switchValue,
+    theme.colors.onSecondaryContainer,
+    theme.colors.primary,
+    theme.colors.primaryContainer,
+    theme.colors.secondaryContainer,
+  ]);
   
   return (
     <TouchableRipple 
@@ -175,11 +241,19 @@ const SettingRow = memo(({
             </Text>
           )}
         </View>
-        {right && <View style={styles.settingRight}>{right}</View>}
+        {rightNode && <View style={styles.settingRight}>{rightNode}</View>}
       </View>
     </TouchableRipple>
   );
 });
+
+const FOCUS_SOUNDS = ['rain', 'forest', 'cafe', 'waves'] as const;
+const FOCUS_SOUND_META: Record<(typeof FOCUS_SOUNDS)[number], { name: string; icon: string }> = {
+  rain: { name: 'Rain', icon: 'weather-rainy' },
+  forest: { name: 'Forest', icon: 'tree' },
+  cafe: { name: 'Cafe', icon: 'coffee' },
+  waves: { name: 'Waves', icon: 'wave' },
+};
 
 /**
  * Custom spring animation config for smooth expand/collapse
@@ -208,6 +282,13 @@ export function SettingsScreen() {
   const router = useRouter();
   const { settings, updateSettings, setDailyReminderTime } = useSettings();
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    // Enable LayoutAnimation on Android for smoother accordion transitions
+    if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+      UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
+  }, []);
   
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
@@ -236,6 +317,14 @@ export function SettingsScreen() {
   const currentPaletteInfo = useMemo(() => {
     return colorPaletteInfoList.find(p => p.id === settings.colorPalette);
   }, [settings.colorPalette]);
+
+  const palettesByMood = useMemo(() => {
+    // Avoid recomputing palette grouping on every render when theme accordion is open
+    return themeMoods.map((mood) => ({
+      mood,
+      palettes: getPalettesByMood(mood.id),
+    }));
+  }, []);
 
   // -- Actions --
 
@@ -312,6 +401,11 @@ export function SettingsScreen() {
   const handleColorPaletteChange = useCallback(async (palette: ColorPalette) => {
     await saveSettings({ colorPalette: palette }, 'Theme Updated');
   }, [saveSettings]);
+
+  const handleSelectPalette = useCallback((paletteId: string) => {
+    // keep ColorPaletteItem props stable
+    void handleColorPaletteChange(paletteId as ColorPalette);
+  }, [handleColorPaletteChange]);
 
   const handleSmartRemindersToggle = useCallback(async () => {
     const newEnabled = !settings.smartRemindersEnabled;
@@ -468,13 +562,8 @@ export function SettingsScreen() {
               title="Notifications"
               subtitle="Get updates and daily reminders"
               isLast={!settings.notificationsEnabled}
-              right={
-                <Switch
-                  value={settings.notificationsEnabled}
-                  onValueChange={handleNotificationsToggle}
-                  color={theme.colors.primary}
-                />
-              }
+              switchValue={settings.notificationsEnabled}
+              onSwitchValueChange={handleNotificationsToggle}
             />
             {settings.notificationsEnabled && (
               <>
@@ -483,14 +572,9 @@ export function SettingsScreen() {
                   title="Daily Planner"
                   subtitle="Reminder to plan your day"
                   disabled={!settings.notificationsEnabled}
-                  right={
-                    <Switch
-                      value={settings.dailyReminderEnabled}
-                      onValueChange={handleDailyReminderToggle}
-                      color={theme.colors.primary}
-                      disabled={!settings.notificationsEnabled}
-                    />
-                  }
+                  switchValue={settings.dailyReminderEnabled}
+                  onSwitchValueChange={handleDailyReminderToggle}
+                  switchDisabled={!settings.notificationsEnabled}
                 />
                 {settings.dailyReminderEnabled && (
                   <SettingRow
@@ -500,13 +584,7 @@ export function SettingsScreen() {
                     disabled={!settings.notificationsEnabled}
                     onPress={() => setShowTimePicker(true)}
                     isLast={true}
-                    right={
-                      <View style={[styles.smallBadge, { backgroundColor: theme.colors.secondaryContainer + '50' }]}>
-                         <Text variant="labelMedium" style={{ color: theme.colors.onSecondaryContainer }}>
-                           Edit
-                         </Text>
-                      </View>
-                    }
+                    badgeText="Edit"
                   />
                 )}
               </>
@@ -524,37 +602,22 @@ export function SettingsScreen() {
               icon="theme-light-dark"
               title="Dark Mode"
               subtitle="Easier on the eyes at night"
-              right={
-                <Switch
-                  value={settings.darkModeEnabled}
-                  onValueChange={handleDarkModeToggle}
-                  color={theme.colors.primary}
-                />
-              }
+              switchValue={settings.darkModeEnabled}
+              onSwitchValueChange={handleDarkModeToggle}
             />
             <SettingRow
               icon="format-text"
               title="Tab Bar Labels"
               subtitle="Show text labels below icons"
-              right={
-                <Switch
-                  value={settings.showTabBarLabels}
-                  onValueChange={handleTabBarLabelsToggle}
-                  color={theme.colors.primary}
-                />
-              }
+              switchValue={settings.showTabBarLabels}
+              onSwitchValueChange={handleTabBarLabelsToggle}
             />
             <SettingRow
               icon="view-agenda-outline"
               title="Minimal Goals View"
               subtitle="Use simplified goals page"
-              right={
-                <Switch
-                  value={settings.minimalGoalsView}
-                  onValueChange={handleMinimalGoalsToggle}
-                  color={theme.colors.primary}
-                />
-              }
+              switchValue={settings.minimalGoalsView}
+              onSwitchValueChange={handleMinimalGoalsToggle}
             />
             
             {/* Theme Accordion Header */}
@@ -606,7 +669,7 @@ export function SettingsScreen() {
             {/* Theme Accordion Body - Collapsed by Default */}
             {themeExpanded && (
               <View style={styles.themeAccordionBody}>
-                {themeMoods.map((mood) => (
+                {palettesByMood.map(({ mood, palettes }) => (
                   <View key={mood.id} style={styles.moodSection}>
                     <View style={styles.moodHeader}>
                       <Text variant="labelLarge" style={[styles.moodTitle, { color: theme.colors.primary }]}>
@@ -617,13 +680,14 @@ export function SettingsScreen() {
                       </Text>
                     </View>
                     <View style={styles.paletteGrid}>
-                      {getPalettesByMood(mood.id).map((palette) => (
+                      {palettes.map((palette) => (
                         <ColorPaletteItem
                           key={palette.id}
+                          paletteId={palette.id}
                           colors={palette.colors}
                           name={palette.name}
                           isSelected={settings.colorPalette === palette.id}
-                          onPress={() => handleColorPaletteChange(palette.id)}
+                          onSelect={handleSelectPalette}
                         />
                       ))}
                     </View>
@@ -646,13 +710,8 @@ export function SettingsScreen() {
               subtitle={settings.openRouterApiKey ? "Configure AI, view stats & insights" : "Set up AI-powered features"}
               isLast={true}
               onPress={() => router.push('/ai-settings')}
-              right={
-                <View style={[styles.smallBadge, { backgroundColor: settings.openRouterApiKey ? theme.colors.primaryContainer : theme.colors.secondaryContainer + '50' }]}>
-                  <Text variant="labelMedium" style={{ color: settings.openRouterApiKey ? theme.colors.primary : theme.colors.onSecondaryContainer }}>
-                    {settings.openRouterApiKey ? "Active" : "Setup"}
-                  </Text>
-                </View>
-              }
+              badgeText={settings.openRouterApiKey ? 'Active' : 'Setup'}
+              badgeTone={settings.openRouterApiKey ? 'primary' : 'secondary'}
             />
           </Surface>
         </View>
@@ -669,19 +728,8 @@ export function SettingsScreen() {
               subtitle="Save all your data to a file"
               onPress={handleExportData}
               disabled={isExporting}
-              right={
-                isExporting ? (
-                  <Text variant="labelMedium" style={{ color: theme.colors.primary }}>
-                    Exporting...
-                  </Text>
-                ) : (
-                  <View style={[styles.smallBadge, { backgroundColor: theme.colors.secondaryContainer + '50' }]}>
-                    <Text variant="labelMedium" style={{ color: theme.colors.onSecondaryContainer }}>
-                      JSON
-                    </Text>
-                  </View>
-                )
-              }
+              rightText={isExporting ? 'Exporting...' : undefined}
+              badgeText={!isExporting ? 'JSON' : undefined}
             />
             <SettingRow
               icon="import"
@@ -689,19 +737,8 @@ export function SettingsScreen() {
               subtitle="Restore from a backup file"
               onPress={handleImportData}
               disabled={isImporting}
-              right={
-                isImporting ? (
-                  <Text variant="labelMedium" style={{ color: theme.colors.primary }}>
-                    Importing...
-                  </Text>
-                ) : (
-                  <View style={[styles.smallBadge, { backgroundColor: theme.colors.secondaryContainer + '50' }]}>
-                    <Text variant="labelMedium" style={{ color: theme.colors.onSecondaryContainer }}>
-                      Restore
-                    </Text>
-                  </View>
-                )
-              }
+              rightText={isImporting ? 'Importing...' : undefined}
+              badgeText={!isImporting ? 'Restore' : undefined}
             />
             <SettingRow
               icon="cloud-sync-outline"
@@ -712,13 +749,8 @@ export function SettingsScreen() {
                 setConvexTokenInput(settings.convexToken || '');
                 setShowConvexCredentialsModal(true);
               }}
-              right={
-                <View style={[styles.smallBadge, { backgroundColor: (settings.convexUrl && settings.convexToken) ? theme.colors.primaryContainer : theme.colors.secondaryContainer + '50' }]}>
-                  <Text variant="labelMedium" style={{ color: (settings.convexUrl && settings.convexToken) ? theme.colors.primary : theme.colors.onSecondaryContainer }}>
-                    {(settings.convexUrl && settings.convexToken) ? "Ready" : "Setup"}
-                  </Text>
-                </View>
-              }
+              badgeText={(settings.convexUrl && settings.convexToken) ? 'Ready' : 'Setup'}
+              badgeTone={(settings.convexUrl && settings.convexToken) ? 'primary' : 'secondary'}
             />
             {settings.convexUrl && settings.convexToken && (
               <>
@@ -728,19 +760,9 @@ export function SettingsScreen() {
                   subtitle="Upload your data to Convex"
                   onPress={handleSyncToCloud}
                   disabled={isSyncing}
-                  right={
-                    isSyncing ? (
-                      <Text variant="labelMedium" style={{ color: theme.colors.primary }}>
-                        Syncing...
-                      </Text>
-                    ) : (
-                      <View style={[styles.smallBadge, { backgroundColor: theme.colors.primaryContainer }]}>
-                        <Text variant="labelMedium" style={{ color: theme.colors.primary }}>
-                          Sync
-                        </Text>
-                      </View>
-                    )
-                  }
+                  rightText={isSyncing ? 'Syncing...' : undefined}
+                  badgeText={!isSyncing ? 'Sync' : undefined}
+                  badgeTone={!isSyncing ? 'primary' : 'secondary'}
                 />
                 <SettingRow
                   icon="cloud-download-outline"
@@ -749,19 +771,8 @@ export function SettingsScreen() {
                   onPress={handleRestoreFromCloud}
                   disabled={isRestoring}
                   isLast={true}
-                  right={
-                    isRestoring ? (
-                      <Text variant="labelMedium" style={{ color: theme.colors.primary }}>
-                        Restoring...
-                      </Text>
-                    ) : (
-                      <View style={[styles.smallBadge, { backgroundColor: theme.colors.secondaryContainer + '50' }]}>
-                        <Text variant="labelMedium" style={{ color: theme.colors.onSecondaryContainer }}>
-                          Restore
-                        </Text>
-                      </View>
-                    )
-                  }
+                  rightText={isRestoring ? 'Restoring...' : undefined}
+                  badgeText={!isRestoring ? 'Restore' : undefined}
                 />
               </>
             )}
@@ -778,50 +789,30 @@ export function SettingsScreen() {
               icon="target"
               title="Focus Mode"
               subtitle="Show only top 3 daily priorities"
-              right={
-                <Switch
-                  value={settings.focusModeEnabled}
-                  onValueChange={handleFocusModeToggle}
-                  color={theme.colors.primary}
-                />
-              }
+              switchValue={settings.focusModeEnabled}
+              onSwitchValueChange={handleFocusModeToggle}
             />
             <SettingRow
               icon="arrow-right-bold"
               title="Carry Forward"
               subtitle="Auto-move incomplete goals to today"
-              right={
-                <Switch
-                  value={settings.carryForwardEnabled}
-                  onValueChange={handleCarryForwardToggle}
-                  color={theme.colors.primary}
-                />
-              }
+              switchValue={settings.carryForwardEnabled}
+              onSwitchValueChange={handleCarryForwardToggle}
             />
             <SettingRow
               icon="calendar-sync"
               title="Calendar Integration"
               subtitle="Show calendar events on goals page"
-              right={
-                <Switch
-                  value={settings.calendarIntegrationEnabled}
-                  onValueChange={handleCalendarToggle}
-                  color={theme.colors.primary}
-                />
-              }
+              switchValue={settings.calendarIntegrationEnabled}
+              onSwitchValueChange={handleCalendarToggle}
             />
             <SettingRow
               icon="trophy-outline"
               title="Gamification"
               subtitle="XP, badges, challenges & personal bests"
               isLast={true}
-              right={
-                <Switch
-                  value={settings.gamificationEnabled}
-                  onValueChange={handleGamificationToggle}
-                  color={theme.colors.primary}
-                />
-              }
+              switchValue={settings.gamificationEnabled}
+              onSwitchValueChange={handleGamificationToggle}
             />
           </Surface>
         </View>
@@ -888,41 +879,36 @@ export function SettingsScreen() {
               icon="bell-ring-outline"
               title="Break Reminders"
               subtitle="Get notified when breaks end"
-              right={
-                <Switch
-                  value={settings.focusBreakRemindersEnabled}
-                  onValueChange={() => saveSettings({ focusBreakRemindersEnabled: !settings.focusBreakRemindersEnabled }, settings.focusBreakRemindersEnabled ? 'Break reminders OFF' : 'Break reminders ON')}
-                  color={theme.colors.primary}
-                />
+              switchValue={settings.focusBreakRemindersEnabled}
+              onSwitchValueChange={() =>
+                saveSettings(
+                  { focusBreakRemindersEnabled: !settings.focusBreakRemindersEnabled },
+                  settings.focusBreakRemindersEnabled ? 'Break reminders OFF' : 'Break reminders ON'
+                )
               }
             />
             <SettingRow
               icon="music-note"
               title="Ambient Sounds"
               subtitle="Background audio during focus"
-              right={
-                <Switch
-                  value={settings.focusAmbientSoundEnabled}
-                  onValueChange={() => saveSettings({ focusAmbientSoundEnabled: !settings.focusAmbientSoundEnabled }, settings.focusAmbientSoundEnabled ? 'Ambient sounds OFF' : 'Ambient sounds ON')}
-                  color={theme.colors.primary}
-                />
+              switchValue={settings.focusAmbientSoundEnabled}
+              onSwitchValueChange={() =>
+                saveSettings(
+                  { focusAmbientSoundEnabled: !settings.focusAmbientSoundEnabled },
+                  settings.focusAmbientSoundEnabled ? 'Ambient sounds OFF' : 'Ambient sounds ON'
+                )
               }
             />
             {settings.focusAmbientSoundEnabled && (
               <View style={styles.soundOptionsContainer}>
-                {(['rain', 'forest', 'cafe', 'waves'] as const).map((sound) => {
-                  const soundLabels = {
-                    rain: { name: 'Rain', icon: 'weather-rainy' },
-                    forest: { name: 'Forest', icon: 'tree' },
-                    cafe: { name: 'Cafe', icon: 'coffee' },
-                    waves: { name: 'Waves', icon: 'wave' },
-                  };
+                {FOCUS_SOUNDS.map((sound) => {
+                  const meta = FOCUS_SOUND_META[sound];
                   const isSelected = settings.focusAmbientSound === sound;
                   return (
                     <TouchableRipple
                       key={sound}
                       onPress={() => {
-                        saveSettings({ focusAmbientSound: sound }, `Sound: ${soundLabels[sound].name}`);
+                        saveSettings({ focusAmbientSound: sound }, `Sound: ${meta.name}`);
                         ambientSoundService.playPreview(sound);
                       }}
                       style={[
@@ -937,7 +923,7 @@ export function SettingsScreen() {
                     >
                       <View style={styles.soundOptionContent}>
                         <Icon 
-                          source={soundLabels[sound].icon} 
+                          source={meta.icon} 
                           size={20} 
                           color={isSelected ? theme.colors.primary : theme.colors.onSurfaceVariant} 
                         />
@@ -949,7 +935,7 @@ export function SettingsScreen() {
                             fontWeight: isSelected ? '600' : '400',
                           }}
                         >
-                          {soundLabels[sound].name}
+                          {meta.name}
                         </Text>
                         {isSelected && (
                           <Icon source="check" size={12} color={theme.colors.primary} />
@@ -965,12 +951,12 @@ export function SettingsScreen() {
               title="Auto-Complete Goals"
               subtitle="Complete goals after focus sessions"
               isLast={true}
-              right={
-                <Switch
-                  value={settings.focusAutoCompleteEnabled}
-                  onValueChange={() => saveSettings({ focusAutoCompleteEnabled: !settings.focusAutoCompleteEnabled }, settings.focusAutoCompleteEnabled ? 'Auto-complete OFF' : 'Auto-complete ON')}
-                  color={theme.colors.primary}
-                />
+              switchValue={settings.focusAutoCompleteEnabled}
+              onSwitchValueChange={() =>
+                saveSettings(
+                  { focusAutoCompleteEnabled: !settings.focusAutoCompleteEnabled },
+                  settings.focusAutoCompleteEnabled ? 'Auto-complete OFF' : 'Auto-complete ON'
+                )
               }
             />
           </Surface>
