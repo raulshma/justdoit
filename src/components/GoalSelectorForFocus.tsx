@@ -16,6 +16,7 @@ import { Text, useTheme, IconButton, Searchbar } from 'react-native-paper';
 import { goalManager } from '../services';
 import type { Goal } from '../types';
 import { CustomDurationPicker } from './CustomDurationPicker';
+import { getTodayDate } from '../utils/dateUtils';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -27,12 +28,7 @@ interface GoalSelectorForFocusProps {
   defaultDuration?: number;
 }
 
-/**
- * Gets today's date in ISO format (YYYY-MM-DD)
- */
-const getTodayDate = (): string => {
-  return new Date().toISOString().split('T')[0];
-};
+
 
 /**
  * GoalSelectorForFocus Component

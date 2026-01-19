@@ -4,6 +4,7 @@ import { goalManager } from './goalManager';
 import { ambientSoundService } from './ambientSoundService';
 import { xpService } from './xpService';
 import { STORAGE_KEYS } from '../constants';
+import { getTodayDate } from '../utils/dateUtils';
 import type {
   FocusSession,
   FocusTimerState,
@@ -148,7 +149,7 @@ class FocusTimerService {
       duration: 0,
       completed: false,
       type: 'work',
-      date: new Date().toISOString().split('T')[0],
+      date: getTodayDate(),
     };
 
     this.timeRemaining = duration;
@@ -176,7 +177,7 @@ class FocusTimerService {
       duration: 0,
       completed: false,
       type: isLongBreak ? 'longBreak' : 'shortBreak',
-      date: new Date().toISOString().split('T')[0],
+      date: getTodayDate(),
     };
 
     // Start ambient sound if enabled
@@ -289,7 +290,7 @@ class FocusTimerService {
    */
   getStats(): FocusStats {
     const sessions = this.getSessionHistory();
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDate();
     const workSessions = sessions.filter((s) => s.type === 'work' && s.completed);
     const todaySessions = workSessions.filter((s) => s.date === today);
 
@@ -459,7 +460,8 @@ class FocusTimerService {
     if (workSessions.length === 0) return 0;
 
     const dates = [...new Set(workSessions.map((s) => s.date))].sort().reverse();
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDate();
+
 
     // Check if there's a session today or yesterday
     if (dates[0] !== today) {

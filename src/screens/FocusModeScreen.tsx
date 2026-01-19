@@ -13,13 +13,9 @@ import {
   FocusSessionStats,
 } from '../components';
 import { useSettings } from '../context/SettingsContext';
+import { getTodayDate } from '../utils/dateUtils';
 
-/**
- * Gets today's date in ISO format (YYYY-MM-DD)
- */
-const getTodayDate = (): string => {
-  return new Date().toISOString().split('T')[0];
-};
+
 
 /**
  * FocusModeScreen - Focus timer with goal integration
