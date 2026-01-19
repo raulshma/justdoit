@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { FAB, useTheme, Snackbar, Text, Portal } from 'react-native-paper';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useRouter, useSegments } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getTodayDate } from '../utils/dateUtils';
 import type { Goal, Challenge, CalendarEvent, PatternInsight, MotivationalMessage, RescheduleSuggestion, Priority } from '../types';
@@ -32,6 +32,7 @@ import {
 export function HomeScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const segments = useSegments();
   const insets = useSafeAreaInsets();
   const { categories } = useCategories();
   const { settings } = useSettings();
@@ -64,6 +65,22 @@ export function HomeScreen() {
   // FAB state
   const [fabOpen, setFabOpen] = useState(false);
   const [showVoiceCreator, setShowVoiceCreator] = useState(false);
+
+  // Only show the FAB on *top-level* routes within the (tabs) group.
+  // This prevents the FAB from leaking onto stack screens (pageSheets) like /ai-settings, /templates, etc.
+  // Note: some router states omit the explicit 'index' segment, so we allow length 1 as well.
+  const showNavbarFab = useMemo(() => {
+    if (segments[0] !== '(tabs)') return false;
+    return segments.length <= 2;
+  }, [segments]);
+
+  // Ensure screen-specific UI doesn't remain open/interactive when leaving navbar routes.
+  useEffect(() => {
+    if (!showNavbarFab) {
+      setFabOpen(false);
+      setShowVoiceCreator(false);
+    }
+  }, [showNavbarFab]);
 
   // Gamification state
   const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([]);
@@ -621,46 +638,48 @@ export function HomeScreen() {
       />
 
       {/* FAB Group for adding goals - Requirements: 3.1, 7.3 */}
-      <Portal>
-        <FAB.Group
-          open={fabOpen}
-          visible
-          icon={fabOpen ? 'close' : 'plus'}
-          actions={[
-            ...(settings.gamificationEnabled
-              ? [
-                  {
-                    icon: 'trophy-outline',
-                    label: 'Challenges',
-                    onPress: handleOpenChallenges,
-                  },
-                ]
-              : []),
-            {
-              icon: 'file-document-outline',
-              label: 'From Template',
-              onPress: handleOpenTemplates,
-            },
-            {
-              icon: 'pencil-outline',
-              label: 'New Goal',
-              onPress: handleAddGoal,
-            },
-            {
-              icon: 'microphone-outline',
-              label: 'Voice Goal',
-              onPress: () => {
-                setFabOpen(false);
-                setShowVoiceCreator(true);
+      {showNavbarFab && (
+        <Portal>
+          <FAB.Group
+            open={fabOpen}
+            visible
+            icon={fabOpen ? 'close' : 'plus'}
+            actions={[
+              ...(settings.gamificationEnabled
+                ? [
+                    {
+                      icon: 'trophy-outline',
+                      label: 'Challenges',
+                      onPress: handleOpenChallenges,
+                    },
+                  ]
+                : []),
+              {
+                icon: 'file-document-outline',
+                label: 'From Template',
+                onPress: handleOpenTemplates,
               },
-            },
-          ]}
-          onStateChange={({ open }) => setFabOpen(open)}
-          fabStyle={[styles.fab, { backgroundColor: theme.colors.primary }]}
-          color={theme.colors.onPrimary}
-          style={[styles.fabGroup, { bottom: floatingBottom }]}
-        />
-      </Portal>
+              {
+                icon: 'pencil-outline',
+                label: 'New Goal',
+                onPress: handleAddGoal,
+              },
+              {
+                icon: 'microphone-outline',
+                label: 'Voice Goal',
+                onPress: () => {
+                  setFabOpen(false);
+                  setShowVoiceCreator(true);
+                },
+              },
+            ]}
+            onStateChange={({ open }) => setFabOpen(open)}
+            fabStyle={[styles.fab, { backgroundColor: theme.colors.primary }]}
+            color={theme.colors.onPrimary}
+            style={[styles.fabGroup, { bottom: floatingBottom }]}
+          />
+        </Portal>
+      )}
 
       {/* Celebration Modal - Requirements: 3.4, 6.2, 6.3 */}
       <CelebrationModal visible={showCelebration} onDismiss={handleDismissCelebration} completedCount={todayCompletedCount} />

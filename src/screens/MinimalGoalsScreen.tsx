@@ -1,7 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { FAB, useTheme, Snackbar, Text, Portal } from 'react-native-paper';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useRouter, useSegments } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Goal } from '../types';
 import { goalManager, carryForwardService } from '../services';
@@ -37,6 +37,7 @@ const getTomorrowDate = (): string => {
 export function MinimalGoalsScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const segments = useSegments();
   const { settings, updateSettings } = useSettings();
   const insets = useSafeAreaInsets();
   
@@ -48,6 +49,20 @@ export function MinimalGoalsScreen() {
   // FAB state
   const [fabOpen, setFabOpen] = useState(false);
   const [showVoiceCreator, setShowVoiceCreator] = useState(false);
+
+  // Only show the FAB on *top-level* routes within the (tabs) group.
+  // Note: some router states omit the explicit 'index' segment, so we allow length 1 as well.
+  const showNavbarFab = useMemo(() => {
+    if (segments[0] !== '(tabs)') return false;
+    return segments.length <= 2;
+  }, [segments]);
+
+  useEffect(() => {
+    if (!showNavbarFab) {
+      setFabOpen(false);
+      setShowVoiceCreator(false);
+    }
+  }, [showNavbarFab]);
   
   // Quick View state
   const [quickViewGoal, setQuickViewGoal] = useState<Goal | null>(null);
@@ -364,42 +379,48 @@ export function MinimalGoalsScreen() {
       />
 
       {/* FAB Group for adding goals */}
-      <Portal>
-        <FAB.Group
-          open={fabOpen}
-          visible
-          icon={fabOpen ? 'close' : 'plus'}
-          actions={[
-            ...(settings.gamificationEnabled ? [{
-              icon: 'trophy-outline',
-              label: 'Challenges',
-              onPress: handleOpenChallenges,
-            }] : []),
-            {
-              icon: 'file-document-outline',
-              label: 'From Template',
-              onPress: handleOpenTemplates,
-            },
-            {
-              icon: 'pencil-outline',
-              label: 'New Goal',
-              onPress: handleAddGoal,
-            },
-            {
-              icon: 'microphone-outline',
-              label: 'Voice Goal',
-              onPress: () => {
-                setFabOpen(false);
-                setShowVoiceCreator(true);
+      {showNavbarFab && (
+        <Portal>
+          <FAB.Group
+            open={fabOpen}
+            visible
+            icon={fabOpen ? 'close' : 'plus'}
+            actions={[
+              ...(settings.gamificationEnabled
+                ? [
+                    {
+                      icon: 'trophy-outline',
+                      label: 'Challenges',
+                      onPress: handleOpenChallenges,
+                    },
+                  ]
+                : []),
+              {
+                icon: 'file-document-outline',
+                label: 'From Template',
+                onPress: handleOpenTemplates,
               },
-            },
-          ]}
-          onStateChange={({ open }) => setFabOpen(open)}
-          fabStyle={[styles.fab, { backgroundColor: theme.colors.primary }]}
-          color={theme.colors.onPrimary}
-          style={[styles.fabGroup, { bottom: floatingBottom }]}
-        />
-      </Portal>
+              {
+                icon: 'pencil-outline',
+                label: 'New Goal',
+                onPress: handleAddGoal,
+              },
+              {
+                icon: 'microphone-outline',
+                label: 'Voice Goal',
+                onPress: () => {
+                  setFabOpen(false);
+                  setShowVoiceCreator(true);
+                },
+              },
+            ]}
+            onStateChange={({ open }) => setFabOpen(open)}
+            fabStyle={[styles.fab, { backgroundColor: theme.colors.primary }]}
+            color={theme.colors.onPrimary}
+            style={[styles.fabGroup, { bottom: floatingBottom }]}
+          />
+        </Portal>
+      )}
 
       {/* Feedback Snackbar */}
       <Portal>
