@@ -888,45 +888,45 @@ export function GoalFormScreen({ goalId, mode: propsMode }: GoalFormScreenProps)
 
           {/* AI Assist Buttons - Only show in add/edit modes when AI is configured */}
           {!isReadOnly && settings.openRouterApiKey && (
-            <View style={styles.aiButtonsRow}>
-              <TouchableOpacity
-                onPress={handleAIAnalysis}
-                disabled={aiLoading}
-                style={[styles.aiAssistButton, { backgroundColor: theme.colors.primaryContainer, flex: 1 }]}
-                activeOpacity={0.7}
-              >
-                <ThemedIcon name="auto-fix" size={18} themeColor="primary" />
-                <Text variant="labelLarge" style={{ color: theme.colors.primary, marginLeft: 8, fontWeight: '600' }}>
-                  AI Assist
-                </Text>
-              </TouchableOpacity>
-              
-              {settings.aiGoalCoachEnabled && (
+              <View style={styles.aiButtonsRow}>
                 <TouchableOpacity
-                  onPress={() => setShowAICoach(true)}
-                  style={[styles.aiAssistButton, { backgroundColor: theme.colors.secondaryContainer, flex: 1, marginLeft: 8 }]}
+                  onPress={handleAIAnalysis}
+                  disabled={aiLoading}
+                  style={[styles.aiAssistButton, { backgroundColor: theme.colors.primaryContainer, flex: 1 }]}
                   activeOpacity={0.7}
                 >
-                  <ThemedIcon name="robot-happy" size={18} themeColor="secondary" />
-                  <Text variant="labelLarge" style={{ color: theme.colors.secondary, marginLeft: 8, fontWeight: '600' }}>
-                    Coach
+                  <ThemedIcon name="auto-fix" size={18} themeColor="primary" />
+                  <Text variant="labelLarge" style={{ color: theme.colors.primary, marginLeft: 8, fontWeight: '600' }}>
+                    AI Assist
                   </Text>
                 </TouchableOpacity>
-              )}
-              
-              {settings.aiGoalBreakdownEnabled && goalId && (
-                <TouchableOpacity
-                  onPress={() => setShowBreakdownModal(true)}
-                  style={[styles.aiAssistButton, { backgroundColor: theme.colors.tertiaryContainer, flex: 1, marginLeft: 8 }]}
-                  activeOpacity={0.7}
-                >
-                  <ThemedIcon name="puzzle-outline" size={18} themeColor="tertiary" />
-                  <Text variant="labelLarge" style={{ color: theme.colors.tertiary, marginLeft: 8, fontWeight: '600' }}>
-                    Break Down
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
+                
+                {settings.aiGoalCoachEnabled !== false && (
+                  <TouchableOpacity
+                    onPress={() => setShowAICoach(true)}
+                    style={[styles.aiAssistButton, { backgroundColor: theme.colors.secondaryContainer, flex: 1, marginLeft: 8 }]}
+                    activeOpacity={0.7}
+                  >
+                    <ThemedIcon name="robot-happy" size={18} themeColor="secondary" />
+                    <Text variant="labelLarge" style={{ color: theme.colors.secondary, marginLeft: 8, fontWeight: '600' }}>
+                      Coach
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                
+                {settings.aiGoalBreakdownEnabled !== false && goalId && (
+                  <TouchableOpacity
+                    onPress={() => setShowBreakdownModal(true)}
+                    style={[styles.aiAssistButton, { backgroundColor: theme.colors.tertiaryContainer, flex: 1, marginLeft: 8 }]}
+                    activeOpacity={0.7}
+                  >
+                    <ThemedIcon name="puzzle-outline" size={18} themeColor="tertiary" />
+                    <Text variant="labelLarge" style={{ color: theme.colors.tertiary, marginLeft: 8, fontWeight: '600' }}>
+                      Break Down
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
           )}
 
           {/* AI Assistant Panel */}

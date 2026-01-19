@@ -139,6 +139,31 @@ export function AISettingsScreen() {
     await saveSettings({ aiPersonalityEnabled: newEnabled }, newEnabled ? 'Personality ON' : 'Personality OFF');
   }, [settings, saveSettings]);
 
+  const handleSmartReschedulingToggle = useCallback(async () => {
+    const newEnabled = !settings.aiSmartReschedulingEnabled;
+    await saveSettings({ aiSmartReschedulingEnabled: newEnabled }, newEnabled ? 'Smart Rescheduling ON' : 'Smart Rescheduling OFF');
+  }, [settings, saveSettings]);
+
+  const handleMotivationalToggle = useCallback(async () => {
+    const newEnabled = !settings.aiMotivationalEnabled;
+    await saveSettings({ aiMotivationalEnabled: newEnabled }, newEnabled ? 'Motivation ON' : 'Motivation OFF');
+  }, [settings, saveSettings]);
+
+  const handlePatternDetectionToggle = useCallback(async () => {
+    const newEnabled = !settings.aiPatternDetectionEnabled;
+    await saveSettings({ aiPatternDetectionEnabled: newEnabled }, newEnabled ? 'Pattern Detection ON' : 'Pattern Detection OFF');
+  }, [settings, saveSettings]);
+
+  const handleGoalBreakdownToggle = useCallback(async () => {
+    const newEnabled = !settings.aiGoalBreakdownEnabled;
+    await saveSettings({ aiGoalBreakdownEnabled: newEnabled }, newEnabled ? 'Goal Breakdown ON' : 'Goal Breakdown OFF');
+  }, [settings, saveSettings]);
+
+  const handleGoalCoachToggle = useCallback(async () => {
+    const newEnabled = !settings.aiGoalCoachEnabled;
+    await saveSettings({ aiGoalCoachEnabled: newEnabled }, newEnabled ? 'Goal Coach ON' : 'Goal Coach OFF');
+  }, [settings, saveSettings]);
+
   const handlePiiToggle = useCallback(async () => {
     const newEnabled = !settings.aiPiiAnonymizationEnabled;
     await saveSettings({ aiPiiAnonymizationEnabled: newEnabled }, newEnabled ? 'PII Protection ON' : 'PII Protection OFF');
@@ -305,6 +330,16 @@ export function AISettingsScreen() {
                 <AIFeaturesSettings
                   smartRemindersEnabled={settings.smartRemindersEnabled}
                   onSmartRemindersToggle={handleSmartRemindersToggle}
+                  aiSmartReschedulingEnabled={settings.aiSmartReschedulingEnabled !== false}
+                  onSmartReschedulingToggle={handleSmartReschedulingToggle}
+                  aiMotivationalEnabled={settings.aiMotivationalEnabled !== false}
+                  onMotivationalToggle={handleMotivationalToggle}
+                  aiPatternDetectionEnabled={settings.aiPatternDetectionEnabled !== false}
+                  onPatternDetectionToggle={handlePatternDetectionToggle}
+                  aiGoalBreakdownEnabled={settings.aiGoalBreakdownEnabled !== false}
+                  onGoalBreakdownToggle={handleGoalBreakdownToggle}
+                  aiGoalCoachEnabled={settings.aiGoalCoachEnabled !== false}
+                  onGoalCoachToggle={handleGoalCoachToggle}
                   personalityEnabled={settings.aiPersonalityEnabled !== false}
                   onPersonalityToggle={handlePersonalityToggle}
                   hasApiKey={true}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import type { CalendarEvent, Goal, PatternInsight, MotivationalMessage, RescheduleSuggestion } from '../types';
@@ -8,10 +8,11 @@ import { XPDisplay } from './XPDisplay';
 import { LevelProgress } from './LevelProgress';
 import { ThemedIcon } from './ThemedIcon';
 import { CalendarEventCard } from './CalendarEventCard';
-import { PatternInsightCard } from './PatternInsightCard';
-import { MotivationalMessageCard } from './MotivationalMessageCard';
-import { RescheduleSuggestionCard } from './RescheduleSuggestionCard';
+// import { PatternInsightCard } from './PatternInsightCard';
+// import { MotivationalMessageCard } from './MotivationalMessageCard';
+// import { RescheduleSuggestionCard } from './RescheduleSuggestionCard';
 import { getTodayDate } from '../utils/dateUtils';
+import { AIInsightsSheet } from './AIInsightsSheet';
 
 interface HomeHeaderProps {
   // Data
@@ -73,6 +74,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   onDismissPatternInsight,
 }) => {
   const theme = useTheme();
+  const [showInsightsSheet, setShowInsightsSheet] = useState(false);
 
   // Helper to get time greeting
   const getTimeGreeting = (): string => {
@@ -81,6 +83,16 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
     if (hour < 18) return 'Good Afternoon.';
     return 'Good Evening.';
   };
+
+  const hasInsights = 
+    patternInsights.length > 0 || 
+    motivationalMessage !== null || 
+    rescheduleSuggestions.length > 0;
+
+  const insightsCount = 
+    patternInsights.length + 
+    (motivationalMessage ? 1 : 0) + 
+    rescheduleSuggestions.length;
 
   return (
     <View>
@@ -171,36 +183,45 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
 
       <MotivationalBanner />
 
-      {/* AI Motivational Message */}
-      {motivationalMessage && (
+      {/* AI Insights Summary Button */}
+      {hasInsights && (
         <View style={styles.insightContainer}>
-          <MotivationalMessageCard message={motivationalMessage} onDismiss={onDismissMotivation} />
+          <TouchableOpacity
+            style={[styles.insightSummaryCard, { backgroundColor: theme.colors.secondaryContainer }]}
+            onPress={() => setShowInsightsSheet(true)}
+            activeOpacity={0.8}
+          >
+            <View style={styles.insightSummaryContent}>
+              <View style={[styles.insightIconBubble, { backgroundColor: theme.colors.secondary }]}>
+                <ThemedIcon name="auto-fix" size={24} color={theme.colors.onSecondary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text variant="titleMedium" style={{ fontWeight: '700', color: theme.colors.onSecondaryContainer }}>
+                  AI Insights Available
+                </Text>
+                <Text variant="bodyMedium" style={{ color: theme.colors.onSecondaryContainer, opacity: 0.8 }}>
+                  {insightsCount} new suggestion{insightsCount !== 1 ? 's' : ''} for you
+                </Text>
+              </View>
+              <ThemedIcon name="chevron-right" size={24} color={theme.colors.onSecondaryContainer} />
+            </View>
+          </TouchableOpacity>
         </View>
       )}
 
-      {/* AI Reschedule Suggestions */}
-      {rescheduleSuggestions.length > 0 && (
-        <View style={styles.insightContainer}>
-          {rescheduleSuggestions.map((suggestion) => (
-            <RescheduleSuggestionCard
-              key={suggestion.goalId}
-              suggestion={suggestion}
-              onAccept={onAcceptReschedule}
-              onModify={onModifyReschedule}
-              onDismiss={onDismissReschedule}
-            />
-          ))}
-        </View>
-      )}
-
-      {/* AI Pattern Insights */}
-      {patternInsights.length > 0 && (
-        <View style={styles.insightContainer}>
-          {patternInsights.map((insight) => (
-            <PatternInsightCard key={insight.id} insight={insight} onDismiss={onDismissPatternInsight} />
-          ))}
-        </View>
-      )}
+      {/* AI Insights Sheet */}
+      <AIInsightsSheet
+        visible={showInsightsSheet}
+        onDismiss={() => setShowInsightsSheet(false)}
+        patternInsights={patternInsights}
+        motivationalMessage={motivationalMessage}
+        rescheduleSuggestions={rescheduleSuggestions}
+        onAcceptReschedule={onAcceptReschedule}
+        onModifyReschedule={onModifyReschedule}
+        onDismissReschedule={onDismissReschedule}
+        onDismissPatternInsight={onDismissPatternInsight}
+        onDismissMotivation={onDismissMotivation}
+      />
     </View>
   );
 };
@@ -269,7 +290,24 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   insightContainer: {
-    marginHorizontal: 24,
-    marginBottom: 12,
+    marginHorizontal: 20,
+    marginBottom: 16,
+  },
+  insightSummaryCard: {
+    borderRadius: 24,
+    padding: 16,
+    overflow: 'hidden',
+  },
+  insightSummaryContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  insightIconBubble: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

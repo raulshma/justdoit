@@ -7,9 +7,8 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  LayoutAnimation,
   Platform,
-  UIManager,
+  LayoutAnimation,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -17,13 +16,12 @@ import {
   useTheme,
   IconButton,
   Chip,
-  Surface,
-  Button,
 } from 'react-native-paper';
 import { LegendList } from '@legendapp/list';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import Animated, { FadeIn, FadeOut, Layout } from 'react-native-reanimated';
+import Animated, { FadeIn, Layout } from 'react-native-reanimated';
 import { ThemedIcon } from '../components/ThemedIcon';
+import { LogDetailsSheet } from '../components/LogDetailsSheet';
 import { aiLogService } from '../services';
 import type { AILogEntry } from '../types';
 import { useAlert } from '../context/AlertContext';
@@ -64,11 +62,9 @@ const formatDuration = (ms: number): string => {
 const LogEntryCard = memo(({
   entry,
   onPress,
-  isExpanded,
 }: {
   entry: AILogEntry;
   onPress: () => void;
-  isExpanded: boolean;
 }) => {
   const theme = useTheme();
 
@@ -108,7 +104,7 @@ const LogEntryCard = memo(({
         {entry.request.goalTitle && (
           <Text
             variant="bodyMedium"
-            numberOfLines={isExpanded ? undefined : 1}
+            numberOfLines={1}
             style={{ marginTop: 6, color: theme.colors.onSurfaceVariant }}
           >
             "{entry.request.goalTitle}"
@@ -131,57 +127,11 @@ const LogEntryCard = memo(({
             </View>
           )}
           <ThemedIcon
-            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+            name="chevron-right"
             size={18}
             themeColor="onSurfaceVariant"
           />
         </View>
-
-        {/* Expanded Content */}
-        {isExpanded && (
-          <View style={styles.expandedContent}>
-            {!entry.response.success && entry.response.error && (
-              <View style={[styles.errorBox, { backgroundColor: theme.colors.errorContainer + '60' }]}>
-                <Text variant="bodySmall" style={{ color: theme.colors.error }}>
-                  {entry.response.error}
-                </Text>
-              </View>
-            )}
-
-            <Text variant="labelMedium" style={{ color: theme.colors.primary, marginTop: 8 }}>
-              Model
-            </Text>
-            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-              {entry.request.model}
-            </Text>
-
-            <Text variant="labelMedium" style={{ color: theme.colors.primary, marginTop: 12 }}>
-              Prompt
-            </Text>
-            <View style={[styles.codeBox, { backgroundColor: theme.colors.surfaceVariant + '50' }]}>
-              <Text variant="bodySmall" style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
-                {entry.request.prompt.slice(0, 500)}
-                {entry.request.prompt.length > 500 ? '...' : ''}
-              </Text>
-            </View>
-
-            {entry.response.success && entry.response.data !== undefined && (
-              <>
-                <Text variant="labelMedium" style={{ color: theme.colors.primary, marginTop: 12 }}>
-                  Response
-                </Text>
-                <View style={[styles.codeBox, { backgroundColor: theme.colors.surfaceVariant + '50' }]}>
-                  <Text variant="bodySmall" style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
-                    {(() => {
-                      const jsonStr = JSON.stringify(entry.response.data as Record<string, unknown>, null, 2);
-                      return jsonStr.slice(0, 500) + (jsonStr.length > 500 ? '...' : '');
-                    })()}
-                  </Text>
-                </View>
-              </>
-            )}
-          </View>
-        )}
       </TouchableOpacity>
     </Animated.View>
   );
@@ -198,7 +148,8 @@ export const LogsScreen: React.FC = () => {
   const [logs, setLogs] = useState<AILogEntry[]>([]);
   const [filter, setFilter] = useState<FilterType>('all');
   const [search, setSearch] = useState('');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedLog, setSelectedLog] = useState<AILogEntry | null>(null);
+  const [detailsVisible, setDetailsVisible] = useState(false);
 
   /**
    * Load logs on focus
@@ -263,11 +214,19 @@ export const LogsScreen: React.FC = () => {
   }, [alert]);
 
   /**
-   * Toggle expanded log entry
+   * Show log details
    */
-  const handleToggleExpand = useCallback((id: string) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpandedId(prev => prev === id ? null : id);
+  const handleShowDetails = useCallback((log: AILogEntry) => {
+    setSelectedLog(log);
+    setDetailsVisible(true);
+  }, []);
+
+  /**
+   * Hide log details
+   */
+  const handleDismissDetails = useCallback(() => {
+    setDetailsVisible(false);
+    setSelectedLog(null);
   }, []);
 
   /**
@@ -276,10 +235,9 @@ export const LogsScreen: React.FC = () => {
   const renderItem = useCallback(({ item }: { item: AILogEntry }) => (
     <LogEntryCard
       entry={item}
-      onPress={() => handleToggleExpand(item.id)}
-      isExpanded={expandedId === item.id}
+      onPress={() => handleShowDetails(item)}
     />
-  ), [expandedId, handleToggleExpand]);
+  ), [handleShowDetails]);
 
   /**
    * Key extractor for list
@@ -382,6 +340,13 @@ export const LogsScreen: React.FC = () => {
           </Text>
         </View>
       )}
+
+      {/* Details Sheet */}
+      <LogDetailsSheet
+        visible={detailsVisible}
+        onDismiss={handleDismissDetails}
+        logEntry={selectedLog}
+      />
     </SafeAreaView>
   );
 };
@@ -457,6 +422,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 12,
     gap: 12,
+    justifyContent: 'space-between',
   },
   statItem: {
     flexDirection: 'row',
@@ -466,21 +432,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
-  },
-  expandedContent: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.06)',
-  },
-  errorBox: {
-    padding: 12,
-    borderRadius: 10,
-  },
-  codeBox: {
-    padding: 12,
-    borderRadius: 10,
-    marginTop: 4,
   },
   emptyState: {
     flex: 1,

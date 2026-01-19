@@ -22,6 +22,12 @@ export function APIKeySettings({ apiKey, onSave, containerStyle }: APIKeySetting
     setApiKeyInput('');
   }, [apiKeyInput, onSave]);
 
+  const handleRemoveApiKey = useCallback(async () => {
+    setShowApiKeyModal(false);
+    await onSave('');
+    setApiKeyInput('');
+  }, [onSave]);
+
   const handleOpenModal = () => {
     setApiKeyInput(apiKey || '');
     setShowApiKeyModal(true);
@@ -79,6 +85,16 @@ export function APIKeySettings({ apiKey, onSave, containerStyle }: APIKeySetting
             autoCorrect={false}
           />
           <View style={styles.modalButtons}>
+            {apiKey && (
+              <Button 
+                mode="text" 
+                onPress={handleRemoveApiKey}
+                textColor={theme.colors.error}
+                style={{ marginRight: 'auto' }}
+              >
+                Remove
+              </Button>
+            )}
             <Button mode="text" onPress={() => {
               setShowApiKeyModal(false);
               setApiKeyInput('');
